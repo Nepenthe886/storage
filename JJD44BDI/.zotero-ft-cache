@@ -1,0 +1,335 @@
+SmolVLA-MoE: Sparse Mixture-of-Experts for
+Efficient Multi-Task Robotic Manipulation
+Shiyang Zhang1, Miao Yang1, Zhengda Li2, Yang Shao2, Ruifang Zhai1,3, Hui Peng1⋆ , and Peng Song2,3⋆⋆
+1 College of Informatics, Huazhong Agricultural University, No. 1 Shizi Mountain Street, Hongshan District, Wuhan 430070, China 2 College of Plant Science and Technology, Huazhong Agricultural University, No. 1 Shizi Mountain Street, Hongshan District, Wuhan 430070, China 3 Hubei Hongshan Laboratory, Wuhan 430070, China
+2305304089@qq.com, moonbird@mail.hzau.edu.cn, songp@mail.hzau.edu.cn
+Abstract.Vision-Language-Action (VLA) models have shown promising results in multi-task robotic manipulation by leveraging visual and language understanding for action generation. However, existing lightweight VLA models employ a single dense action expert to handle all tasks, which limits their multi-task capability under constrained computational budgets. To address this issue, we propose SmolVLA-MoE, a novel framework that introduces sparse Mixture-of-Experts (MoE) into the FFN layers of the action expert in VLA models. SmolVLA-MoE replaces dense FFN layers with multiple parallel expert FFNs and a token-level router, enabling each token to adaptively select the most suitable expert for action generation. We further introduce a shared expert with a tunable weight parameter to balance the inheritance of pre-trained capabilities and task-specific expert specialization. Through sparse activation, SmolVLA-MoE activates only a single expert FFN (∼100M activated parameters in the action expert module) during inference, with a total activated parameter count of∼500M including the frozen VLM backbone—the same as the dense baseline SmolVLA—while benefiting from the multi-expert representational capacity provided by∼800M total stored parameters. We evaluate our method on four task suites of the LIBERO benchmark and compare it against SmolVLA and other representative baselines. Experimental results demonstrate that SmolVLAMoE achieves an average success rate of 84.25% across all four suites, outperforming the dense baseline SmolVLA (82.75%) and the much larger OpenVLA-7B (76.5%), while maintaining comparable inference efficiency, providing an effective and efficient solution for multi-task robotic manipulation. Our code is publicly available athttps://github.com/dudu435/ smolvla-moe.
+Keywords:Mixture-of-Experts·Vision-Language-Action·Robotic Manipulation·Sparse Activation·Multi-Task Learning
+⋆ Corresponding author ⋆⋆ Corresponding author
+arXiv:2610.30732v1 [cs.CV] 22 Oct 2026
+SmolVLA-MoE:面向高效多任务机器人操作的稀疏混 合专家模型
+张世阳1, 杨淼1, 李正达2, 邵阳2, 翟瑞芳1,3, 彭辉1⋆,以及宋鹏2,3⋆⋆
+1 华中农业大学信息学院,中国湖北省武汉市洪山区狮子山街1号,430070 2 华 中农业大学植物科学技术学院,中国湖北省武汉市洪山区狮子山街1号,4300703 湖 北洪山实验室,武汉 430070,中国 2305304089@qq.com, moonbird@mail.hzau.edu.cn, songp@mail.hzau.edu.cn
+摘要。视觉‐语言‐动作(VLA)模型通过利用视觉和语言理解进行动作生成, 在多任务机器人操作中展现出良好前景。然而,现有轻量级VLA模型采用单 一稠密动作专家来处理所有任务,这限制了其在有限计算预算下的多任务能 力。为解决这一问题,我们提出SmolVLA‐MoE,一种新颖的框架,将稀疏 混合专家(MoE)引入VLA模型动作专家的FFN层中。SmolVLA‐MoE用多 个并行专家FFN和token级路由器替换稠密FFN层,使每个token能够自适应 地选择最适合的专家进行动作生成。我们进一步引入一个带有可调权重参数 的共享专家,以平衡预训练能力的继承与任务特定专家的专业化。通过稀疏 激活,SmolVLA‐MoE在推理期间仅激活单个专家FFN(动作专家模块中激 活∼100M参数),包括冻结的VLM骨干在内的总激活参数量为 ∼500M—— 与稠密基线SmolVLA相同——同时受益于 ∼800M总存储参数提供的多专家 表示能力。我们在LIBERO基准的四个任务套件上评估我们的方法,并将其 与SmolVLA及其他代表性基线进行比较。实验结果表明,SmolVLA‐MoE在 所有四个套件上实现了84.25%的平均成功率,优于稠密基线SmolVLA( 82.75%)和规模大得多的OpenVLA‐7B(76.5%),同时保持相当的推理 效率,为多任务机器人操作提供了一种有效且高效的解决方案。我们的代码 已公开于https://github.com/dudu435/
+smolvla‐moe。
+关键词:混合专家 ∙ 视觉‐语言‐动作 ∙ 机器人操作 ∙ 稀疏激活 ∙ 多任务学习
+⋆ 通讯作者⋆⋆ 通讯作 者
+arXiv:2610.30732v1 [cs.CV] 22 Oct 2026
+
+
+2 S. Zhang et al.
+1 Introduction
+Robotic manipulation in unstructured environments requires models that can understand diverse visual scenes, comprehend natural language instructions, and generate corresponding actions. Vision-Language-Action (VLA) models [3,4,22,14] have emerged as a promising paradigm to address this challenge by unifying vision, language, and action within a single framework. Recent works such as RT1 [4], RT-2 [3], Octo [22], and OpenVLA [14] have demonstrated that VLA models can leverage large-scale pre-trained Vision-Language Models (VLMs) [20,1] as backbones to effectively generalize across various manipulation tasks. Despite their strong performance, most VLA models rely on large-scale architectures with billions of parameters, posing significant challenges for real-time deployment on resource-constrained robotic platforms. To address this limitation, lightweight VLA models such as SmolVLA [25] have been proposed, which employ a compact VLM backbone (e.g., SmolVLM2-500M) combined with a small action expert network for action generation via Flow Matching. This design significantly reduces computational cost while maintaining competitive performance. However, these lightweight VLA models suffer from a fundamental limitation: the action expert uses a single dense feed-forward network (FFN) to uniformly process all tasks. In multi-task robotic manipulation scenarios, different tasks (e.g., spatial reasoning, object manipulation, goal reaching) exhibit distinct action patterns that require different computational strategies. A single dense FFN is forced to encode all these diverse action generation patterns into a shared set of parameters, creating an inherent tension between model capacity and computational efficiency. Simply scaling up the action expert proportionally increases inference cost, negating the advantages of the lightweight design. Mixture-of-Experts (MoE) [11,24,13,6] offers an elegant solution to this dilemma. Unlike model compression techniques that trade representational capacity for efficiency, sparse MoE scales model capacity by maintaining multiple parallel expert networks while routing each input to only a sparse subset, keeping the active computation constant. This paradigm has proven effective in large language models such as Mixtral [13] and DeepSeek-MoE [6], yet its application in VLA models for action generation remains largely unexplored. In this paper, we propose SmolVLA-MoE, a framework that introduces sparse Mixture-of-Experts into the FFN layers of the action expert in VLA models. Unlike approaches that replicate the entire action expert into multiple copies, our method operates at a finer granularity, replacing each dense FFN layer with multiple parallel expert FFNs and a learnable token-level router. This design enables each token to adaptively select the most suitable expert for action generation based on the input context, while keeping the attention layers shared across all tasks. We evaluate SmolVLA-MoE on the LIBERO benchmark [19], which provides four task suites (Spatial, Object, Goal, and LIBERO-10) covering diverse manipulation challenges. Experimental results show that SmolVLA-MoE achieves superior performance over the SmolVLA baseline on all four suites, while activat
+2 S. Zhang等
+1 引言
+非结构化环境中的机器人操作要求模型能够理解多样的视觉场景、领会自然语言 指令并生成相应的动作。视觉‐语言‐动作(VLA)模型 [3,4,22,14]通过将视觉、语 言和动作统一到单一框架中,已成为应对这一挑战的一种有前景的范式。近期的 工作如 RT‐1 [4], RT‐2 [3], Octo [22], 和 OpenVLA [14] 已证明,VLA 模型能够利 用大规模预训练的视觉‐语言模型(VLMs) [20,1] 作为骨干,从而有效泛化到各 种操作任务中。
+尽管性能强劲,但大多数VLA模型依赖于具有数十亿参数的大规模架构, 这给在资源受限的机器人平台上的实时部署带来了重大挑战。为解决这一局限, 已有研究者提出了轻量级VLA模型,如SmolVLA [25] ,其采用紧凑的VLM骨干 网络(如SmolVLM2‐500M)并结合小型动作专家网络,通过流匹配进行动作 生成。这一设计在保持竞争力性能的同时显著降低了计算成本。
+然而,这些轻量级VLA模型存在一个根本性局限:动作专家使用单一稠密 前馈网络(FFN)来统一处理所有任务。在多任务机器人操作场景中,不同任 务(如空间推理、物体操作、目标到达)表现出不同的动作模式,需要不同的 计算策略。单一稠密FFN被迫将所有这些多样化的动作生成模式编码到一组共 享参数中,在模型容量与计算效率之间形成了内在矛盾。简单地按比例扩大动 作专家会增加推理成本,从而抵消了轻量级设计的优势。
+混合专家(MoE) [11,24,13,6] 为这一困境提供了一种优雅的解决方案 . 与以牺牲表征能力换取效率的模型压缩技术不同,稀疏MoE通过维护多个并行 专家网络来扩展模型容量,同时将每个输入仅路由到稀疏子集,从而保持活跃 计算量恒定。这一范式已在Mixtral [13] 和DeepSeek‐MoE [6],等大语言模型 中被证明有效,但其在用于动作生成的VLA模型中的应用仍基本未被探索。
+本文提出SmolVLA‐MoE,一个将稀疏混合专家引入VLA模型动作专家 FFN层的框架。与将整个动作专家复制为多份的方法不同,我们的方法在更细 粒度上运作,将每个稠密FFN层替换为多个并行专家FFN和一个可学习的 token级路由器。该设计使每个token能够根据输入上下文自适应地选择最适合 动作生成的专家,同时保持注意力层在所有任务间共享。
+我们在LIBERO基准上评估SmolVLA‐MoE [19], ,该基准提供四个任务套件 (Spatial、Object、Goal和LIBERO‐10),涵盖多样化的操作挑战。实验结果 表明,SmolVLA‐MoE在所有四个套件上均优于SmolVLA基线,同时激活
+
+
+SmolVLA-MoE 3
+ing only a single expert FFN (∼100M activated parameters in the action expert) during inference, keeping the total activated parameter count at∼500M—the same as the dense baseline. We further conduct systematic ablation studies on key design parameters, including the number of activated experts (top-k) and the shared expert weight, providing in-depth analysis of MoE behavior in robotic action generation. Our main contributions are summarized as follows:
+–We propose SmolVLA-MoE, the first work to build a Mixture-of-Experts model on top of the lightweight SmolVLA architecture, maintaining the lightweight and efficient characteristics of SmolVLA under the same activated parameter budget. –Building upon the AdaMoE [30] design, we introduce more controllable weight gating between shared and routed experts to balance pre-trained capability inheritance and expert specialization, and conduct systematic analysis of its impact across different task types. –We demonstrate that SmolVLA-MoE achieves state-of-the-art performance across all four task suites of the LIBERO benchmark while maintaining inference efficiency comparable to the dense baseline.
+2 Related Work
+2.1 Vision-Language-Action Models
+Vision-Language-Action (VLA) models aim to leverage pre-trained vision-language models for action generation, building general-purpose robotic policies. RT-1 [4] first demonstrated that a Transformer-based model trained on large-scale realworld robotic data can generalize across hundreds of tasks. RT-2 [3] pioneered the VLA direction by fine-tuning a large vision-language model (55B-parameter PaLI-X) to directly output robotic actions as text tokens, demonstrating that semantic knowledge embedded in VLMs can transfer to robotic control. Octo [22] proposed a Transformer-based policy architecture supporting flexible task and observation specifications, enabling multi-task learning across multiple robot embodiments. OpenVLA [14] built a 7B-parameter open-source VLA model based on the Llama 2 architecture, achieving strong generalization through large-scale pre-training on the Open X-Embodiment dataset [23]. However, these models typically require billions of parameters, making realtime deployment on robotic platforms challenging. Meanwhile, alternative policy learning approaches such as ACT [31] and Diffusion Policy [5] have shown strong performance in imitation learning with more compact architectures, and vision-language foundation models have been adapted for robotic control [17]. To this end, recent works have explored lightweight VLA architectures.π 0 [2] proposed a flow matching-based VLA that uses a pre-trained vision-language model (PaliGemma [1]) as the backbone and trains a dedicated action expert for action chunk generation. SmolVLA [25] adopts a compact VLM backbone (SmolVLM2-500M) and introduces an independent action expert network that
+SmolVLA‐MoE 3
+仅激活单个专家FFN(∼100M激活参数于动作专家中)进行推理,使总激活参 数数保持在 ∼500M——与稠密基线相同。我们进一步对关键设计参数进行系统 性消融研究,包括激活专家数量(top‐k)和共享专家权重,深入分析MoE在机 器人动作生成中的行为。
+我们的主要贡献总结如下:
+– 我们提出了SmolVLA‐MoE,这是首个在轻量级SmolVLA架构之上构建混合 专家模型的工作,在相同的激活参数预算下保持了SmolVLA的轻量高效特性。– 基于 AdaMoE [30] 设计,我们在共享专家和路由专家之间引入了更可控的 权重门控机制,以平衡预训练能力继承与专家专业化,并对其在不同任务类型 中的影响进行了系统性分析。– 我们证明了SmolVLA‐MoE在LIBERO基准的全 部四个任务套件上均达到了最先进的性能,同时保持与稠密基线相当的推理效 率。
+2 相关工作
+2.1 视觉-语言-动作模型
+视觉‐语言‐动作(VLA)模型旨在利用预训练的视觉‐语言模型进行动作生成,构 建通用机器人策略。RT‐1 [4]首次证明了基于Transformer的模型在大规模真实世 界机器人数据上训练后可以泛化到数百个任务。RT‐2 [3] 开创了VLA方向,通过 微调大型视觉‐语言模型(55B参数的PaLI‐X)直接以文本token形式输出机器人 动作,证明了VLM中嵌入的语义知识可以迁移至机器人控制。Octo [22]提出了一 种基于Transformer的策略架构,支持灵活的任务和观测规范,实现了跨多种机 器人本体的多任务学习。OpenVLA [14] 基于Llama 2架构构建了一个7B参数的 开源VLA模型,通过在Open X‐Embodiment数据集 [23]上进行大规模预训练实现 了强大的泛化能力。
+然而,这些模型通常需要数十亿参数,使得在机器人平台上进行实时部署 颇具挑战性。与此同时,其他策略学习方法(如ACT [31] 和Diffusion Policy [5] )已在模仿学习中展现出强劲性能,且架构更为紧凑,视觉‐语言基础模型 也已被适配用于机器人控制 [17]。为此,近期工作探索了轻量级VLA架构。 π0 [2]提出了一种基于流匹配的VLA,使用预训练的视觉‐语言模型( PaliGemma [1])作为骨干,并训练专门的动作专家来生成动作块。S molVLA [25] 采用紧凑的VLM骨干(SmolVLM2‐500M),并引入一个独立的 动作专家网络,该网络
+
+
+4 S. Zhang et al.
+generates actions via Flow Matching [18], significantly reducing model size while maintaining competitive performance. This lightweight approach demonstrates that effective robotic manipulation does not necessarily require billion-scale models, but its single dense action expert design limits multi-task capability. Our work builds upon SmolVLA by introducing sparse MoE into the action expert to address this limitation, enabling efficient multi-task scaling without increasing inference cost.
+2.2 Mixture-of-Experts Models
+Mixture-of-Experts (MoE) [11] is a classical approach for scaling model capacity through conditional computation, maintaining multiple expert networks and using a gating mechanism to route each input to a sparse subset of experts. The sparsely-gated MoE layer [24] first demonstrated the scalability of this approach in deep learning. Subsequent works have advanced MoE along several directions, including simplified top-1 routing with load balancing [7] and largescale top-2 routing [16]. More recently, Mixtral [13] demonstrated that sparse MoE can match much larger dense models at a fraction of the inference cost. Two designs are particularly relevant to our work: DeepSeek-MoE [6] introduced shared experts that are always activated alongside routed experts, providing a stable baseline; AdaMoE [30] proposed adaptive scaling adapters that decouple expert selection from expert weighting. In the robotics domain, the application of MoE remains limited. Existing approaches to efficient robot learning primarily focus on model compression: knowledge distillation [8] transfers knowledge from large teacher models to smaller students, parameter-efficient fine-tuning methods like LoRA [10] reduce trainable parameters, and data augmentation techniques [29,21] improve sample efficiency. However, these methods fundamentally trade off representational capacity for computational savings. Sparse MoE offers a distinct advantage: it scales model capacity through multiple specialized experts while keeping the per-inference computation constant, making it ideally suited for multi-task robotic manipulation where different tasks demand different computational strategies but the deployment budget is fixed. Some works have explored MoE in multi-task reinforcement learning [27], but the integration of MoE into lightweight VLA models for action generation has not been systematically studied. To this end, our work introduces FFN-level MoE into the action expert of VLA models, drawing on the shared expert design of DeepSeek-MoE [6] and the adaptive routing of AdaMoE [30], combined with Sparse Upcycling [15] initialization that converts pre-trained dense checkpoints into sparse MoE models while preserving pre-trained knowledge.
+3 Method
+This section presents SmolVLA-MoE in detail. We first review the SmolVLA architecture that serves as our baseline (Sect. 3.1), then describe the FFNlevel Mixture-of-Experts design (Sect. 3.2), the routing mechanism (Sect. 3.3),
+4 S. Zhang 等
+通过Flow Matching [18], 生成动作,显著减小了模型规模,同时保持了有竞争 力的性能。这种轻量级方法表明,有效的机器人操作并不一定需要十亿级规模 的模型,但其单一稠密动作专家的设计限制了多任务能力。
+我们的工作在 SmolVLA 的基础上,将稀疏 MoE 引入动作专家以解决这一 局限,从而在不增加推理成本的情况下实现高效的多任务扩展。
+2.2 混合专家模型
+混合专家(MoE) [11]是一种通过条件计算来扩展模型容量的经典方法,它维 护多个专家网络,并使用门控机制将每个输入路由到稀疏的专家子集。稀疏门 控 MoE 层 [24] 首次在深度学习中展示了该方法的可扩展性。后续工作从多个 方向推进了 MoE,包括带负载均衡的简化 top‐1 路由 [7]和大规模 top‐2 路由 [16]。最近,Mixtral [13] 证明了稀疏 MoE 能以一小部分推理成本达到与更大 规模稠密模型相当的效果。有两项设计与我们的工作尤为相关: DeepSeek‐MoE [6] 引入了始终与路由专家一同激活的共享专家,提供了稳定 的基线;AdaMoE [30] 提出了自适应缩放适配器,将专家选择与专家加权解耦。
+在机器人领域,MoE 的应用仍然有限。现有的高效机器人学习方法主要聚 焦于模型压缩:知识蒸馏 [8] 将知识从大型教师模型迁移到较小的学生模型, LoRA [10] 等参数高效微调方法减少可训练参数,数据增强技术 [29,21] 提升 样本效率。然而,这些方法本质上是以表征能力换取计算节省。稀疏 MoE 具 有独特优势:它通过多个专用专家扩展模型容量,同时保持每次推理的计算量 恒定,因而非常适合多任务机器人操作——不同任务需要不同的计算策略,但 部署预算固定。已有工作在多任务强化学习中探索了 MoE [27], ,但将 MoE 集成到轻量级 VLA 模型中以生成动作尚未得到系统研究。为此,我们的工作将 FFN 级 MoE 引入 VLA 模型的动作专家中,借鉴 DeepSeek‐MoE [6] 的共享 专家设计和 AdaMoE [30], 的自适应路由,并结合 Sparse Upcycling [15] 初始化——该方法将预训练的稠密检查点转换为稀疏 MoE 模型,同时保留预 训练知识。
+3 方法
+本节详细介绍 SmolVLA‐MoE。我们首先回顾作为基线的 SmolVLA 架构(第 3.1 节),然后描述 FFN 层级的混合专家设计(第 3.2 节)、路由机制(第 3.3 节)、
+
+
+SmolVLA-MoE 5
+Fig. 1: Overview of the SmolVLA-MoE architecture. The frozen VLM backbone processes visual observations and language instructions to produce contextual representations. The action expert replaces dense FFN layers with MoE-FFN layers, each containing a shared expertE s (always activated, weighted byα), Nrouted expert FFNs, a token-level router with top-Kselection, and a scaling adapter. Through sparse activation, onlyKexperts are selected per token during both training and inference.
+the shared expert with tunable weight (Sect. 3.4), and the training objective (Sect. 3.5). The overall architecture is illustrated in Fig. 1.
+3.1 Preliminaries: SmolVLA
+SmolVLA is a lightweight Vision-Language-Action model consisting of two main components: a frozen VLM backbone and a trainable action expert. VLM Backbone.SmolVLA adopts SmolVLM2-500M as its vision-language backbone, comprising a SigLIP vision encoder and a language model. The VLM processes visual observations and language instructions to produce contextual representations. During training, the VLM backbone is frozen to preserve its pre-trained knowledge. Action Expert.The action expert is a small Transformer network that generates robotic actions based on the VLM’s representations. It consists of multiple Transformer layers, each containing a cross-attention module (attending to the VLM’s key-value cache) and a feed-forward network (FFN). The FFN in each layer adopts the SwiGLU architecture:
+FFN(x) =W down ·(SiLU(W gate ·x)⊙W up ·x)(1)
+whereW gate ∈R dff ×d,W up ∈R dff ×d,W down ∈R d×dff are learnable weight matrices,dis the hidden dimension, andd ff is the intermediate dimension.
+SmolVLA‐MoE 5
+图1:SmolVLA‐MoE架构概览。冻结的VLM主干网络处理视觉观测和语言指令, 以生成上下文表示。动作专家将稠密FFN层替换为MoE‐FFN层,每个 MoE‐FFN层包含一个共享专家 Es (始终激活,由 α加权)、N 个路由专家 FFN、一个采用top‐K 选择的词元级路由器,以及一个缩放适配器。通过稀疏 激活,在训练和推理过程中每个词元仅选择 K 个专家。
+具有可调权重的共享专家(第 3.4 节),以及训练目标(第 3.5 节)。整体架构 如图 1 所示。
+3.1 预备知识:SmolVLA
+SmolVLA是一个轻量级视觉‐语言‐动作模型,由两个主要组件构成:一个冻结的VLM主
+干网络和一个可训练的动作专家。
+VLM主干网络。SmolVLA采用SmolVLM2‐500M作为其视觉‐语言主干网络, 包含一个SigLIP视觉编码器和一个语言模型。VLM处理视觉观测和语言指令, 以生成上下文表示。在训练过程中,VLM主干网络保持冻结,以保留其预训练 知识。 动作专家。动作专家是一个小型 Transformer 网络,基于 VLM 的表示生 成机器人动作。它由多个 Transformer 层组成,每层包含一个交叉注意力模块 (关注 VLM 的键值缓存)和一个前馈网络(FFN)。每层中的 FFN 采用 SwiGLU 架构:
+FFN(x) = Wdown · (SiLU(Wgate · x) ⊙ Wup · x) (1)
+其中 Wgate ∈ Rdff ×d、 Wup ∈ Rdff ×d、 Wdown ∈ Rd×dff 是可学习的权重矩阵,
+d 是隐藏维度, dff 是中间维度。
+
+
+6 S. Zhang et al.
+Flow Matching.SmolVLA uses Flow Matching [18,26] for action generation. Unlike diffusion-based approaches [9,5] that require many denoising steps, Flow Matching learns a continuous velocity field along a straight-line transport path from noise to the target action distribution. During training, given a ground-truth action sequencea∈R H×da (whereHis the action chunk size andd a is the action dimension) and sampled noiseε∼ N(0, I), a noisy action is constructed via linear interpolation at timestept∼Beta(1.5,1.0):
+xt =t·ε+ (1−t)·a(2)
+wheret∈[0,1]controls the interpolation between the clean actiona(att= 0) and pure noiseε(att= 1). The model learns to predict the velocity fieldv θ(xt, t) that transportsx t towarda, with the target velocityu t =ε−arepresenting the constant velocity along the straight-line path. The training loss minimizes the mean squared error between predicted and target velocities:
+LF M =E t,ε ∥vθ(xt, t)−u t∥2 (3)
+At inference, actions are generated by integrating the learned velocity field backward fromt= 1(pure noise) tot= 0(clean action) throughNsteps of Euler integration with step size∆t=−1/N.
+3.2 FFN-Level Mixture-of-Experts
+The core idea of SmolVLA-MoE is to replace the dense FFN layers in the action expert with Mixture-of-Experts FFN (MoE-FFN) layers. Unlike full expert-level MoE that replicates the entire action expert into multiple copies, our method operates at the FFN granularity, keeping the attention layers shared while allowing each token to select specialized FFN experts. MoE-FFN Layer.Each MoE-FFN layer containsNparallel expert FFNs {E1, E2, . . . , EN }, a shared expertE s, a routerR, and a scaling adapterS. Each expert FFN adopts the same SwiGLU architecture as the original dense FFN but with independent parameters:
+Ei(x) =W (i)
+down ·(SiLU(W (i)
+gate ·x)⊙W (i)
+up ·x), i∈ {1, . . . , N}(4)
+whereW (i)
+gate,W (i)
+up , andW (i)
+down are the learnable weight matrices of thei-th expert,x∈R d is the input token representation,Nis the total number of routed experts, and⊙denotes element-wise multiplication. Each expert maintains its own independent set of parameters, allowing different experts to learn distinct transformation patterns. Layer Replacement.The replacement frequency is controlled by a parameterf. Whenf= 1, all FFN layers are replaced with MoE-FFN; whenf= 2, every other layer is replaced. For a layer with indexl, MoE-FFN is applied when lmodf= 0.
+6 S. Zhang 等
+流匹配。SmolVLA 使用流匹配 [18,26] 进行动作生成。与需要多步去噪的 基于扩散的方法 [9,5] 不同,流匹配沿着从噪声到目标动作分布的直线传输路 径学习连续的速度场。在训练过程中,给定真实动作序列 a ∈ RH×da (其中 H 是动作块大小, da 是动作维度)和采样噪声 ε ∼ N (0, I),通过线性插 值在时间步 t ∼ Beta(1.5,1.0) 处构造带噪动作:
+xt = t · ε + (1 − t) · a (2)
+其中 t ∈ [0, 1] 控制干净动作 a (位于 t = 0)与纯噪声 ε (位于 t = 1)之 间的插值。模型学习预测速度场 vθ(xt, t),该速度场将 xt 输运至 a,目标速 度 ut = ε − a 表示沿直线路径的恒定速度。训练损失最小化预测速度与目标速 度之间的均方误差:
+LF M = Et,ε ∥vθ(xt, t) − ut∥2 (3)
+在推理时,动作通过将学习到的速度场从 t = 1 (纯噪声)反向积分至 t = 0 (干净动作)来生成,使用 N 步欧拉积分,步长为 ∆t = −1/N。
+3.2 FFN 级混合专家
+SmolVLA‐MoE 的核心思想是将动作专家中的稠密 FFN 层替换为混合专家 FFN(MoE‐FFN)层。与将整个动作专家复制为多个副本的完整专家级 MoE 不同,我们的方法在 FFN 粒度上运行,保持注意力层共享,同时允许每个 token 选择专门的 FFN 专家。 MoE‐FFN 层。每个 MoE‐FFN 层包含 N 个并行的专家 FFN {E1, E2, . . . , EN }、一个共享专家 Es、一个路由器 R 以及一个缩放适配器 S。 每个专家 FFN 采用与原始密集 FFN 相同的 SwiGLU 架构,但具有独立的参数:
+Ei(x) = W (i)
+down · (SiLU(W (i)
+gate · x) ⊙ W (i)
+up · x), i ∈ {1, . . . , N } (4)
+其中 W (i) gate、 W (i)
+up 和 W (i) down 是第 i 个专家的可学习权重矩阵, x ∈ Rd 是输入 token 表示, N 是路由专家的总数, ⊙ 表示逐元素乘法。每个 专家维护其自身独立的参数集,使不同的专家能够学习不同的变换模式。
+层替换。替换频率由参数 f 控制。当 f = 1 时,所有 FFN 层都被替换 为 MoE‐FFN;当 f = 2 时,每隔一层进行替换。对于索引为 l 的层,当 l mod f = 0 时应用 MoE‐FFN。
+
+
+SmolVLA-MoE 7
+Fig. 2: Detailed structure of the MoE-FFN layer. The input token is processed by both the shared expert and the top-Krouted experts selected by the router. The scaling adapter provides additional per-token adaptive scaling. The final output is a weighted combination of the shared expert output (scaled byα) and the routed expert output (scaled by1−α).
+3.3 Routing Mechanism
+The routing mechanism determines which experts process each token. It consists of two components: the router and the scaling adapter. Router.The router is a bias-free linear projection that maps each token’s hidden state to expert scores:
+g(x) =W r ·x, W r ∈R N×d (5)
+whereg(x)∈R N contains the routing logits forNexperts. Top-K Selection.For each token, the topKexperts with the highest routing logits are selected: TK =TopK(g(x), K)(6)
+whereT K denotes the index set of theKselected experts andKis the number of experts activated per token. The routing weights are computed by applying softmax normalization to the logits of the selected experts, ensuring they sum to one:
+wk =Softmax(g(x) TK )k, k∈ {1, . . . , K}(7)
+whereg(x) TK extracts the routing logits corresponding to the selected expert indices, andw k is the normalized routing weight for thek-th selected expert. Scaling Adapter.Following AdaMoE [30], we introduce a scaling adapter that provides additional per-token adaptive scaling, decoupling expert selection from expert weighting. The scaling adapter is also a bias-free linear projection:
+s(x) =W s ·x, W s ∈R N×d (8)
+whereW s is the scaling adapter weight matrix, producing anN-dimensional scaling vector for each token. The final routing weights combine the router softmax weights with the scaling adapter outputs for the selected experts:
+ˆkw=w k +s(x) TK(k), k∈ {1, . . . , K}(9)
+SmolVLA‐MoE 7
+图2:MoE‐FFN层的详细结构。输入token同时由共享专家和路由器选出的前K 个路由专家处理。缩放适配器提供额外的逐token自适应缩放。最终输出为共享 专家输出(按 α缩放)与路由专家输出(按 1 − α缩放)的加权组合。
+3.3 路由机制
+路由机制决定哪些专家处理每个 token。它由两个组件构成:路由器和缩放适配器。
+路由器。路由器是一个无偏置的线性投影,将每个token的隐藏状态映射为专家分 数:
+g(x) = Wr · x, Wr ∈ RN×d (5)
+其中 g(x) ∈ RN 包含 N 个专家的路由logits。 Top‐K选择。对于每个token,选择路由logits最高的前 K 个专家:
+TK = TopK(g(x), K) (6)
+其中 TK 表示 K 个所选专家的索引集, K 是每个 token 激活的专家数量。 路由权重通过对所选专家的 logits 应用 softmax 归一化来计算,确保它们的和 为 1:
+wk = Softmax(g(x)TK )k, k ∈ {1, . . . , K} (7)
+其中 g(x)TK 提取与所选专家索引对应的路由 logits, wk 是第 k 个所选专家的归一 化路由权重。 缩放适配器。遵循 AdaMoE [30], ,我们引入了一个缩放适配器,提供额外的逐 token 自适应缩放,将专家选择与专家加权解耦。该缩放适配器也是一个无偏置线性投影:
+s(x) = Ws · x, Ws ∈ RN×d (8)
+其中 Ws 是缩放适配器权重矩阵,为每个 token 生成一个 N 维的缩放向量。 最终的路由权重将路由器的 softmax 权重与所选专家的缩放适配器输出相结合:
+wˆk = wk + s(x)TK(k), k ∈ {1, . . . , K} (9)
+
+
+8 S. Zhang et al.
+whereˆwk is the adjusted routing weight for thek-th selected expert, ands(x) TK(k) is the scaling adapter output corresponding to that expert. This additive combination allows the scaling adapter to modulate the magnitude of expert contributions independently of the router’s selection decision. Routed Output.The routed expert output for each token is the weighted sum of the selected expert outputs:
+yrouted(x) =
+K
+X
+k=1
+ˆkw·E TK(k)(x)(10)
+whereE TK(k)(x)is the output of thek-th selected expert applied to inputx, and ˆkw is its corresponding adjusted routing weight. OnlyKout ofNtotal experts are computed per token, achieving sparse activation.
+3.4 Shared Expert with Tunable Weight
+Inspired by DeepSeek-MoE [6], we introduce a shared expertE s that is always activated for all tokens, providing a stable baseline output. The shared expert has the same SwiGLU architecture as the routed experts but with independent parameters. The final output of the MoE-FFN layer combines the shared expert output and the routed expert output through a tunable weight parameterα:
+y(x) =α·E s(x) +y routed(x)(11)
+wherey(x)is the final MoE-FFN layer output,E s(x)is the shared expert output,y routed(x)is the aggregated routed expert output defined in Eq. (14), and α∈[0,1]is the shared expert weight that controls the relative contribution of the shared expert. This parameter provides continuous control between two complementary roles:
+– Pre-trained capability inheritance(α→1): The shared expert preserves the pre-trained knowledge of the original dense FFN, ensuring training stability. – Expert specialization(α→0): The routed experts gain greater influence, enabling task-specific specialization.
+Note that the shared expert is initialized with the exact pre-trained dense FFN weights without added noise, while the routed experts receive noise perturbation (Sect. 3.5). This asymmetric initialization ensures that the shared expert serves as a reliable baseline from the start of training.
+3.5 Training Objective
+Sparse Upcycling Initialization.Starting from the pre-trained baseline, all expert FFNs are initialized from the pre-trained dense FFN weights of the original SmolVLA action expert. The shared expert receives an exact copy, while
+8 S. Zhang等
+其中 ˆwk 是第 k 个所选专家的调整后路由权重, s(x)TK(k) 是对应于该专家的 缩放适配器输出。这种加法组合允许缩放适配器独立于路由器的选择决策来调 节专家贡献的幅度。
+路由输出。每个token的路由专家输出为所选专家输出的加权和:
+yrouted(x) =
+K
+X
+k=1
+wˆk · ETK(k)(x) (10)
+其中ETK(k)(x)是第 k个所选专家应用于输入 x的输出,ˆwk 是其对应的调整后的 路由权重。每个token仅计算 K 个专家(共 N 个),从而实现稀疏激活。
+3.4 可调权重的共享专家
+受DeepSeek‐MoE [6], 的启发,我们引入了一个共享专家 Es ,它对所有 token始终激活,提供稳定的基线输出。该共享专家具有与路由专家相同的 SwiGLU架构,但参数独立。
+MoE‐FFN层的最终输出通过可调权重参数 α将共享专家输出与路由专家输出相 结合:
+y(x) = α · Es(x) + yrouted(x) (11)
+其中 y(x) 是最终 MoE‐FFN 层的输出, Es(x) 是共享专家的输出, yrouted(x) 是式(14)中定义的聚合路由专家输出,α ∈ [0, 1] 是控制共享专家相对贡献的 共享专家权重。该参数在两个互补角色之间提供连续控制:
+– 预训练能力继承(α → 1):共享专家保留原始稠密 FFN 的预训练知识, 确保训练稳定性。– 专家专业化(α → 0):路由专家获得更大影响,从而实 现任务特定的专业化。
+注意,共享专家使用精确的预训练稠密 FFN 权重初始化且不添加噪声,而 路由专家则接受噪声扰动(第3.5节)。这种非对称初始化确保共享专家从训练 开始就作为可靠的基线。
+3.5 训练目标
+稀疏升级初始化。从预训练的基线模型出发,所有专家FFN均使用原始SmolVLA动 作专家的预训练稠密FFN权重进行初始化。共享专家获得完全相同的副本,而
+
+
+SmolVLA-MoE 9
+each routed expert receives the same weights with added Gaussian noise:
+W (i) =W dense +σ·std(W dense)· N(0, I), i∈ {1, . . . , N}(12)
+whereW (i) is the initialized weight matrix of thei-th routed expert,W dense is the pre-trained dense FFN weight matrix, std(Wdense)is the standard deviation ofW dense used to scale the noise relative to the weight magnitude,N(0, I)is standard Gaussian noise, andσis the noise scale (default 0.02). This initialization ensures: (1) the model starts from a strong pre-trained checkpoint, and (2) the noise promotes expert diversity and specialization during training. Load Balancing Loss.Following Switch Transformer [7], we adopt a load balancing loss to encourage uniform expert utilization and prevent expert collapse:
+LLB =N·
+N
+X
+i=1
+fi ·P i (13)
+whereNis the total number of routed experts,f i = 1
+T
+PT
+j=1 1[expertiis selected for tokenj] is the fraction of tokens routed to expertiacross a batch ofTtokens (nondifferentiable), andP i = 1
+T
+PT
+j=1 pi(xj)is the average routing probability for experticomputed from the softmax output (differentiable). The productf i ·P i is minimized when both the actual token allocation and routing probabilities are uniformly distributed, thus penalizing imbalanced expert utilization. Total Loss.The total training loss combines the Flow Matching loss and the load balancing loss:
+L=L F M +λ· L LB (14)
+whereL F M is the Flow Matching loss defined in Eq. (3),L LB is the load balancing loss defined in Eq. (17), andλis the load balancing weight (default 0.01) that controls the trade-off between action prediction accuracy and expert utilization balance. The load balancing loss is averaged over all MoE-FFN layers in the action expert.
+4 Experiments
+This section evaluates SmolVLA-MoE on the LIBERO benchmark. We first describe the experimental setup (Sect. 4.1), then present the main results (Sect. 4.2), followed by ablation studies (Sect. 4.3).
+4.1 Experimental Setup
+Benchmark.We conduct evaluations on the LIBERO benchmark [19], which provides standardized evaluation suites for multi-task robotic manipulation in simulated tabletop environments. LIBERO contains four task suites of increasing difficulty:
+SmolVLA‐MoE 9
+每个路由专家获得相同的权重并添加高斯噪声:
+W (i) = Wdense + σ · std(Wdense) · N (0, I), i ∈ {1, . . . , N } (12)
+其中 W (i) 是第 i 个路由专家的初始化权重矩阵, Wdense 是预训练的稠密 FFN 权重矩阵,std(Wdense) 是 Wdense 的标准差,用于根据权重幅度缩放噪 声, N (0, I) 是标准高斯噪声, σ 是噪声缩放系数(默认 0.02)。这种初始 化确保了:(1) 模型从强大的预训练检查点开始,(2) 噪声在训练过程中促进专 家的多样性和专业化。 负载均衡损失。遵循 Switch Transformer [7], ,我们采用负载均衡损失 来鼓励均匀的专家利用率并防止专家坍缩:
+LLB = N ·
+N
+X
+i=1
+fi · Pi (13)
+其中 N 是路由专家的总数, fi = 1
+T
+PT
+j=1 1[ 专家 i 被选择用于 token j] ,是在一批 T 个 token 中路由到专家 i 的 token 比例(不可微分),而 Pi = 1
+T
+PT
+j=1 pi(xj) 是从
+softmax 输出计算得到的专家 i 的平均路由概率(可微分)。当实际 token 分配和路由概 率都均匀分布时,乘积 fi · Pi 被最小化,从而惩罚不平衡的专家利用率。
+总损失。总训练损失结合了流匹配损失和负载均衡损失:
+L = LF M + λ · LLB (14)
+其中 LF M 是公式 (3) 中定义的流匹配损失, LLB 是公式 (17) 中定义的负 载均衡损失, λ 是负载均衡权重(默认值为 0.01),用于控制动作预测精度 与专家利用率平衡之间的权衡。负载均衡损失在动作专家中的所有 MoE‐FFN 层上取平均值。
+4 实验
+本节在 LIBERO 基准上评估 SmolVLA‐MoE。我们首先描述实验设置(第 4.1 节),然后展示主要结果(第 4.2 节),最后进行消融研究(第 4.3 节)。
+4.1 实验设置
+基准测试。我们在 LIBERO 基准上进行评估 [19],,该基准为模拟桌面环境中 的多任务机器人操作提供了标准化的评估套件。LIBERO 包含四个难度递增的 任务套件:
+
+
+10 S. Zhang et al.
+(a) “Turn on the stove and put the moka pot on it.”
+(b) “Put the yellow and white mug in the microwave and close it.”
+Fig. 3: Visualization of complete rollouts in the LIBERO simulation environment. Each row shows key frames of the execution trajectory for a multi-step manipulation task from start to completion.
+– LIBERO-Spatial: 10 tasks focusing on spatial relationship understanding (e.g., “pick up the object to the left of the bowl”). This suite tests the model’s ability to comprehend spatial language instructions. – LIBERO-Object: 10 tasks focusing on object recognition and manipulation (e.g., “pick up the red cup”). This suite evaluates the model’s ability to distinguish between different objects. – LIBERO-Goal: 10 tasks focusing on goal-conditioned manipulation with diverse goals. This suite tests the model’s ability to reach specified goal states. – LIBERO-10: 10 tasks combining elements from all categories with multistep instructions. This is the most challenging suite, requiring compositional understanding of spatial, object, and goal concepts.
+Each task is evaluated over 10 rollouts, using success rate as the evaluation metric. Baselines.We compare SmolVLA-MoE against six representative baselines spanning different scales and architectures: Diffusion Policy [5] (321M), Octo [22] (93M), OpenVLA [14] (7B, pre-trained on Open X-Embodiment [23]),π 0 in two configurations [2] (Paligemma-3B and 3.3B), and SmolVLA [25] (500M) as the direct dense baseline fine-tuned on each LIBERO suite following the same protocol.
+10 S. Zhang 等
+(a) “打开炉灶并把摩卡壶放上去。”
+(b) “把黄白色杯子放进微波炉并关上微波炉。”
+图3:LIBERO 仿真环境中完整执行过程的可视化。每一行展示了一个多步操作 任务从开始到完成的关键帧轨迹。
+– LIBERO‐Spatial:10 个任务,侧重空间关系理解(例如“拿起碗左边的物体”)。 该套件测试模型理解空间语言指令的能力。 – LIBERO‐Object:10 个任务, 侧重物体识别与操作(例如“拿起红色杯子”)。该套件评估模型区分不同物体 的能力。 – LIBERO‐Goal:10 个任务,侧重具有多样目标的目标条件操作。 该套件测试模型达到指定目标状态的能力。 – LIBERO‐10:10 个任务,结合 所有类别的元素并包含多步指令。这是最具挑战性的套件,要求对空间、物体 和目标概念具备组合理解能力。
+每个任务在 10 次执行中进行评估,使用成功率作为评估指标。
+基线。我们将 SmolVLA‐MoE 与六个涵盖不同规模和架构的代表性基线进 行比较:Diffusion Policy [5](321M)、Octo [22](93M)、OpenVLA [14] (7B,在 Open X‐Embodiment [23] 上预训练)、 π0 的两种配置 [2] ( Paligemma‐3B 和 3.3B),以及 SmolVLA [25] (500M)作为直接稠密基线, 按照相同协议在每个 LIBERO 套件上微调。
+
+
+SmolVLA-MoE 11
+Table 1: Main Results on the LIBERO Benchmark (Success Rate %)
+Method Params Spatial Object Goal LIBERO-10 Avg.
+Diffusion Policy [5] 321M 78.3 92.5 68.3 50.5 72.4 Octo [22] 93M 78.9 85.7 84.6 51.1 75.1 OpenVLA [14] 7B 84.7 88.4 79.2 53.7 76.5 π0 (Paligemma) [2] 3B 87 63 89 48 71.8 π0 [2] 3.3B 90 86 95 73 86.0 SmolVLA [25] 500M 87 93 88 63 82.75 SmolVLA-MoE (Ours) 500M† 87 93 93 65 84.25
+Implementation Details.SmolVLA-MoE is built on top of the SmolVLA architecture. The VLM backbone (SmolVLM2-500M) is frozen during training. The dense FFN layers of the action expert are replaced with MoE-FFN layers through Sparse Upcycling initialization. With 4 routed experts plus 1 shared expert, the total stored parameters of SmolVLA-MoE are∼800M. During inference, only 1 expert FFN is activated per token, resulting in∼100M activated parameters in the action expert module and∼500M total activated parameters including the frozen VLM backbone—identical to the dense baseline SmolVLA. Key hyperparameters include: learning rate 1e-4 with AdamW optimizer, batch size 48, 120,000 training steps with 4,000 warmup steps, load balancing weight λ= 0.01, expert initialization noiseσ= 0.02, and 10 Flow Matching denoising steps. All experiments are conducted on a single NVIDIA RTX 4090 GPU (24GB VRAM). Each configuration is trained for 120,000 steps with the same random seed to ensure fair comparison.
+4.2 Main Results
+Table 1 presents the main comparison results of SmolVLA-MoE against multiple representative baseline methods across all four LIBERO task suites. We report the best configuration of SmolVLA-MoE (determined by the parameter study in Sect. 4.3). As shown in Table 1, SmolVLA-MoE achieves an average success rate of 84.25% with only∼500M total activated parameters (∼100M in the action expert module), significantly outperforming the much larger OpenVLA (7B, 76.5%) and Octo (0.09B, 75.1%), as well as Diffusion Policy (72.4%) andπ 0 (Paligemma-3B) (71.8%). Compared to the direct baseline SmolVLA, SmolVLA-MoE improves the average success rate from 82.75% to 84.25% under the same activated parameter budget (∼500M), a gain of 1.5 percentage points, indicating that the performance improvement comes from the expanded model capacity through sparse MoE rather than additional computational overhead. Among all methods, onlyπ 0 (3.3B) surpasses SmolVLA-MoE with an average success rate of 86.0%, but its activated parameter count is approximately
+SmolVLA‐MoE 11
+表 1:LIBERO 基准上的主要结果(成功率 %) 方法 参数量 Spatial ObjectGoalLIBERO‐10 平均值
+Diffusion Policy [5] 321M 78.3 92.5 68.3 50.5 72.4 Octo [22] 93M 78.9 85.7 84.6 51.1 75.1 OpenVLA [14] 7B 84.7 88.4 79.2 53.7 76.5 π0 (Paligemma) [2] 3B 87 63 89 48 71.8 π0 [2] 3.3B 90 86 95 73 86.0 SmolVLA [25] 500M 87 93 88 63 82.75
+SmolVLA-MoE(本文)500M† 87 93 93 65 84.25
+实现细节。SmolVLA‐MoE 构建于 SmolVLA 架构之上。VLM 主干( SmolVLM2‐500M)在训练期间保持冻结。动作专家的稠密 FFN 层通过稀疏上 行循环初始化替换为 MoE‐FFN 层。凭借 4 个路由专家加 1 个共享专家, SmolVLA‐MoE 的总存储参数为 ∼800M。在推理期间,每个 token 仅激活 1 个专家 FFN,导致动作专家模块中激活参数为 ∼100M,包括冻结 VLM 主干 在内的总激活参数为 ∼500M——与稠密基线 SmolVLA 完全相同。关键超参数 包括:学习率 1e‐4,使用 AdamW 优化器,批量大小 48,120,000 个训练步, 4,000 个预热步,负载均衡权重λ = 0.01,专家初始化噪声 σ = 0.02,以及 10 个流匹配去噪步。
+所有实验均在单块 NVIDIA RTX 4090 GPU(24GB 显存)上进行。每种 配置均使用相同的随机种子训练 120,000 步,以确保公平比较。
+4.2 主要结果
+表1展示了SmolVLA‐MoE在所有四个LIBERO任务套件上与多个代表性基线方 法的主要对比结果。我们报告了SmolVLA‐MoE的最佳配置(由第4.3节的参数 研究确定)。
+如表1所示,SmolVLA‐MoE仅用 ∼500M总激活参数(其中动作专家模块 ∼100M)就达到了84.25%的平均成功率,显著优于规模大得多的OpenVLA (7B,76.5%)和Octo(0.09B,75.1%),以及Diffusion Policy(72.4%) 和 π0 (Paligemma‐3B)(71.8%)。与直接基线SmolVLA相比, SmolVLA‐MoE在相同的激活参数预算(∼500M)下将平均成功率从82.75%提 升至84.25%,提升了1.5个百分点,这表明性能提升来源于通过稀疏MoE扩展 的模型容量,而非额外的计算开销。
+在所有方法中,只有 π0 (3.3B)的平均成功率达到 86.0%,超过了 SmolVLA‐MoE,但其激活参数量约为
+
+
+12 S. Zhang et al.
+Fig. 4: Per-suite success rate comparison across all methods on the LIBERO benchmark. SmolVLA-MoE (highlighted with black borders) achieves competitive or superior performance across all four suites with∼500M total activated parameters (∼100M in the action expert).
+3.3B—6.6×that of SmolVLA-MoE (∼500M). This demonstrates the significant parameter efficiency advantage of SmolVLA-MoE, achieving performance close to large models at a fraction of the computational cost. Per-Suite Analysis.SmolVLA-MoE matches SmolVLA on Spatial (87%) and Object (93%), while achieving a 5 percentage point improvement on Goal (88%→93%) and a 2 percentage point gain on LIBERO-10 (63%→65%). On Spatial and Object, the dense baseline already performs well—these tasks primarily require spatial understanding and object recognition, where a single FFN suffices. The most significant gains appear on Goal and LIBERO-10, which involve complex goal-state reasoning and multi-step planning; here, the MoE architecture enables specialized experts to handle distinct action generation strategies, providing a clear advantage. Notably, SmolVLA-MoE achieves the highest Object score (93%) among all methods, surpassing evenπ 0 (3.3B, 86%) by 7 points, while on LIBERO-10 the gap toπ 0 (3.3B, 73%) remains the largest, suggesting that compositional multi-step tasks may benefit from further scaling. Efficiency Analysis.With∼500M activated parameters, SmolVLA-MoE outperforms OpenVLA (7B) by 7.75 points and Diffusion Policy (321M) by 11.85 points, while trailingπ 0 (3.3B) by only 1.75 points at 6.6×fewer activated parameters. The additional expert parameters (∼300M) are only stored but not all activated during inference, providing “free” capacity expansion.
+4.3 Ablation Studies
+We conduct systematic ablation studies to analyze the impact of two key design parameters: the number of activated experts per token (top-K) and the shared expert weight (α). All ablation experiments use 4 experts with other hyperparameters fixed.
+12 S. Zhang 等
+图4:在LIBERO基准上所有方法的按套件成功率对比。SmolVLA‐MoE(黑色 边框高亮)以 ∼500M总激活参数(动作专家中∼100M)在所有四个套件上取得 有竞争力或更优的性能。
+3.3B——是 SmolVLA‐MoE(∼500M)的 6.6× 倍。这表明 SmolVLA‐MoE 具 有显著的参数效率优势,以一小部分计算成本实现了接近大模型的性能。
+按套件分析。SmolVLA‐MoE在Spatial(87%)和Object(93%)上与 SmolVLA持平,同时在Goal上提升5个百分点(88% → 93%),在 LIBERO‐10上提升2个百分点(63% → 65%)。在Spatial和Object上,稠密 基线已经表现良好——这些任务主要需要空间理解和物体识别,单个FFN即可 胜任。最显著的提升出现在Goal和LIBERO‐10上,这两者涉及复杂的目标状态 推理和多步规划;在此,MoE架构使专门的专家能够处理不同的动作生成策略, 从而提供明显优势。值得注意的是,SmolVLA‐MoE在所有方法中取得了最高的 Object分数(93%),甚至超过 π0 (3.3B,86%)7个百分点,而在 LIBERO‐10上与 π0 (3.3B,73%)的差距仍然最大,这表明组合式多步任务 可能受益于进一步的扩展。
+效率分析。在仅激活 ∼500M 参数的情况下,SmolVLA‐MoE 比 OpenVLA (7B)高 7.75 分,比 Diffusion Policy(321M)高 11.85 分,而在激活参数少 6.6× 倍的情况下,仅落后 π0 (3.3B)1.75 分。额外的专家参数(∼300M)仅 被存储,在推理时并未全部激活,从而提供了“免费”的容量扩展。
+4.3 消融研究
+我们进行了系统的消融研究,以分析两个关键设计参数的影响:每个token激活 的专家数量(top‐K)和共享专家权重(α)。所有消融实验均使用4个专家, 其他超参数保持不变。
+
+
+SmolVLA-MoE 13
+Table 2: Ablation Study — Top-K×Shared Expert Weight (Success Rate %)
+Top-KαSpatial Object Goal LIBERO-10
+1 0.2 86 91 89 62 1 0.3 87 93 93 65 2 0.2 77 89 89 64 2 0.3 78 95 90 60
+Fig. 5: Heatmap visualization of the Top-K×shared expert weight (α) ablation study across all four LIBERO suites. Best values in each suite are shown in bold. Top-1 routing withα= 0.3achieves the best overall performance.
+Impact of Top-K and Shared Expert Weight.Table 2 presents the complete parameter study across all four LIBERO suites with different combinations of top-Kand shared expert weightα. Top-K Analysis.Top-1 routing outperforms top-2 on most suites, with the largest gap on Spatial (87% vs. 78% atα= 0.3, a 9-point difference). This suggests that with 4 experts, activating a second expert introduces redundant or conflicting signals rather than complementary information. The exception is LIBERO-10, where top-2 (64% atα= 0.2) slightly outperforms top-1 (62%), likely because multi-step compositional tasks benefit from combining multiple experts. Shared Expert Weight Analysis.A higherαconsistently improves performance. Under top-1 routing, increasingαfrom 0.2 to 0.3 yields gains across all suites, most notably on Goal (89%→93%) and LIBERO-10 (62%→65%). This indicates that preserving more pre-trained dense FFN knowledge through the shared expert provides a more stable foundation for routed expert specialization at the current training scale.
+Impact of Shared Expert.To verify the necessity of the shared expert, we compare models with and without the shared expert component. Removing the shared expert (α= 0) causes the Goal success rate to drop from 93% to 88% (−5 points), validating its critical role. The shared expert preserves pre-trained dense FFN weights as a stable baseline, enabling routed experts to perform incremental task-specific specialization rather than learning all capabilities from scratch.
+SmolVLA‐MoE 13
+表 2:消融研究 — Top‐K ×共享专家权重(成功率 %) Top‐K α 空间 物体 目标 LIBERO‐10
+1 0.2 86 91 89 62 1 0.3 87 93 93 65 2 0.2 77 89 89 64 2 0.3 78 95 90 60
+图 5:Top‐K × 共享专家权重(α)消融研究在全部四个 LIBERO 套件上的热力图可视 化。每个套件中的最佳值以粗体显示。采用 α = 0.3 的 Top‐1 路由取得了最佳的整体 性能。
+Top‐K与共享专家权重的影响。表2展示了在全部四个LIBERO套件上,使用不 同top‐K 与共享专家权重 α组合的完整参数研究。
+Top‐K 分析。Top‐1 路由在大多数套件上优于 top‐2,差距最大的是 Spatial(在 α = 0.3 处为 87% 对 78%,相差 9 个百分点)。这表明在拥有 4 个专家的情况下,激活第二个专家引入的是冗余或冲突的信号,而非互补信 息。例外是 LIBERO‐10,其中 top‐2(在 α = 0.2 处为 64%)略优于 top‐1 (62%),这可能是因为多步组合任务受益于组合多个专家。
+共享专家权重分析。更高的 α 始终能提升性能。在 top‐1 路由下,将 α 从 0.2 增加到 0.3 可在所有套件上带来增益,其中最显著的是 Goal ( 89% → 93%)和 LIBERO‐10(62% → 65%)。这表明,在当前训练规模下,通过 共享专家保留更多预训练的稠密 FFN 知识,可为路由专家的专业化提供更稳定 的基础。
+共享专家组件的影响。为验证共享专家组件的必要性,我们对比了包含和不包含共
+享专家组件的模型。 移除共享专家(α = 0)会导致目标成功率从93%降至88%(−5 个百分点), 验证了其关键作用。共享专家保留了预训练的稠密FFN权重作为稳定基线,使 路由专家能够执行增量式的任务特定专业化,而非从头学习所有能力。
+
+
+14 S. Zhang et al.
+Table 3: Ablation Study — Shared Expert (Success Rate %)
+Configuration Goal
+SmolVLA-MoE (w/o shared expert,α= 0) 88 SmolVLA-MoE (w/ shared expert,α= 0.3) 93
+Table 4: Ablation Study — Load Balancing Loss (Success Rate %)
+Configuration Goal
+SmolVLA-MoE (w/o load balancing,λ= 0) 90 SmolVLA-MoE (w/ load balancing,λ= 0.01) 93
+Impact of Load Balancing Loss.We examine the impact of the load balancing loss by comparing training with and without it. Removing the load balancing loss (λ= 0) causes the Goal success rate to drop from 93% to 90% (−3 points). Without this regularization, the router converges to a locally optimal allocation where some experts are underutilized (expert collapse), preventing the model from fully leveraging the MoE capacity. A weight ofλ= 0.01balances uniform utilization with routing flexibility.
+5 Conclusion
+In this paper, we propose SmolVLA-MoE, a framework that introduces FFNlevel sparse Mixture-of-Experts into the action expert of Vision-Language-Action models for multi-task robotic manipulation. By replacing dense FFN layers with MoE-FFN layers containing multiple parallel expert FFNs and a learnable tokenlevel router, SmolVLA-MoE enables each token to adaptively select specialized experts for action generation, scaling model capacity without increasing inference cost. Experiments on the LIBERO benchmark demonstrate that SmolVLA-MoE achieves superior performance over the SmolVLA baseline on all four task suites (Spatial, Object, Goal, and LIBERO-10), while maintaining the same total activated parameter count of∼500M as the dense baseline (with only∼100M activated in the action expert module). Systematic ablation studies reveal that top-1 routing outperforms top-2 routing on tasks requiring precise action generation, indicating that activating fewer but more specialized experts is preferable when expert differentiation is limited. The shared expert weight provides an effective control knob for balancing stability and specialization across different task types. Limitations and Future Work.Our evaluation is limited to the LIBERO benchmark in simulation. Future work includes extending to real-world tasks and other benchmarks (e.g., MetaWorld [28], RLBench [12]), exploring layerwise adaptive expert configurations, and combining MoE with complementary efficiency techniques such as quantization and knowledge distillation.
+14 S.Zhang 等
+表 3:消融研究 — 共享专家(成功率 %)
+配置 Goal
+SmolVLA‐MoE(无共享专家, α = 0) 88 SmolVLA‐MoE(有共享专家, α = 0.3)93
+表 4:消融研究 — 负载均衡损失(成功率 %)
+配置 Goal
+SmolVLA‐MoE(无负载均衡, λ = 0) 90 SmolVLA‐MoE(有负载均衡, λ = 0.01)93
+负载均衡损失的影响。我们通过比较使用和不使用负载均衡损失的训练来考察其影响。
+移除负载均衡损失(λ = 0)会导致目标成功率从93%下降到90%(−3个 百分点)。没有这种正则化,路由器会收敛到局部最优分配,其中一些专家未 被充分利用(专家坍缩),阻止模型充分利用MoE容量。权重 λ = 0.01 平衡了 均匀利用与路由灵活性。
+5 结论
+在本文中,我们提出了SmolVLA‐MoE,一个将FFN级稀疏混合专家引入视觉语言‐动作模型的动作专家中用于多任务机器人操作的框架。通过用包含多个并 行专家FFN和可学习令牌级路由器的MoE‐FFN层替换密集FFN层, SmolVLA‐MoE使每个令牌能够自适应地选择专门专家进行动作生成,在不增加 推理成本的情况下扩展模型容量。
+在LIBERO基准上的实验表明,SmolVLA‐MoE在全部四个任务套件( Spatial、Object、Goal和LIBERO‐10)上均取得了优于SmolVLA基线的性能, 同时保持与稠密基线相同的总激活参数量 ∼500M(其中动作专家模块仅激活 ∼100M)。系统性消融研究揭示,在需要精确动作生成的任务上,top‐1路由 优于top‐2路由,这表明当专家差异化程度有限时,激活更少但更专精的专家更 为可取。共享专家权重为在不同任务类型之间平衡稳定性与专精化提供了一个 有效的控制手段。
+局限性与未来工作。我们的评估仅限于仿真环境中的 LIBERO 基准。未来 工作包括扩展到真实世界任务和其他基准(例如 MetaWorld [28], RLBench [12]),探索逐层自适应专家配置,以及将 MoE 与量化、知识蒸馏等互补效率 技术相结合。
+
+
+SmolVLA-MoE 15
+Acknowledgments.This work was supported by the Fundamental Research Funds for the Central Universities (Grant No. 2662025ZKPY009).
+Declaration on Generative AIWe used Claude as a writing assistant to improve the language quality and readability of this paper. The AI tool was employed solely for refining sentence structure, enhancing clarity, and polishing academic writing style. All technical content, experimental results, and scientific contributions are entirely original work by the authors.
+References
+1. Beyer, L., Steiner, A., Pinto, A.S., Kolesnikov, A., Wang, X., Salz, D., et al.: PaliGemma: A versatile 3b VLM for transfer. arXiv preprint arXiv:2407.07726 (2024) 2. Black, K., Brown, N., Driess, D., Esmail, A., Equi, M., Finn, C., et al.:π 0: A vision-language-action flow model for general robot control. arXiv preprint arXiv:2410.24164 (2024) 3. Brohan, A., Brown, N., Carbajal, J., Chebotar, Y., Chen, X., Choromanski, K., et al.: RT-2: Vision-language-action models transfer web knowledge to robotic control. arXiv preprint arXiv:2307.15818 (2023) 4. Brohan, A., Brown, N., Carbajal, J., Chebotar, Y., Dabis, J., et al.: RT-1: Robotics transformer for real-world control at scale. In: Robotics: Science and Systems (RSS) (2023) 5. Chi, C., Xu, Z., Feng, S., Cousineau, E., Du, Y., Burchfiel, B., Tedrake, R., Song, S.: Diffusion policy: Visuomotor policy learning via action diffusion. In: Robotics: Science and Systems (RSS) (2023) 6. DeepSeek-AI: DeepSeek-MoE: Towards ultimate expert specialization in mixtureof-experts language models. arXiv preprint arXiv:2401.06066 (2024) 7. Fedus, W., Zoph, B., Shazeer, N.: Switch transformers: Scaling to trillion parameter models with simple and efficient sparsity. Journal of Machine Learning Research 23(120), 1–39 (2022) 8. Hinton, G., Vinyals, O., Dean, J.: Distilling the knowledge in a neural network. In: NeurIPS Workshop on Deep Learning (2015) 9. Ho, J., Jain, A., Abbeel, P.: Denoising diffusion probabilistic models. In: Advances in Neural Information Processing Systems (NeurIPS) (2020) 10. Hu, E.J., Shen, Y., Wallis, P., Allen-Zhu, Z., Li, Y., Wang, S., Wang, L., Chen, W.: LoRA: Low-rank adaptation of large language models. In: International Conference on Learning Representations (ICLR) (2022) 11. Jacobs, R.A., Jordan, M.I., Nowlan, S.J., Hinton, G.E.: Adaptive mixtures of local experts. Neural Computation3(1), 79–87 (1991) 12. James, S., Ma, Z., Arrojo, D.R., Davison, A.J.: RLBench: The robot learning benchmark & learning environment. IEEE Robotics and Automation Letters5(2), 3019–3026 (2020) 13. Jiang, A.Q., Sablayrolles, A., Roux, A., Mensch, A., Savary, B., Bamford, C., et al.: Mixtral of experts. arXiv preprint arXiv:2401.04088 (2024) 14. Kim, M.J., Pertsch, K., Karamcheti, S., Xiao, T., Balakrishna, A., Nair, S., et al.: OpenVLA: An open-source vision-language-action model. arXiv preprint arXiv:2406.09246 (2024)
+SmolVLA‐MoE 15
+致谢。本工作得到中央高校基本科研业务费专项资金(项目编号:2662025ZKPY009)的资 助。
+生成式人工智能使用声明 我们使用 Claude 作为写作助手,以提升本文的语言质量和可 读性。该人工智能工具仅用于优化句子结构、增强清晰度以及润色学术写作风格。所有 技术内容、实验结果和科学贡献均为作者的完全原创工作。
+参考文献
+1. Beyer, L., Steiner, A., Pinto, A.S., Kolesnikov, A., Wang, X., Salz, D., 等: PaliGemma:一个用于迁移的通用3b VLM。arXiv预印本 arXiv:2407.07726 (2024) 2. Black, K., Brown, N., Driess, D., Esmail, A., Equi, M., Finn, C., 等: π0:一个 用于通用机器人控制的视觉‐语言‐动作流模型。arXiv预印本 arXiv:2410.24164 (2024) 3. Brohan, A., Brown, N., Carbajal, J., Chebotar, Y., Chen, X., Choromanski, K., 等:RT‐2:视觉‐语言‐动作模型将网络知识迁移至机器人控制。arXiv预印本 arXiv:2307.15818 (2023) 4. Brohan, A., Brown, N., Carbajal, J., Chebotar, Y., Dabis, J., 等:RT‐1:用于大规模真实世界控制的机器人Transformer。载于:机器人学: 科学与系统 (RSS) (2023) 5. Chi, C., Xu, Z., Feng, S., Cousineau, E., Du, Y., Burchfiel, B., Tedrake, R., Song, S.:扩散策略:通过动作扩散进行视觉运动策略学习。 载于:机器人学:科学与系统 (RSS) (2023) 6. DeepSeek‐AI:DeepSeek‐MoE:迈向 专家混合语言模型中的终极专家专业化。arXiv预印本 arXiv:2401.06066 (2024) 7. Fedus, W., Zoph, B., Shazeer, N.:Switch Transformer:通过简单高效的稀疏性扩 展至万亿参数模型。机器学习研究杂志 23(120), 1–39 (2022) 8. Hinton, G., Vinyals, O., Dean, J.:在神经网络中蒸馏知识。载于:NeurIPS深度学习研讨会 (2015) 9. Ho, J., Jain, A., Abbeel, P.:去噪扩散概率模型。载于:神经信息处理系统 进展 (NeurIPS) (2020) 10. Hu, E.J., Shen, Y., Wallis, P., Allen‐Zhu, Z., Li, Y., Wang, S., Wang, L., Chen, W.:LoRA:大型语言模型的低秩适应。载于:国际学习表 征会议 (ICLR) (2022) 11. Jacobs, R.A., Jordan, M.I., Nowlan, S.J., Hinton, G.E.: 局部专家的自适应混合。神经计算 3(1), 79–87 (1991) 12. James, S., Ma, Z., Arrojo, D.R., Davison, A.J.:RLBench:机器人学习基准与学习环境。IEEE机器人与 自动化快报 5(2), 3019–3026 (2020) 13. Jiang, A.Q., Sablayrolles, A., Roux, A., Mensch, A., Savary, B., Bamford, C., 等:Mixtral of Experts。arXiv预印本 arXiv:2401.04088 (2024) 14. Kim, M.J., Pertsch, K., Karamcheti, S., Xiao, T., Balakrishna, A., Nair, S., 等:OpenVLA:一个开源视觉‐语言‐动作模型。arXiv预印本 arXiv:2406.09246 (2024)
+
+
+16 S. Zhang et al.
+15. Komatsuzaki, A., Puigcerver, J., Lee-Thorp, J., Riquelme Ruiz, C., Mustafa, B., Ainslie, J., Tay, Y., Dehghani, M., Houlsby, N.: Sparse upcycling: Training mixtureof-experts from dense checkpoints. In: International Conference on Learning Representations (ICLR) (2023) 16. Lepikhin, D., Lee, H., Xu, Y., Chen, D., Firat, O., Huang, Y., et al.: GShard: Scaling giant models with conditional computation and automatic sharding. In: International Conference on Learning Representations (ICLR) (2021) 17. Li, X., Liu, M., Zhang, H., Yu, C., Xu, J., Wu, H., et al.: Vision-language foundation models as effective robot imitators. arXiv preprint arXiv:2311.01378 (2023) 18. Lipman, Y., Chen, R.T.Q., Ben-Hamu, H., Nickel, M., Le, M.: Flow matching for generative modeling. In: International Conference on Learning Representations (ICLR) (2023) 19. Liu, B., Zhu, Y., Gao, C., Feng, Y., Liu, Q., Zhu, Y., Stone, P.: LIBERO: Benchmarking knowledge transfer for lifelong robot learning. In: Advances in Neural Information Processing Systems (NeurIPS) (2023) 20. Liu, H., Li, C., Wu, Q., Lee, Y.J.: Visual instruction tuning. In: Advances in Neural Information Processing Systems (NeurIPS) (2023) 21. Mandlekar, A., Nasiriany, S., Wen, B., Akinola, I., Narang, Y., Fan, L., Zhu, Y., Fox, D.: MimicGen: A data generation system for scalable robot learning using human demonstrations. In: Conference on Robot Learning (CoRL) (2023) 22. Octo Model Team, Ghosh, D., Walke, H., Pertsch, K., Black, K., Mees, O., et al.: Octo: An open-source generalist robot policy. arXiv preprint arXiv:2405.12213 (2024) 23. Open X-Embodiment Collaboration: Open X-Embodiment: Robotic learning datasets and RT-X models. In: IEEE International Conference on Robotics and Automation (ICRA) (2024) 24. Shazeer, N., Mirhoseini, A., Maziarz, K., Davis, A., Le, Q., Hinton, G., Dean, J.: Outrageously large neural networks: The sparsely-gated mixture-of-experts layer. In: International Conference on Learning Representations (ICLR) (2017) 25. SmolVLA Team: SmolVLA: A small vision-language-action model for efficient robot learning. HuggingFace (2025) 26. Tong, A., Malkin, N., Huguet, G., Zhang, Y., Rector-Brooks, J., Fatras, K., Wolf, G., Bengio, Y.: Improving and generalizing flow-based generative models with minibatch optimal transport. Transactions on Machine Learning Research (TMLR) (2024) 27. Willi, T., Obando-Ceron, J., Sokar, G., Lyle, C., Farebrother, J., Foerster, J., Dziugaite, G.K., Precup, D., Castro, P.S.: Mixture of experts in a mixture of RL settings. In: Reinforcement Learning Conference (RLC) (2024) 28. Yu, T., Quillen, D., He, Z., Julian, R., Hausman, K., Finn, C., Levine, S.: MetaWorld: A benchmark and evaluation for multi-task and meta reinforcement learning. In: Conference on Robot Learning (CoRL) (2020) 29. Yu, T., et al.: Scaling robot learning with semantically imagined experience. In: Robotics: Science and Systems (RSS) (2023) 30. Zeng, Z., et al.: Expertise need not monopolize: Action-specialized mixture of experts for vision-language-action learning. arXiv preprint arXiv:2510.14300 (2025) 31. Zhao, T.Z., Kumar, V., Levine, S., Finn, C.: Learning fine-grained bimanual manipulation with low-cost hardware. In: Robotics: Science and Systems (RSS) (2023)
+16 S. Zhang 等
+15. Komatsuzaki, A., Puigcerver, J., Lee‐Thorp, J., Riquelme Ruiz, C., Mustafa, B., Ainslie, J., Tay, Y., Dehghani, M., Houlsby, N.:稀疏升级再造:从稠密检查点训 练专家混合模型。载于:国际学习表征会议 (ICLR) (2023) 16. Lepikhin, D., Lee, H., Xu, Y., Chen, D., Firat, O., Huang, Y., 等:GShard:通过条件计算和自动分片扩展 巨型模型。载于:国际学习表征会议 (ICLR) (2021) 17. Li, X., Liu, M., Zhang, H., Yu, C., Xu, J., Wu, H., 等:视觉‐语言基础模型作为有效的机器人模仿器。arXiv预印本 arXiv:2311.01378 (2023) 18. Lipman, Y., Chen, R.T.Q., Ben‐Hamu, H., Nickel, M., Le, M.:用于生成建模的流匹配。载于:国际学习表征会议 (ICLR) (2023) 19. Liu, B., Zhu, Y., Gao, C., Feng, Y., Liu, Q., Zhu, Y., Stone, P.:LIBERO:面向终身 机器人学习的知识迁移基准测试。载于:神经信息处理系统进展 (NeurIPS) (2023) 20. Liu, H., Li, C., Wu, Q., Lee, Y.J.:视觉指令微调。载于:神经信息处理系统进展 (NeurIPS) (2023) 21. Mandlekar, A., Nasiriany, S., Wen, B., Akinola, I., Narang, Y., Fan, L., Zhu, Y., Fox, D.:MimicGen:一个利用人类演示实现可扩展机 器人学习的数据生成系统。载于:机器人学习会议 (CoRL) (2023) 22. Octo模型团队, Ghosh, D., Walke, H., Pertsch, K., Black, K., Mees, O., 等:Octo:一个开源通用机 器人策略。arXiv预印本 arXiv:2405.12213 (2024) 23. Open X‐Embodiment协作组: Open X‐Embodiment:机器人学习数据集与RT‐X模型。载于:IEEE国际机器人与自动化 会议 (ICRA) (2024) 24. Shazeer, N., Mirhoseini, A., Maziarz, K., Davis, A., Le, Q., Hinton, G., Dean, J.:超大神经网络:稀疏门控专家混合层。载于:国际学习表征 会议 (ICLR) (2017) 25. SmolVLA团队:SmolVLA:一个用于高效机器人学习的小型视 觉‐语言‐动作模型。HuggingFace (2025) 26. Tong, A., Malkin, N., Huguet, G., Zhang, Y., Rector‐Brooks, J., Fatras, K., Wolf, G., Bengio, Y.:利用小批量最优传 输改进和泛化基于流的生成模型。机器学习研究汇刊 (TMLR) (2024) 27. Willi, T., Obando‐Ceron, J., Sokar, G., Lyle, C., Farebrother, J., Foerster, J., Dziugaite, G.K., Precup, D., Castro, P.S.:混合强化学习设置中的专家混合。载于:强化学习会 议 (RLC) (2024) 28. Yu, T., Quillen, D., He, Z., Julian, R., Hausman, K., Finn, C., Levine, S.:Meta‐World:多任务与元强化学习的基准与评估。载于:机器人学习会 议 (CoRL) (2020) 29. Yu, T., 等:利用语义想象经验扩展机器人学习。载于:机器人学: 科学与系统 (RSS) (2023) 30. Zeng, Z., 等:专业化无需垄断:面向视觉‐语言‐动作学 习的动作专业化专家混合。arXiv预印本 arXiv:2510.14300 (2025) 31. Zhao, T.Z., Kumar, V., Levine, S., Finn, C.:利用低成本硬件学习细粒度双臂操作。载于:机器人 学:科学与系统 (RSS) (2023)
