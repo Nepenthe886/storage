@@ -1,0 +1,965 @@
+JOURNAL OF LATEX CLASS FILES, VOL. XX, NO. X, SEPTEMBER 2025 1
+Beyond Static Models: An Evolving Framework for
+Continual Learning in Large Language Models
+across Training Stages
+Hongyang Chen ,Senior Member, IEEE,Zhongwu Sun, Hongfei Ye, Kunzhi Li, Xuemin Lin ,Fellow, IEEE
+Abstract—Continual learning (CL) has emerged as a pivotal paradigm to enable large language models (LLMs) to dynamically adapt to evolving knowledge and sequential tasks while mitigating catastrophic forgetting, a critical limitation of the static pre-training paradigm inherent to modern LLMs. This paper presents a comprehensive overview of CL methodologies tailored for LLMs, structured around three core training stages: continual pre-training, continual fine-tuning, and continual alignment. Beyond the canonical taxonomy of rehearsal-, regularization, and architecture-based methods, we further subdivide each category by its distinct forgetting mitigation mechanisms and conduct a rigorous comparative analysis of the adaptability and critical improvements of traditional CL methods for LLMs. In doing so, we explicitly highlight core distinctions between LLM CL and traditional machine learning, particularly with respect to scale, parameter efficiency, and emergent capabilities. Our analysis covers essential evaluation metrics, including forgetting rates and knowledge transfer efficiency, along with emerging benchmarks for assessing CL performance. While current methods show promising results, fundamental challenges persist in achieving seamless knowledge integration, and we identify key open problems and future directions for the field.
+Index Terms—Large language models, Continual learning, Catastrophic forgetting, Knowledge transfer, Parameter-efficient fine-tuning, Continual alignment, Knowledge dynamics
+I. INTRODUCTION
+Since the introduction of the Transformer architecture [1], a plethora of Transformer-based pre-trained language models have been proposed and widely adopted, exemplified by seminal works such as BERT [2], GPT [3], and LLaMA [4]. By undergoing massive-scale pre-training on diverse corpora, these large language models (LLMs) exhibit emergent capabilities, which serve as direct empirical evidence for the scaling law—the principle that model performance and generalization improve systematically with increases in parameter count and training data volume. As a result, LLMs have achieved stateof-the-art performance across a wide range of natural language processing (NLP) tasks, demonstrating strong generalization, in-context learning, and instruction-following abilities, thereby establishing a transformative paradigm for modern NLP research [5]. However, the success of LLMs is inherently contingent upon a static pre-training paradigm, which stands in sharp contrast to the dynamic, ever-evolving nature of real-world scenarios. First, the real world is characterized by perpetual flux: new
+H. Chen is with the Zhejiang Lab, Hangzhou 311100, China (email: dr.h.chen@ieee.org; hongyang@zhejianglab.com).
+knowledge, concepts, events, and linguistic usages emerge incessantly, rendering it infeasible to curate a single, exhaustive dataset that encapsulates the full spectrum of potential information. Second, stringent data privacy regulations and ethical constraints preclude the collection of sensitive or proprietary data, further undermining the completeness and comprehensiveness of pre-training corpora. Third, re-pre-training LLMs on updated data is prohibitively expensive— the massive scale of both models and datasets incurs substantial computational and financial burdens, rendering full retraining impractical for frequent knowledge updates. In contrast, the human brain exhibits a remarkable capacity for incremental learning: it acquires new knowledge without catastrophic forgetting of prior skills, while adapting existing knowledge to align with novel situations. Inspired by this biological intelligence, there is an urgent imperative for large language models (LLMs) to emulate such a capability—specifically, to incrementally learn from new data or tasks, retain pre-acquired knowledge, and dynamically adapt to evolving real-world scenarios. This critical misalignment between LLMs’ static pre-training paradigm and the inherent dynamicity of real-world knowledge has firmly established continual learning for LLMs as a pivotal, highpriority research direction. As a well-established paradigm across machine learning (ML), computer vision (CV), and natural language processing (NLP) [6], continual learning enables neural networks to sequentially learn a sequence of domain corpora or end-tasks, and for LLMs, it has emerged as a promising solution to incorporate new knowledge at minimal cost while preserving existing expertise. Empirical evidence [7] corroborates that applying continual learning methodologies to pre-trained LLMs not only updates their internal knowledge repositories but also substantially boosts task-specific performance. Compared to training from scratch, continual learning leverages pre-acquired knowledge to drastically reduce computational overhead and improve training efficiency, while sustaining state-of-the-art performance—this unique synergy of efficiency and adaptability lays a robust foundation for LLM deployment in real-world scenarios, directly addressing the core challenge of static pre-training amid dynamic knowledge evolution. Several surveys on LLM continual learning (CL) already exist [8,9,10], but they exhibit critical limitations. Specifically, [8] partitions LLM CL into three stages (Continual Pre-Training, Domain-Adaptive Pre-training, Continual FineTuning) and analyzes methods across domains (e.g., medical, legal, financial) alongside core challenges (e.g., language shift,
+arXiv:2603.12658v2 [cs.CL] 9 Aug 2026
+LATEX 类文件期刊,第 XX 卷,第 X 期,2025 年 9 月 1
+超越静态模型:跨训练阶段的大语言模型持续学
+习演进框架
+HongyangChen,高级 IEEE 会员,Zhongwu Sun,Hongfei Ye,KunzhiLi,Xuemin Lin,IEE 会士E
+摘要——持续学习(CL)已成为一种关键范式,使大语言 模型(LLMs)能够动态适应不断演变的知识和序列任务,同时 缓解灾难性遗忘——这是现代 LLMs 固有的静态预训练范式的 一项关键局限。本文围绕三个核心训练阶段——持续预训练、持 续微调和持续对齐——对面向 LLMs 的 CL 方法进行了全面综述。 除了基于回放、正则化和架构的方法这一经典分类体系外,我 们还依据各自不同的遗忘缓解机制对每一类别进一步细分,并 对传统 CL 方法用于 LLMs 时的适应性与关键改进进行了严格 的比较分析。在此过程中,我们明确强调了 LLM CL 与传统机 器学习之间的核心区别,尤其是在规模、参数效率和涌现能力 方面。我们的分析涵盖了关键评估指标,包括遗忘率和知识迁 移效率,以及用于评估 CL 性能的新兴基准。尽管当前方法显示 出富有前景的结果,但在实现无缝知识整合方面仍存在根本性 挑战,并且我们指出了该领域的关键开放问题与未来方向。
+索引词—大型语言模型、持续学习、灾难性遗忘、知识迁移、 参数高效微调、持续对齐、知识动态
+I. 引言
+自 Transformer 架构 [1], 问世以来,大量基于 Transformer 的预训练语言模型被提出并得到广泛采用, BERT [2], 、GPT [3], 和 LLaMA [4] 等开创性工作便 是典型代表。通过在多样化语料上进行大规模预训练,这 些大型语言模型(LLM)展现出涌现能力,这为缩放定 律提供了直接的实证证据——该定律指出,随着参数数量 和训练数据量的增加,模型性能与泛化能力会系统性地提 升。因此,LLM 在广泛的自然语言处理(NLP)任务上 取得了最先进的性能,展现出强大的泛化能力、上下文学 习和指令遵循能力,从而为现代 NLP 研究 [5] 确立了一 种变革性范式。
+然而,LLMs的成功本质上取决于一种静态预训练范 式,这与现实世界动态且不断演变的特性形成鲜明对比。 首先,现实世界以持续流变为特征:新的
+H. Chen 就职于中国杭州之江实验室,邮编 311100(电子邮件: dr.h.chen@ieee.org;hongyang@zhejianglab.com)。
+知识、概念、事件和语言用法不断涌现,使得整理出单个 且详尽无遗、能够囊括所有潜在信息的数据集变得不可行。 其次,严格的数据隐私法规和伦理约束阻碍了敏感数据或 专有数据的收集,进一步削弱了预训练语料库的完整性和 全面性。第三,基于更新数据对LLMs进行重新预训练成 本高得令人望而却步——模型和数据集二者的巨大规模会 带来沉重的计算和经济负担,使得为频繁的知识更新而进 行完整重训练并不现实。相比之下,人脑展现出卓越的增 量学习能力:它能够获取新知识而不会灾难性遗忘先前技 能,同时还能调整已有知识以适配新情境。受这种生物智 能启发,大语言模型(LLMs)迫切需要模拟这种能力—— 具体而言,即从新数据或新任务中增量学习、保留先前获 得的知识,并动态适应不断演变的现实世界场景。 LLMs的静态预训练范式与现实世界知识固有的动态性之 间的这一关键错位,已牢固确立了面向LLMs的持续学习 作为一个关键且高优先级的研究方向。
+作为一种在机器学习(ML)、计算机视觉(CV)和自 然语言处理(NLP)领域日臻成熟的范式, [6], 持续学习 使神经网络能够依次学习一系列领域语料库或终端任务;对 于 LLM 而言,它已成为一种颇具前景的解决方案,能够以 最小代价整合新知识,同时保留既有专长。经验证据 [
+7] 证实,将持续学习方法应用于预训练 LLM 不仅能 更新其内部知识库,还能显著提升特定任务表现。与从头 训练相比,持续学习利用已获得的知识大幅降低计算开销 并提高训练效率,同时保持最先进的性能——这种效率与 适应性的独特协同为 LLM 在真实场景中的部署奠定了坚 实基础,并直接应对动态知识演进背景下静态预训练的核 心挑战。
+已有若干关于大语言模型持续学习(CL)的综述 [8, 9, 10], ,但它们存在关键局限。具体而言, [8] 将 LLM CL 划分为三个阶段(持续预训练、领域自适应预训 练、持续微调),并分析跨领域(如医疗、法律、金融) 的方法以及核心挑战(如语言偏移、
+arXiv:2603.12658v2 [cs.CL] 9 Aug 2026
+
+
+JOURNAL OF LATEX CLASS FILES, VOL. XX, NO. X, SEPTEMBER 2025 2
+content shift), yet lacks fine-grained categorization of CL methods by their underlying mechanisms. Similarly, [9] adopts a three-stage division but focuses on application scenarios rather than methodological types or catastrophic forgetting mitigation mechanisms. While [10] delivers a fine-grained methodological analysis of LLM CL, it neither partitions the CL process into distinct training stages nor focuses exclusively on LLMs, instead encompassing a broader spectrum of generative AI models (e.g., multimodal models, diffusion models). Distinct from these works, this paper focuses exclusively on continual learning for large language models (LLMs). We structure the discussion around three dedicated stages—continual pre-training, continual fine-tuning, and continual alignment—and provide a systematic analysis of representative methodologies within each stage. Beyond the canonical taxonomy of traditional CL (i.e., rehearsalbased, regularization-based, and architecture-based methods), this paper further interprets existing methods through unified lenses of knowledge dynamics, stage-specific constraints, and efficiency-effectiveness trade-offs. Accordingly, this paper makes three main contributions. First, under the theme ofBeyond Static Models, it frames the central problem of LLM continual learning as the transition from static pre-training to continual knowledge evolution. Second, asAn Evolving Framework, it moves beyond method cataloging by introducing an analytical perspective based on collision, isolation, and fusion of knowledge representations. Third,Across Training Stages, it places continual pre-training, continual fine-tuning, and continual alignment within a common coordinate system, clarifying both their shared goals and their distinct optimization, resource, and alignment challenges. Survey scope and methodology.This review focuses on representative studies on continual learning for large language models published between 2020 and early 2026. The literature was primarily collected from Google Scholar, arXiv, ACL Anthology, and IEEE Xplore using keywords such as “continual learning,” “lifelong learning,” “large language model,” “continual pre-training,” “continual fine-tuning,” and “continual alignment.” We prioritized studies that explicitly address sequential adaptation, forgetting mitigation, knowledge transfer, or preference evolution in LLM settings, and we organize the selected papers according to training stage and underlying mitigation mechanism.
+II. PRELIMINARIES
+A. Large language models
+Following the success of foundational models like GPT[3] and LLaMA[4], even more powerful large language models (LLMs) have emerged, such as Claude[11], Qwen[12], and DeepSeek[13], further accelerating the advancement of natural language processing. The rapid development of LLMs has drawn significant attention, largely due to their massive parameter counts and impressive emergent capabilities. The training of LLMs primarily involves three stages: pre-training, fine-tuning, and alignment. In thepre-trainingstage, large language models (LLMs) are trained in a self-supervised manner on extensive corpora,
+which typically encompass diverse text sources such as books, websites, academic papers, and other publicly accessible content [14]. The primary objective of this stage is to equip the model with a foundational understanding of linguistic structures and semantics by learning to predict subsequent tokens in a sequence. Specifically, the optimization goal during pre-training often revolves around minimizing a loss function associated with next-token prediction, such as the crossentropy loss, as defined in (1):
+L=− 1
+T
+T
+X
+t=1
+logP(w t|w1, w2, ..., wt−1)(1)
+whereTrepresents the length of the sequence,w t is the token at time stept, andP(w t|w1, w2, ..., wt−1)denotes the predicted probability of the tokenw t given the preceding context. Through this pre-training process, LLMs acquire an understanding of grammatical rules and accumulate general knowledge. However, as base models, they are primarily limited to text sequence completion and lack capabilities for instruction-following or engaging in conversational interactions [15]. In thefine-tuningstage, large language models (LLMs) are further refined using high-quality instruction datasets [16]. This stage not only enhances the model’s performance on specific tasks but also improves its ability to follow instructions, making it more reliable and versatile for practical applications. Among the various fine-tuning approaches, Supervised FineTuning (SFT) is the most widely adopted method. Many opensource LLMs undergo SFT on small, domain-specific datasets to adapt them for downstream applications in specialized fields. The optimization goal during supervised fine-tuning typically focuses on aligning the model’s outputs with humanprovided instructions or desired responses. This is achieved by minimizing the cross-entropy loss (see (2)), which measures the divergence between the model’s predictions and the ground-truth responses in the instruction dataset:
+LSFT =− 1
+N
+N
+X
+i=1
+logP(y i|xi, θ),(2)
+whereNdenotes the number of instruction-response pairs in the dataset,x i represents the input instruction or context for thei-th sample,y i is the corresponding target response, and P(y i|xi, θ)is the probability of generating the target response given the input and the model parametersθ. Through this process, the model learns to generate contextually relevant and instruction-aligned outputs, thereby improving its applicability to real-world tasks. Finally, in thealignmentstage, the models are optimized using human feedback to ensure their outputs align with human preferences and values [17]. This stage, often referred to as Reinforcement Learning with Human Feedback (RLHF), aims to imbue models with human-aligned value systems and preferences. Representative methods include Proximal Policy Optimization (PPO)[18] and Direct Preference Optimization (DPO)[19]. PPO first trains a reward modelr φ(x, y) on human preference data and then fine-tunes the language modelπ θ(y|x)using reinforcement learning to maximize the
+《LATEX 类文件杂志》,第 XX 卷,第 X 期,2025 年 9 月 2
+内容偏移),但缺乏按内在机制对 CL 方法进行细粒度分 类。类似地, [9]采用三阶段划分,但关注的是应用场景, 而非方法类型或灾难性遗忘缓解机制。尽管 [10] 对 LLM CL 进行了细粒度的方法分析,但它既未将 CL 过程 划分为不同的训练阶段,也未专门聚焦于大语言模型,而 是涵盖了更广泛的生成式 AI 模型(如多模态模型、扩散 模型)。
+与这些工作不同,本文仅关注大语言模型(LLMs) 的持续学习。我们围绕三个专门阶段——持续预训练、持 续微调和持续对齐——组织讨论,并对每个阶段内的代表 性方法进行系统分析。除了传统持续学习(CL)的经典 分类(即基于回放、基于正则化和基于架构的方法)之外, 本文还通过知识动态、阶段特定约束以及效率与效果之间 权衡的统一视角,进一步解释现有方法。
+据此,本文作出三项主要贡献。首先,在“超越静态 模型”这一主题下,它将 LLM 持续学习的核心问题界定 为从静态预训练向持续知识演化的转变。其次,作为“一 个演进中的框架”,它超越了对方法的简单编目,引入基 于知识表示碰撞、隔离与融合的分析视角。第三,在“贯 穿训练阶段”这一视角下,它将持续预训练、持续微调和 持续对齐置于同一坐标体系中,阐明它们的共同目标以及 各自不同的优化、资源和对齐挑战。综述范围与方法。本 综述聚焦于 2020 年至 2026 年初发表的关于大语言模型 持续学习的代表性研究。文献主要从 Google Scholar、 arXiv、ACL Anthology 和 IEEE Xplore 收集,使用关 键词如“持续学习”“终身学习”“大语言模型”“持续 预训练”“持续微调”和“持续对齐”。我们优先纳入在 LLM 场景中明确探讨顺序适应、遗忘缓解、知识迁移或 偏好演化的研究,并按训练阶段和底层缓解机制组织所选 论文。
+II. 预备知识
+A. 大型语言模型
+继 GPT[3]和LLaMA[4], 等基础模型取得成功之后, 更加强大的大型语言模型(LLMs)不断涌现,例如 Claude[11],、Qwen[12], 和DeepSeek[13], ,进一步加 速了自然语言处理的发展。LLMs 的快速发展备受关注, 这在很大程度上归因于其庞大的参数规模和令人瞩目的涌 现能力。LLMs 的训练主要涉及三个阶段:预训练、微调 和对齐。
+在预训练阶段,大型语言模型(LLMs)在广泛语料库 上以自监督方式进行训练,
+这些语料库通常涵盖书籍、网站、学术论文及其他可公开 获取的内容 [14]。本阶段的主要目标是通过学习预测序 列中的后续词元,使模型对语言结构和语义形成基础性理 解。具体而言,预训练期间的优化目标通常围绕最小化与 下一词元预测相关的损失函数,例如式(1)中定义的交 叉熵损失:
+L=−1
+T
+T
+X
+t=1
+log P (wt|w1, w2, ..., wt−1) (1)
+其中, T 表示序列长度, wt 是时间步 t 处的词元,而 P (wt|w1, w2, ..., wt−1) 表示在给定前文上下文的条件下对 词元 wt 的预测概率。通过这一预训练过程,LLMs 习 得对语法规则的理解并积累通用知识。然而,作为基础模 型,它们主要局限于文本序列补全,缺乏遵循指令或进行 对话交互的能力 [15]。
+在微调阶段,大型语言模型(LLMs)会使用高质量 指令数据集 [16] 进一步精炼。该阶段不仅提升模型在特 定任务上的性能,还增强其遵循指令的能力,使其在实际 应用中更可靠且更通用。在各种微调方法中,监督微调 (SFT)是采用最广泛的方法。许多开源 LLM 会在小规 模领域特定数据集上进行 SFT,以使其适配专业领域的下 游应用。监督微调期间的优化目标通常侧重于使模型输出 与人类提供的指令或期望响应保持一致。这通过最小化交 叉熵损失(见 (2))实现,该损失衡量模型预测与指令数 据集中真实响应之间的差异:
+LSFT = − 1
+N
+N
+X
+i=1
+log P (yi|xi, θ), (2)
+其中 N 表示数据集中指令‐响应对的数量, xi 表示第 i 个样本的输入指令或上下文, yi 是对应的目标响应,而 P (yi|xi, θ) 是在给定输入和模型参数 θ 的情况下生成目标 响应的概率。通过这一过程,模型学习生成上下文相关且 与指令对齐的输出,从而提高其在真实世界任务中的适用 性。
+最后,在对齐阶段,模型利用人类反馈进行优化,以 确保其输出与人类偏好和价值观 [17] 保持一致。这一阶 段通常被称为基于人类反馈的强化学习(RLHF),旨在 向模型注入与人类对齐的价值体系和偏好。代表性方法包 括近端策略优化(PPO)[18]和直接偏好优化(DPO) [19]。PPO 首先在人类偏好数据上训练奖励模型 rφ(x, y),然后利用强化学习对语言模型 πθ(y|x)进行微调, 以最大化
+
+
+JOURNAL OF LATEX CLASS FILES, VOL. XX, NO. X, SEPTEMBER 2025 3
+Continual Pre-training Continual Alignment
+Continual Fine-tuning
+The overview of continual learning in LLMs
+Base model Instruct model Aligned model
+Fine-tuning Alignment
+Continual Pre-training Continual Fine-tuning Continual Alignment
+Fujii et al. [26]
+Cui et al. [27]
+Que et al. [28]
+Zheng et al. [29]
+Gu et al. [30]
+Xi et al. [31]
+Rehearsaal-based methods:
+Cheng et al. [32]
+Cheng et al. [33]
+Jiang et al. [34]
+Xie et al. [35]
+Guo et al. [36]
+Data augmentation methods:
+Jiang et al. [37]
+Jindal et al. [38]
+Chen and yi Lee [42]
+Ke et al. [39]
+Ke et al. [40]
+Zhu et al. [41]
+Wu et al. [42]
+Chen et al. [43]
+Architecturebased methods
+Gupta et al. [45]
+Process optimization methods
+Scialom et al. [53]
+Mok et al. [54]
+Zhao et al. [55]
+Wang et al. [56]
+Razdaibiedina et al. [57]
+Wang et al. [58]
+Li et al. [59]
+Du et al. [60]
+Diera et al. [61]
+Tack et al. [62]
+Momeni et al. [63]
+Qiu et al. [64]
+Yin et al. [65]
+Huang et al. [66]
+Wang et al. [67]
+Wu et al. [68]
+Araujo et al. [69]
+Jin et al. [70]
+Rehearsaal-based methods:
+Regularization-based methods
+Architecture-based methods
+Zhang et al. [76]
+Wang and Li[77]
+Zhang et al. [78]
+RL-free methods
+RL methods
+Hu et al. [91]
+Wei et al. [92]
+LLM-based Continual Learning:
+Fig. 1. A schematic overview of continual learning (CL) methodologies for large language models (LLMs). The outermost ring shows the three training stages (continual pre-training, continual fine-tuning, and continual alignment); inner nodes show method families within each stage (e.g., rehearsal, regularization, architecture/PEFT, RL-free, and RL-based); cited works appear as leaf nodes. Color coding indicates the primary knowledge-dynamic mode: collision mitigation (red family), isolation (green family), or fusion (purple family). Arrows indicate the sequential dependency between stages.
+expected reward, while constraining updates to ensure stability. In contrast, DPO directly optimizes the language model on preference data without an explicit reward model, simplifying the alignment pipeline. The optimization objectives for these methods are defined as follows:
+a) PPO Objective:PPO optimizes the clipped surrogate objective:
+LPPO(θ) =E (x,y)∼πθold
+h
+min rθ(y|x)Aˆ(x, y),
+clip rθ(y|x),1−ε,1 +ε Aˆ(x, y)
+i
+(3)
+wherer θ(y|x) = πθ(y|x)
+πθold (y|x) is the probability ratio, Aˆ(x, y)is
+the estimated advantage function based on the reward model, andεis the clipping parameter that limits policy updates. b) DPO Objective:DPO optimizes a preference-based likelihood loss derived from pairwise human feedback:
+LDPO(θ) =−E (x,y+,y−)
+h
+logσ β logπ θ(y+|x)
+−logπ θ(y−|x)
+i
+(4)
+where(x, y +, y−)are triplets of prompt, preferred response, and less-preferred response,σis the sigmoid function, andβ
+LATEX CLASSFILES 期刊,第 XX 卷,第 X 期,2025 年 9 月 3
+持续预训练 持续对齐
+持续微调
+大语言模型中的持续学习概述
+基础模型 指令模型 已对齐模型
+微调 对齐
+持续预训练 持续微调 持续对齐
+Fujii 等 [26]
+Cui 等 [27]
+Que 等 [28]
+Zheng 等 [29]
+Gu 等 [30]
+Xi 等 [31]
+基于排练的 方法:
+Cheng 等 [32]
+Cheng 等 [33]
+Jiang 等 [34]
+Xie 等 [35]
+Guo 等 [36]
+数据增强 方法:
+Jiang 等 [37]
+Jindal 等 [38]
+Chen 和 yi Lee [42]
+Ke 等 [39]
+Ke 等 [40]
+Zhu 等 [41]
+Wu 等 [42]
+Chen 等 [43]
+架构基于的方法
+Gupta 等 [45]
+过程优化方法
+Scialom 等 [53]
+Mok 等 [54]
+Zhao 等 [55]
+Wang 等 [56]
+Razdaibiedina 等 [57]
+Wang 等 [58]
+Li 等 [59]
+Du 等 [60]
+Diera 等 [61]
+Tack 等 [62]
+Momeni 等 [63]
+Qiu 等 [64]
+Yin 等 [65]
+Huang 等 [66]
+Wang 等 [67]
+Wu 等 [68]
+Araujo 等 [69]
+Jin 等 [70]
+基于回放的 方法:
+基于正则化的 方法
+基于架构的 方法
+Zhang 等 [76]
+Wang 和 Li[77]
+Zhang 等 [78]
+无强化学习方法
+强化学习方法
+Hu 等 [91]
+Wei 等 [92]
+基于大语言模型的持续 学习 :
+图 1. 大语言模型(LLMs)持续学习(CL)方法示意图概览。最外圈展示三个训练阶段(持续预训练、持续微调与持续对齐);内部节点展示各阶 段内的方法族(例如回放、正则化、架构/PEFT、无 RL 与基于 RL);引用文献以叶节点显示。颜色编码表示主要知识动态模式:冲突缓解(红色 族)、隔离(绿色族)或融合(紫色族)。箭头表示阶段间的顺序依赖关系。
+期望奖励,同时约束更新以确保稳定性。相比之下, DPO 直接在偏好数据上优化语言模型,无需显式的奖励 模型,从而简化了对齐流程。这些方法的优化目标定义如 下:
+a) PPO 目标:PPO 优化裁剪后的替代目标:
+LPPO(θ) = E(x,y)∼πθold
+h
+min rθ(y|x)Aˆ(x, y),
+clip rθ(y|x), 1 − ε, 1 + ε Aˆ(x, y)
+i
+(3)
+其中 rθ(y|x) = πθ(y|x) πθold(y|x) 是概率比,ˆA(x, y) 是基于奖 励模型估计的优势函数,而 ε 是限制策略更新的裁剪参数。
+b) DPO 目标:DPO 优化由成对人类反馈导出的基于偏 好的似然损失:
+LDPO(θ) = −E(x,y+,y−)
+h
+log σ β log πθ(y+|x)
+− log πθ(y−|x)
+i
+(4)
+其中(x, y+, y−)是由提示、优选回答和次优选回答构成 的三元组, σ 是 sigmoid 函数,且 β
+
+
+JOURNAL OF LATEX CLASS FILES, VOL. XX, NO. X, SEPTEMBER 2025 4
+is an inverse temperature parameter controlling the sharpness of preference. This alignment process is critical for mitigating harmful, biased, or unsafe behaviors in language models and for ensuring that their responses are consistent, contextually appropriate, and aligned with human ethical standards.
+B. Traditional continual learning
+Continual learning, also known as lifelong learning and incremental learning, is an advanced machine learning algorithm that learns continuously, accumulates knowledge from the past, and adapts it to facilitate future learning [20]. It aims to train sequentially on a series of tasks, ensuring that performance on previous tasks does not degrade while training on new tasks. The main objectives of continual learning are to avoid catastrophic forgetting and facilitate knowledge transfer. Catastrophic forgetting [21] refers to the sharp decline in performance on previous tasks when the model is trained on new tasks. Knowledge transfer includes both forward and backward transfer. Forward transfer means using the knowledge learned from previous tasks to aid in learning new tasks, while backward transfer refers to the improvement of performance on previous tasks through the knowledge obtained from new tasks. The primary definition of continual learning (CL) is as follows [20]: CL considers a sequence of tasksT= {1,2, . . . , T}, whereTdenotes the total number of tasks. Each taskt∈ Tis associated with a training setD t =
+{(x(t)
+i , y(t)
+i )}Nt
+i=1, wherex (t)
+i ∈ Xis an input sample from the
+shared input spaceX,y (t)
+i ∈ Yt is its corresponding label from the task-specific label spaceY t, andN t denotes the number of samples in taskt. The input data of each task follows a task-specific distributionp(X t), wherep(X t)̸=p(X t′ )for anyt̸=t ′, reflecting the distributional shift across tasks. In the CL setting, the goal is to learn a parameterized model fθ :X → Ythat sequentially adapts to each taskt, while retaining satisfactory performance on all previously learned tasks. Formally, this can be expressed as the minimization of the cumulative loss across all tasks:
+mθin
+T
+X
+t=1
+E(x,y)∼Dt L fθ(x), y ,(5)
+subject to constraints that mitigate catastrophic forgetting and promote knowledge transfer. Here,Ldenotes the task-specific loss function (e.g., cross-entropy for classification). In traditional machine learning, three primary families of approaches have been proposed to instantiate the cumulative objective in (5), each implementing a different bias on how new tasks should interact with previously consolidated knowledge: rehearsal-based, regularization-based, and architecturebased methods. Rehearsal-based methods(afusion-oriented strategy in our terminology) store samples from previous tasks or generate pseudo-samples via a generator to revisit historical support regions during new-task training. They directly approximate the joint loss of (5), but at the cost of storage burden and
+0.25 0.40 0.55 0.70 0.85 Normalized Resource Cost
+0.55
+0.65
+0.75
+0.85
+0.90
+Retention / Adaptation Benefit
+CPT replay
+CPT modular
+SFT replay
+SFT regularization
+SFT PEFT
+SFT hybrid routing
+Alignment COPR/CPPO
+Alignment memory
+deployment-friendly resource-intensive
+Relative positions summarize compute, memory, and latency trends rather than
+hardware-specific measurements.
+Method family Replay Regularization Architecture Hybrid
+Training stage CPT SFT Alignment
+Fig. 2. Qualitative resource-cost vs. retention-benefit map for representative CL methods across the three training stages (CPT, SFT, Align). Methods in the upper-left quadrant are deployment-friendly; axes are normalized for conceptual comparison. Architecture-based and hybrid methods dominate the efficient frontier at the fine-tuning scale, while rehearsal methods remain competitive at the pre-training scale.
+unresolved data-privacy concerns when raw historical samples must be retained.
+Regularization-based methods(acollision-mitigation strategy) augment the task loss in (5) with a penalty term that restricts updates to parameters deemed important for prior tasks. HAT [22] introduces task-specific hard attention masks that gate gradient flow between neurons; SPG [23] relaxes this to soft masks by computing per-unit importance scores, constraining the backward pass while still encouraging knowledge sharing.
+Architecture-based methods(anisolation-oriented strategy) facilitate continual learning by expanding the model architecture, typically introducing task-specific parameters while freezing the original weights. CTR [24] is built upon a pretrained BERT model and incorporates CL-plugins, where each plugin is a capsule [25] network equipped with a routing algorithm that identifies and transfers knowledge across tasks. Supsup [26] instead identifies a per-task supermask within a fixed network to generate task-specific subnetworks. Both designs trade additional capacity for stronger isolation, which essentially decouples the per-task losses in (5) at the cost of weakened cross-task transfer. Moreover, recent LLM-oriented continual learning methods increasingly adopt hybrid modular designs, such as MoE- and PEFT-based approaches, which combine architectural isolation with efficient adaptation. TableIsummarizes the main stage-aware trade-offs among representative continual learning paradigms, highlighting why the same method family can play different roles in continual pre-training, fine-tuning, and alignment. Figure2further visualizes representative methods from all three stages in a two-dimensional resource-cost vs. retention-benefit space, showing that architecture-based and hybrid methods occupy a favorable efficiency frontier at the fine-tuning scale, while rehearsal-based methods remain competitive at the pre-training scale despite higher storage costs.
+C. Continual learning in Large Language Models
+LLM continual learning concerns how a model absorbs new knowledge, behaviors, and preferences while preserving previously consolidated capabilities. In contrast to traditional continual learning, the problem is strongly stage-dependent:
+LATEX 类文件期刊,第 XX 卷,第 X 期,2025 年 9 月 4
+是一个控制偏好锐度的逆温度参数。
+这一对齐过程对于减轻语言模型中有害、带有偏见或 不安全的行为,以及确保其响应保持一致、切合语境并符 合人类伦理标准至关重要。
+B. 传统持续学习
+持续学习,又称终身学习和增量学习,是一种先进的 机器学习算法,它能够持续学习、积累过往知识,并对其 进行调整以促进未来学习 [20]。它旨在对一系列任务进 行顺序训练,确保在训练新任务时,先前任务上的性能不 会下降。持续学习的主要目标是避免灾难性遗忘并促进知 识迁移。灾难性遗忘 [21] 是指模型在新任务上训练时, 先前任务上的性能会急剧下降。知识迁移包括前向迁移和 后向迁移。前向迁移是指利用从先前任务中学到的知识来 帮助学习新任务,而后向迁移是指通过从新任务中获得的 知识来提升先前任务上的性能。
+持续学习(CL)的主要定义如下 [20]:CL 考虑一个任 务序列 T ={1, 2, . . . , T },其中 T 表示任务总数。每个任
+务 t ∈ T Dt =
+{ x(t)
+i y(t)
+i }Nt
+i=1 x(t)
+i ∈X
+都与一个训练集 ( , ) 相关联,其中 是来自共享输入空间 X 的输入样本, y(t)
+i ∈ Yt 是其对应的标签,来自任务特定标签 空间 Yt,并且 Nt 表示任务 t 中的样本数。每个任务的输 入数据遵循任务特定的分布 p(Xt),其中对于任意 t ̸= t′, p (Xt) ̸= p(Xt′),这反映了任务间的分布偏移。 在 CL 设定下,目标是学习一个参数化模型fθ : X → Y ,该模型依次适应每个任务 t,同时在所有先 前已学习任务上保持令人满意的性能。形式化地,这可以 表示为所有任务上累积损失的最小化:
+mθin
+T
+X
+t=1
+E(x,y)∼Dt L fθ(x), y , (5)
+但需满足能够缓解灾难性遗忘并促进知识迁移的约束条件。其 中, L 表示任务特定的损失函数(例如,分类任务中的交叉熵)。
+在传统机器学习中,三类主要的 已有多种方法被提出,用于具体实现式 (5) 中的累积目标; 每种方法都在新任务应如何与先前已巩固的知识交互方面 采用了不同的偏向:基于回放的方法、基于正则化的方法 以及基于架构的方法。 基于复演的方法(在我们的术语中是一种面向融合的 策略)存储来自先前任务的样本,或通过生成器生成伪样 本,以便在新任务训练期间重新访问历史支持区域。它们 直接近似式 (5) 的联合损失,但代价是存储负担以及
+0.25 0.40 0.55 0.70 0.85 归一化资源成本
+0.55
+0.65
+0.75
+0.85
+0.90
+Retention / Adaptation Benefit
+CPT 重放
+CPT 模块化
+SFT 重放
+SFT 正则化
+SFT PEFT
+SFT 混合路由
+对齐 COPR/CPPO
+对齐记忆
+部署友好 资源密集型
+相对位置概括的是计算、内存和延迟趋势,而非
+特定硬件的测量结果。
+方法类别 回放 正则化 架构 混合
+训练阶段
+CPT SFT 对齐
+图 2. 代表性 CL 方法在三个训练阶段(CPT、SFT、Align)中的资源成 本与保持收益的定性映射图。位于左上象限的方法适合部署;各坐标轴 已归一化,以便进行概念性比较。在微调规模下,基于架构的方法和混 合方法主导效率前沿,而在预训练规模下,基于回放的方法仍具竞争力。
+在必须保留原始历史样本时尚未解决的数据隐私问题。
+基于正则化的方法(一种冲突缓解策略)在式(5)的 任务损失中加入惩罚项,以限制对先前任务中被认为重要 的参数的更新。HAT [22] 引入任务特定的硬注意力掩码, 控制神经元之间的梯度流动;SPG [23] 通过计算各单元 的重要性分数将这一机制放宽为软掩码,约束反向传播, 同时仍鼓励知识共享。
+基于架构的方法(一种面向隔离的策略)通过扩展模 型架构来促进持续学习,通常引入任务特定参数,同时冻 结原始权重。CTR [24] 构建在预训练的BERT模型之上, 并集成了CL插件,其中每个插件都是一个胶囊 [25] 网 络,配备有路由算法,可识别并跨任务迁移知识。 Supsup [26] 则在固定网络内识别每个任务的 supermask,以生成任务特定的子网络。这两种设计都 以额外容量换取更强的隔离,这实质上解耦了式(5)中各 任务的损失,但代价是削弱了跨任务迁移。
+此外,近期面向大语言模型的持续学习方法越来越多 地采用混合模块化设计,例如基于 MoE 和 PEFT 的方法, 这类设计将架构隔离与高效适配相结合。表 I 总结了代表 性持续学习范式中的主要阶段感知权衡,并强调了为何同 一方法族在持续预训练、微调和对齐中能够扮演不同角色。 图 2 进一步在二维的资源成本与保留收益空间中可视化了 全部三个阶段的代表性方法,表明基于架构的方法和混合 方法在微调规模下占据了有利的效率前沿,而基于回放的 方法尽管存储成本更高,在预训练规模下仍具有竞争力。
+C. 大语言模型中的持续学习
+LLM 持续学习关注模型如何吸收新知识、新行为和 新偏好,同时保留此前已巩固的能力。与传统持续学习不 同,该问题具有强烈的阶段依赖性:
+
+
+JOURNAL OF LATEX CLASS FILES, VOL. XX, NO. X, SEPTEMBER 2025 5
+TABLE I STAGE-AWARE QUALITATIVE TRADE-OFFS AMONG MAJOR CONTINUAL LEARNING PARADIGMS.
+Paradigm Storage Training Inference Main Advantage
+Rehearsal High (buffers or stored samples)
+Medium (joint replay updates)
+No extra latency Most direct mitigation of forgetting; strong fusion potential [27, 28] Regularization Low (masks or importance statistics)
+Medium (constraintbased updates)
+No extra latency Stable parameter budget; works without stored data [29,23] Architecture-based Medium (growing taskspecific modules)
+Low (module-focused updates)
+Small extra latency Strong isolation; near-zero forgetting potential; best suited for finetuning scale [30,31] Hybrid (MoE/PEFT) Medium (experts, adapters, or routing)
+Low (sparse PEFT-style updates)
+Adaptive (routerdependent)
+Scalable LLM adaptation; high flexibility via sparse activation [32,33]
+continual pre-training emphasizes knowledge acquisition under distribution shift, continual fine-tuning focuses on downstream adaptation with minimal capability regression, and continual alignment addresses drifting preferences, safety constraints, and normative consistency. Fig.1provides an overall taxonomy, while the following sections examine how these stages differ in mechanism and objective.
+D. A Knowledge Dynamics Perspective
+Across training stages, continual learning can be interpreted as regulating knowledge dynamics in a high-dimensional representation space. New updates do not merely append isolated facts; they perturb attention patterns, routing decisions, latent features, and preference policies that already encode historical behavior. The central question is therefore not only how to learn new tasks, but also how new information interacts with previously consolidated knowledge. We characterize this interaction using three recurring modes. Collisionoccurs when new updates overwrite support regions or decision boundaries that remain important for old knowledge, thereby causing forgetting.Isolationallocates new modules, prompts, experts, or memory slots to shield prior representations, improving stability but sometimes weakening transfer.Fusionselectively composes old and new knowledge through replay, shared attention, routing, or preference integration, which can improve transfer but also requires stronger control over interference. This view unifies the major method families discussed in this paper: replay revisits old support regions to stabilize overlap; regularization restricts representational drift; modular and PEFT-based methods emphasize structured isolation; and continual alignment methods must additionally reweight competing preference memories instead of treating all historical knowledge as equally reusable.
+III. CONTINUAL PRE-TRAINING
+Continual pre-training updates a pre-trained LLM with new unlabeled corpora, often under domain shift, while attempting to preserve broad linguistic competence. Compared with restarting pre-training from scratch, it offers a more practical route for refreshing factual and domain-specific knowledge under constrained compute [7]. The main risk is catastrophic
+forgetting of previously learned general-domain capabilities [34]. To analyze this trade-off, this paper organizes continual pretraining methods by the mechanism used to regulate knowledge retention and incorporation: rehearsal, data augmentation, process optimization, and architecture-based adaptation. Table IIsummarizes representative papers.
+A. Rehearsal-based methods
+Rehearsal in CPT operates as afusionmechanism in our framework: by interleaving a subset of prior pre-training data with the new-domain corpus, the optimizer is forced to keep historical support regions covered, so that updates accommodating new tokens cannot freely overwrite the geometry of previously learned representations. The mixed subset acts as a low-cost approximation of the joint loss in (5). Although rehearsal-based methods are conceptually simple, they are widely used in continual pre-training and often remain effective for mitigating catastrophic forgetting, enabling models to retain previously learned information while continually adapting to new domains. Fujii et al. [28], Cui et al. [35] transfer the base model to other language domains with higher performance than models trained from scratch by utilizing a mixture of newlanguage data and pre-training data. Fujii et al. [28] developed a Japanese language model by continual pre-training LLaMA2 on a mixture of Japanese and English datasets, and demonstrated that model performance improves in line with increases in training data. Cui et al. [35] continually pre-train LLaMA2 on Chinese data, leading to significant improvements in Chinese text understanding and generation. Building on prior scaling laws [53,54], recent studies have extended these principles to continual pre-training. [37] focused on cross-lingual CPT, conducting experiments on 40 model sizes to analyze scaling behaviors across different languages. Meanwhile, [36] investigated domain-specific CPT in specialized fields such as code, math, law, and others, proposing a parameterized domain-continual pre-training (DCPT) law. [38] proposed critical mixture ratios for continual pre-training and considered the trade-off between general loss and domain loss. These works examined the impact of data mixture ratios on downstream task performance across various
+JOURNAL OF LATEX CLASSFILES,第 XX 卷,第 X 期,2025 年 9 月 5
+表 I 主要持续学习范式之间的阶段感知定性权衡。
+范式 存储 训练 推理 主要优势 复演 高(缓冲区或存储 样本)
+中等(联合回放更 新)
+无额外延迟 最直接地缓解遗忘
+;融合潜力强 [27, 28] 正则化 低(掩码或重要
+性统计)
+中等 (基于约束
+的更新)
+无额外延迟 参数预算稳定;可运行 无需存储数据 [29, 23] 基于架构 中等(不断增长的任务
+专用模块)
+Low (以模块为中心 更新)
+额外延迟较小 强隔离;近乎零遗忘 潜力;最适合微调
+规模 [30, 31]
+混合式(MoE/PEFT) 中等 (专家,
+适配器,或路由)
+低(稀疏 PEFT 风格 更新)
+自适应 (路由 依赖)
+可扩展的大语言模型适配;高 灵活性 通过稀疏激活
+[32, 33]
+持续预训练强调分布偏移下的知识获取,持续微调侧重于 以最小的能力回退实现下游适配,而持续对齐则处理偏好 漂移、安全约束和规范一致性问题。图 1 给出了总体分类 体系,后续各节将探讨这些阶段在机制和目标上的差异。
+D. 知识动力学视角
+在训练的不同阶段,持续学习可以被解释为在高维表 示空间中调控知识动态。新的更新并不仅仅是追加孤立事 实;它们会扰动已经编码历史行为的注意力模式、路由决 策、潜在特征和偏好策略。因此,核心问题不仅在于如何 学习新任务,还在于新信息如何与先前巩固的知识相互作 用。
+我们用三种反复出现的模式来刻画这种相互作用。当 新的更新覆盖对旧知识仍然重要的支撑区域或决策边界时, 就会发生碰撞,从而导致遗忘。隔离会分配新的模块、提 示、专家或记忆槽来保护先前的表示,提高稳定性,但有 时会削弱迁移。融合通过回放、共享注意力、路由或偏好 整合来选择性地组合新旧知识,这可以改善迁移,但也需 要对干扰进行更强的控制。这一视角统一了本文讨论的主 要方法族:回放会重新访问旧的支撑区域以稳定重叠;正 则化限制表示漂移;模块化和基于 PEFT 的方法强调结构 化隔离;持续对齐方法还必须额外重新加权相互竞争的偏 好记忆,而不是将所有历史知识视为同等可复用。
+III. 持续预训练
+持续预训练会用新的无标注语料更新预训练LLM, 这些语料往往存在领域偏移,同时努力保持广泛的语言能 力。与从头重新开始预训练相比,它在算力受限的情况下 [7]提供了一条更实用的途径,用于更新事实性和领域特 定知识。主要风险是灾难性
+对先前已学习的通用领域能力的遗忘[34]。
+为分析这一权衡,本文按照用于调控知识保留与融入 的机制,将持续预训练方法分为:回放、数据增强、过程 优化和基于架构的适应。表 II 总结了代表性论文。
+A. 基于回放的方法
+在我们的框架中,CPT 中的回放作为一种融合机制发挥 作用:通过将一部分先前的预训练数据与新领域语料交错混 合,优化器被迫保持历史支撑区域被覆盖,从而使适配新 token 的更新无法随意覆盖先前所学表示的几何结构。该混 合子集可视为对式 (5) 中联合损失的一种低成本近似。
+尽管基于回放的方法在概念上很简单,但它们在持续 预训练中被广泛使用,并且通常仍能有效缓解灾难性遗忘, 使模型能够在持续适应新领域的同时保留先前学习到的信 息。 Fujii 等人 [28], Cui 等人 [35]通过利用新语言数据 与预训练数据的混合,将基础模型迁移到其他语言领域, 其性能高于从头训练的模型。Fujii 等人 [28] 通过在日 语和英语数据集混合上持续预训练 LLaMA2,开发了一 个日语语言模型,并证明模型性能会随着训练数据增加而 提升。Cui 等人 [35] 在中文数据上持续预训练 LLaMA2,使中文文本理解与生成能力得到显著提升。
+在既有缩放定律的基础上, [53, 54], 近期研究已将 这些原则扩展到持续预训练。 [37]聚焦于跨语言 CPT, 在 40 个模型规模上开展实验,以分析不同语言中的缩放 行为。与此同时, [36] 研究了代码、数学、法律等专业 领域中的领域特定 CPT,并提出了参数化的领域持续预 训练(D‐ CPT)定律。 [38]提出了持续预训练的关键混 合比例,并考虑了通用损失与领域损失之间的权衡。这些 工作考察了数据混合比例对各种
+
+
+JOURNAL OF LATEX CLASS FILES, VOL. XX, NO. X, SEPTEMBER 2025 6
+Representation-Space Dynamics
+Collision
+new updates overwrite old support
+Isolation
+new modules shield fragile knowledge
+Fusion
+controlled composition reuses old and new
+overlap!
+task boundary
+shared subspace
+Prior knowledge Incoming update
+Intervention Mechanisms
+Replay / Pseudo-Replay revisit historical support
+and stabilize useful overlap
+Regularization
+restrict parameter drift
+around important old knowledge
+Modular / PEFT Methods allocate experts, prompts, or
+adapters to isolate updates
+Continual Alignment
+reweight preference memory and arbitrate value conflicts
+fusion
+stability
+isolation
+arbitration
+Fig. 3. Knowledge dynamics and intervention mechanisms in continual learning for LLMs. Left: new updates may collide with, isolate from, or fuse with prior representations. Right: representative method families regulate these dynamics by revisiting historical support, restricting drift, allocating modules, or reweighting preference memories.
+TABLE II REPRESENTATIVE CONTINUAL PRE-TRAINING METHODS AND THEIR MAIN DESIGN CHOICES
+Paper Rehearsal Data augmentation Process optimization Architecture-based Base model Fujii et al. [28] ✓ ✗ ✗ ✗ LLaMA2 Cui et al. [35] ✓ ✗ ✗ ✗ LLaMA-2 7B/13B Que et al. [36] ✓ ✗ ✗ ✗ Qwen-1.5 Zheng et al. [37] ✓ ✗ ✗ ✗ LLaMA2 Gu et al. [38] ✓ ✗ ✗ ✗ LLaMA architecture Xi et al. [39] ✓ ✗ ✗ ✗ LLaMA-3 8B/70B Cheng et al. [40] ✗ ✓ ✗ ✗ LLaMA-7B Cheng et al. [41] ✗ ✓ ✗ ✗ LLaMA-3 8B Jiang et al. [42] ✗ ✓ ✗ ✗ LLaMA-3 8B Xie et al. [43] ✗ ✓ ✗ ✗ Pythia Guo et al. [44] ✓ ✓ ✗ ✗ OpenLLaMA-3B Jiang et al. [45] ✗ ✗ ✓ ✗ LLaMA-2 7B/70B Jindal et al. [46] ✗ ✗ ✓ ✗ LLaMA-3/3.1 8B; Qwen2.5 1.5B Ke et al. [31] ✗ ✗ ✗ ✓ RoBERTa Ke et al. [47] ✗ ✗ ✗ ✓ RoBERTa Zhu et al. [33] ✗ ✗ ✗ ✓ LLaMA-2 7B Wu et al. [48] ✗ ✗ ✗ ✓ LLaMA-2 7B Chen et al. [49] ✗ ✗ ✗ ✓ GLaM Chen and yi Lee [50] ✗ ✗ ✓ ✗ LLaMA-3 8B Gupta et al. [51] ✗ ✗ ✓ ✗ Pythia Arannil et al. [52] ✗ ✓ ✗ ✗ LLaMA-3 8B
+model sizes and training token scales, offering insights into optimizing data mixing ratios to improve training efficiency and performance under constraints of limited computational and data resources. Collectively, these studies demonstrate that CPT converges faster and requires fewer computational resources compared to training models from scratch. Similarly, Xi et al. [39] investigate the optimization of the additional-language mixture ratio and learning rate during the continual pre-training of the large-scale language model LLaMA3-70B in the Chinese domain. The results show that model capability improves not only in the additional language, but also in the original language and even in other specific domains. The integration of these two data sources enables the model to leverage foundational knowledge acquired during pre-training while adapting to the specific characteristics of the new domain. This approach facilitates a balanced trade
+off between retaining prior knowledge and assimilating new information, which is essential for maintaining robust performance in dynamic environments.
+B. Data augmentation methods
+Data augmentation can be read as an indirectcollisionmitigationstrategy: rather than constraining parameters or adding modules, it reshapes the input distribution so that updates triggered by the new corpus are less likely to overwrite the directions in representation space that the original model relies on. High-quality, instruction-rich, or distributionmatched augmentation reduces the magnitude of corrective updates needed during CPT and thereby curbs forgetting at its source. Cheng et al. [40] proposed a rule-based data augmentation method to transform raw corpora into reading comprehension
+《LATEX 类文件杂志》,第 XX 卷,第 X 期,2025 年 9 月 6
+表征空间动态
+碰撞 新更新覆盖旧支持
+隔离 新模块保护脆弱知识
+融合 受控组合复用新旧知识
+重叠!
+任务边界
+共享子空间
+先验知识 传入更新
+干预机制
+回放 / 伪回放 重新访问历史支持 并稳定有用的重叠
+正则化 限制参数漂移 围绕重要的旧知识
+模块化 / PEFT 方法 分配专家、提示词或 适配器以隔离更新
+持续对齐 重新加权偏好记忆 并仲裁价值冲突
+融合
+稳定性
+隔离
+仲裁
+图3. 大语言模型持续学习中的知识动态与干预机制。左图:新更新可能与先前表示发生冲突、与之隔离或融合。右图:代表性方法族通过回顾历史 支持、限制漂移、分配模块或重新加权偏好记忆来调控这些动态。
+表II 代表性持续预训练方法及其主要设计选择
+论文 复演 数据增强 过程优化 基于架构的 基础模型
+Fujii 等 [28] ✓ ✗ ✗ ✗ LLaMA2
+Cui 等 [35] ✓ ✗ ✗ ✗ LLaMA‐2 7B/13B
+Que 等 [36] ✓ ✗ ✗ ✗ Qwen‐1.5 Zheng 等 [37] ✓ ✗ ✗ ✗ LLaMA2 Gu 等 [38] ✓ ✗ ✗ ✗ LLaMA 架构
+Xi 等 [39] ✓ ✗ ✗ ✗ LLaMA‐3 8B/70B Cheng 等 [40] ✗ ✓ ✗ ✗ LLaMA‐7B Cheng 等 [41] ✗ ✓ ✗ ✗ LLaMA‐3 8B
+Jiang 等 [42] ✗ ✓ ✗ ✗ LLaMA‐3 8B Xie 等 [43] ✗ ✓ ✗ ✗ Pythia
+Guo 等 [44] ✓ ✓ ✗ ✗ OpenLLaMA‐3B Jiang 等 [45] ✗ ✗ ✓ ✗ LLaMA‐2 7B/70B Jindal 等 [46] ✗ ✗ ✓ ✗ LLaMA‐3/3.1 8B;Qwen2.5 1.5B
+Ke 等 [31] ✗ ✗ ✗ ✓ RoBERTa Ke 等 [47] ✗ ✗ ✗ ✓ RoBERTa Zhu 等 [33] ✗ ✗ ✗ ✓ LLaMA‐2 7B Wu 等 [48] ✗ ✗ ✗ ✓ LLaMA‐2 7B Chen 等人 [49] ✗ ✗ ✗ ✓ GLaM Chen 和 Yi Lee [50] ✗ ✗ ✓ ✗ LLaMA‐3 8B Gupta 等人 [51] ✗ ✗ ✓ ✗ Pythia Arannil 等人 [52] ✗ ✓ ✗ ✗ LLaMA‐3 8B
+模型规模和训练 token 规模下下游任务性能的影响,为 在有限计算和数据资源约束下优化数据混合比例以提升训 练效率和性能提供了洞见。总体而言,这些研究表明,与 从头训练模型相比,CPT 收敛更快,所需计算资源更少。
+同样,Xi 等人 [39] 研究了在中文领域对大规模语言 模型 LLaMA3‐70B 进行持续预训练时,额外语言混合比 例和学习率的优化。结果表明,模型能力不仅在额外语言 中得到提升,而且在原始语言乃至其他特定领域中也有所 提升。
+这两个数据源的整合使模型能够利用预训练期间获得 的基础知识,同时适应新领域的特定特征。这种方法促成 了平衡的权衡
+在保留先前知识与吸收新信息之间进行取舍,这对于在动 态环境中保持稳健性能至关重要。
+B. 数据增强方法
+数据增强可以理解为一种间接的冲突缓解策略:它并 非约束参数或添加模块,而是重塑输入分布,使得新语料 触发的更新不太可能覆盖原模型所依赖的表示空间方向。 高质量、富含指令或与分布匹配的增强方法会降低 CPT 期间所需纠正更新的幅度,从而从源头抑制遗忘。
+Cheng 等人 [40] 提出了一种基于规则的数据增强方法, 用于将原始语料转化为阅读理解
+
+
+JOURNAL OF LATEX CLASS FILES, VOL. XX, NO. X, SEPTEMBER 2025 7
+texts. Each raw text is enriched with a series of questionanswer pairs related to its content. This rule-based method mines intrinsic tasks through a few regex-based patterns and reinforces the model’s ability to respond to prompts effectively while also integrating domain knowledge. Similarly, Cheng et al. [41] trains an instruction synthesizer to convert raw text into question-answer pair instruction data. The synthesized instructions are subsequently combined with the raw text data for continual pre-training. The Mix-CPT [42] decouples knowledge learning and format alignment by combining the raw domain corpus, general instructions, and alignment data to enhance knowledge learning ability. Specifically, it incorporates a self-distillation constraint to alleviate catastrophic forgetting. Xie et al. [43] introduces FinPythia-6.9B, which is obtained via continual pre-training in the financial domain. It proposes efficient data selection methods ETS-DACP and ETA-DACP for continual pre-training, which outperform vanilla continual pre-training with just 10% of the data cost, without any degradation on open-domain standard tasks. Guo et al. [44] identify a ”stability gap” phenomenon in which initial performance drops before recovering during continual pre-training, and propose three data augmentation strategies to mitigate it. They introduce Llama3-Physician, a medical-domain model reported to perform competitively on several medical benchmarks while using only 40% of the training resources and maintaining general-task performance. [52] introduces an automated framework that uses large language models to generate domain-specific seed data from corpora like Common Crawl. This seed data guides the mining of relevant documents, improving pre-training quality for domain-specific tasks. Techniques include dataset curation, noise filtering, and advanced augmentation to enhance data diversity and relevance. By enhancing data quality, these data augmentation methods ensure that the model is trained on the most useful and accurate information, enabling models to better generalize and adapt to new tasks and environments.
+C. Process optimization methods
+Process-optimization methods sit between collision mitigation and fusion: by reordering or interleaving instructiontuning with continual pre-training, they restructure when knowledge of different types is consolidated, so that later updates land on a parameter manifold that is already partly aligned with the new objective. This pre-conditioning reduces the destructive interference that vanilla CPT incurs. PIT [45] argues that instruction data is more straightforward than raw document data, as documents are often more complex and contain factual content in a more intricate manner. To address this, the study proposes pre-instruction-tuning (PIT), which involves QA instruction fine-tuning prior to continual pre-training, to enhance the model’s ability to extract factual knowledge across various domains. Jindal et al. [46] examines how continual pre-training impacts instruction-following ability in LLMs, revealing that it can cause catastrophic forgetting when directly continually
+pre-training instruction-tuned models. It also introduces an efficient strategy to gain up-to-date knowledge and instructionfollowing capabilities in continual learning. [50] integrates instruction tags into the continual pretraining process, preventing loss of conversational proficiency while acquiring new languages. It requires only 0.1 billion tokens of high-quality instruction-following data, reducing resource consumption. Gupta et al. [51] investigates learning rate re-warming and re-decaying schedules for continual pre-training, showing that how the optimizer is restarted after a domain switch has a substantial effect on both plasticity and forgetting. Their findings suggest that a short warmup from the previous checkpoint’s learning rate is preferable to either a cold restart or continuing the decayed schedule, offering a practical processlevel intervention that requires no architectural changes.
+D. Architecture-based methods
+Architecture-based CPT methods follow anisolationstrategy: they expand the model with new modules or route activations via task-specific masks, so that the base weights learned in prior stages are shielded from new-domain gradient flow. Unlike the architectural isolation in fine-tuning (SectionIV-C), isolation at the pre-training scale must operate over selfsupervised objectives without explicit task boundaries, which makes routing and masking substantially harder to calibrate. Ke et al. [31] proposes a parallel adapter method that integrates CL-plugins in each transformer block, utilizing a special task mask mechanism to mitigate catastrophic forgetting. Ke et al. [47] introduces DGA, which uses a proxy KL-divergence loss with different dropout percentages to calculate the importance of different attention heads in the transformer block. It also employs a soft-masking mechanism to preserve important knowledge while adapting to a new domain. Similarly, Ke et al. [55] explores DAS, extending DGA to all neural units, and investigates the adaptation of a sequence of new domain knowledge by incorporating contrastive learning. The Mixture-of-Experts (MoE) architecture [56,57] has gained increasing popularity for scaling model parameters due to its sparse activation properties. However, training an MoE model from scratch is often constrained by data hunger and training instability. Zhu et al. [33] proposes LLaMA-MoE, transforming LLaMA2 into an MoE architecture and investigating various expert construction methods and data sampling strategies during continual pre-training. Chen et al. [49] takes a complementary MoE approach by training distributionspecialized experts, where each expert is dedicated to a specific data distribution encountered during lifelong pre-training; routing incoming tokens to the appropriate specialist preserves prior knowledge without requiring a fixed replay buffer. Wu et al. [48] proposes LLaMA Pro, which expands a pretrained LLaMA by inserting new transformer blocks while freezing the original layers. Only the newly added blocks are trained on the new domain corpus, providing a structural isolation that prevents gradient flow from touching the base model’s learned representations. This block-expansion strategy achieves strong domain adaptation with minimal forgetting,
+LATEX 类文件期刊,第 XX 卷,第 X 期,2025 年 9 月 7
+文本。每条原始文本都通过一系列与其内容相关的问答对 得到丰富。这种基于规则的方法通过少量基于正则表达式 的模式挖掘内在任务,并增强模型有效响应提示的能力, 同时整合领域知识。类似地,Cheng 等人 [41] 训练了一 个指令合成器,将原始文本转换为问答对指令数据。随后, 合成指令与原始文本数据结合用于持续预训练。 Mix‐CPT [42] 通过结合原始领域语料、通用指令和对齐 数据,将知识学习与格式对齐解耦,以增强知识学习能力。 具体而言,它引入了自蒸馏约束以缓解灾难性遗忘。
+Xie 等人 [43] 提出了 FinPythia‐6.9B,该模型通过在 金融领域进行持续预训练获得。其提出了用于持续预训练的 高效数据选择方法 ETS‐DACP 和 ETA‐DACP,这些方法仅 以 10% 的数据成本就优于普通持续预训练,且在开放域标准 任务上没有任何性能退化。
+Guo 等人 [44] 发现了一种“稳定性差距”现象,即在 持续预训练过程中初始性能会先下降然后恢复,并提出三种 数据增强策略来缓解该现象。他们介绍了 Llama3‐Physician,这是一个医疗领域模型,据报道在多 个医学基准上具有竞争力,同时仅使用 40% 的训练资源并 保持通用任务性能。 [52]介绍了一个自动化框架,该框架使用大语言模型 从 Common Crawl 等语料库生成领域特定的种子数据。 这些种子数据会指导相关文档的挖掘,从而提升领域特定 任务的预训练质量。相关技术包括数据集整理、噪声过滤 和高级增强,以增强数据多样性和相关性。
+通过提升数据质量,这些数据增强方法确保模型基于 最有用且准确的信息进行训练,使模型能够更好地泛化并 适应新的任务与环境。
+C. 过程优化方法
+过程优化方法介于冲突缓解与融合之间:通过重新排 序或交错安排指令微调与持续预训练,它们重构不同类型 知识的巩固时机,从而使后续更新落在已部分与新目标对 齐的参数流形上。这种预条件处理减少了原始 CPT 所造 成的破坏性干扰。
+PIT [45] 认为,指令数据比原始文档数据更直接,因 为文档通常更复杂,并以更错综复杂的方式包含事实内容。 为解决这一问题,该研究提出了预指令微调(PIT),即 在持续预训练之前进行 QA 指令微调,以增强模型跨不同 领域提取事实知识的能力。
+Jindal 等人 [46] 考察了持续预训练如何影响大语言模型 (LLM)的指令遵循能力,并揭示出,直接持续可能导致灾难 性遗忘,尤其是在
+对指令微调模型进行预训练时。它还引入了一种高效策略, 以便在持续学习中获得最新知识和指令遵循能力。
+[50] 将指令标签整合到持续预训练过程中,在习得 新语言的同时防止对话能力退化。它仅需 1 亿个 token 的高质量指令遵循数据,从而降低资源消耗。
+Gupta 等人 [51] 研究了持续预训练中的学习率重新 预热与重新衰减调度,表明在领域切换后优化器如何重启 会对可塑性和遗忘产生显著影响。他们的研究结果表明, 从上一检查点的学习率进行短时间预热,优于冷重启或继 续采用已衰减的调度,这提供了一种无需架构更改的实用 过程级干预。
+D. 基于架构的方法
+基于架构的 CPT 方法遵循隔离策略:它们通过新模 块扩展模型,或借助任务特定掩码来路由激活,从而使先 前阶段学到的基础权重免受新领域梯度流的影响。与微调 中的架构隔离(第 IV‐C 节)不同,预训练规模下的隔离 必须作用于没有显式任务边界的自监督目标,这使得路由 和掩码的校准变得困难得多。
+Ke 等人 [31]提出了一种并行适配器方法,在每个 transformer 块中集成 CL 插件,并利用特殊任务掩码机 制来缓解灾难性遗忘。Ke 等人 [47]引入了 DGA,该方法 使用带有不同 dropout 百分比的代理 KL 散度损失来计 算 transformer 块中不同注意力头的重要性。它还采用 软掩码机制,在适应新领域的同时保留重要知识。类似地, Ke 等人 [55]探索了 DAS,将 DGA 扩展到所有神经单元, 并通过结合对比学习来研究对一系列新领域知识的适应。
+混合专家(Mixture‐of‐Experts, MoE)架构 [56, 57] 因其稀疏激活特性,在扩展模型参数方面越来 越受欢迎。然而,从头训练 MoE 模型通常受数据匮乏和 训练不稳定的制约。Zhu 等人 [33] 提出了 LLaMA‐MoE,将 LLaMA2 转换为 MoE 架构,并在持 续预训练期间研究了多种专家构建方法和数据采样策略。 Chen 等人 [49]采用了一种互补的 MoE 方法,通过训练 分布特化的专家,其中每个专家专注于终身预训练过程中 遇到的特定数据分布;将输入 token 路由到合适的专家, 可在无需固定回放缓冲区的情况下保留先验知识。
+Wu 等人 [48] 提出了 LLaMA Pro,该方法通过插入 新的 transformer 块来扩展预训练的 LLaMA,同时冻 结原始层。只有新增的块会在新领域语料上训练,从而形 成结构隔离,防止梯度流触及基础模型已学习到的表示。 这种块扩展策略以极小的遗忘实现了强领域适应,
+
+
+JOURNAL OF LATEX CLASS FILES, VOL. XX, NO. X, SEPTEMBER 2025 8
+TABLE III REPRESENTATIVE CONTINUAL FINE-TUNING METHODS AND THEIR MAIN DESIGN CHOICES
+Paper Rehearsal Regularization-based Architecture-based Base model Scialom et al. [27] ✓ ✗ ✗ T0 Mok et al. [58] ✓ ✓ ✗ BART Zhao et al. [59] ✓ ✗ ✓ T5, LLaMA-2 Wang et al. [30] ✗ ✗ ✓ T5-large Razdaibiedina et al. [60] ✗ ✗ ✓ T5, BERT Wang et al. [61] ✗ ✗ ✓ BERT Li et al. [32] ✗ ✗ ✓ LLaMA-2 Du et al. [62] ✗ ✗ ✓ LLaMA-2 Diera et al. [63] ✗ ✗ ✓ BERT Tack et al. [64] ✗ ✗ ✓ LLaMA-2 Momeni et al. [65] ✗ ✗ ✓ BART Qiu et al. [66] ✗ ✗ ✓ Mistral-7B, LLaMA-3.1-8B Yin et al. [67] ✓ ✗ ✗ BART Huang et al. [68] ✓ ✗ ✗ LLaMA-2-7B Wang et al. [69] ✓ ✗ ✗ LLaMA-7B Wu et al. [70] ✗ ✗ ✓ BLOOMZ-7.1B Araujo et al. [71] ✓ ✗ ✓ BERT Jin et al. [72] ✗ ✗ ✓ Flan-T5
+and the expanded architecture can be merged back into a single model for deployment.
+E. Discussion: take-aways for continual pre-training
+Synthesizing the four method families above, we offer three observations.First, data-mixture rehearsal has become a strong baseline: across [28,35,36,37,38,39], mixing 5–15% of prior-domain data with new corpora consistently preserves general capabilities, though the optimal ratio remains task- and model-dependent.Second, architecture-based methods remain underused at the pre-training scale, due to the cost of inserting and warming up new modules over trilliontoken corpora; MoE-style conversions [33] are among the few architectural routes with credible CPT-scale evidence.Third, the ”stability gap” [44]—an initial performance dip before recovery—remains theoretically underexplained, suggesting that CPT update geometry may differ qualitatively from finetuning.
+IV. CONTINUAL FINE-TUNING
+Continual fine-tuning incrementally adapts an instructiontuned model to a sequence of downstream tasks while retaining previously acquired capabilities. Compared with continual pre-training, the data scale is smaller but the risk of behavior regression is more immediate because forgetting directly affects task execution. The central design problem is therefore to balance rapid task adaptation, forgetting control, and cross-task knowledge transfer. As in traditional continual learning, existing methods can be grouped into replay-based, regularization-based, and architecture-based families, although many recent LLM methods combine multiple ingredients. TableIIIsummarizes representative fine-tuning papers.
+A. Replay-based methods
+In the field of continual learning for LLM, replay-based methods are a key strategy designed to address the forgetting problem that models may encounter when learning new tasks.
+These methods assist models in retaining previously learned knowledge by preserving and utilizing data samples from old tasks, thereby facilitating continual learning. Common strategies include experience replay and generative replay. The former retains a portion of old task data samples during the training of new tasks and mixes them with new data in the training process. This approach enables models to review and reinforce their memory of old knowledge while acquiring new information. A representative replay-augmented continual finetuning objective can be abstracted as follows [27,58]:
+Lreplay =E (x,y)∼Dt [L(fθ(x), y)]+λE(x,y)∼M<t [L(fθ(x), y)], (6) whereD t denotes the current-task data,M <t is replay memory or synthesized historical data, andλcontrols the retention strength assigned to previous tasks. All replay-based finetuning methods discussed below can be viewed as instances of (6), differing primarily in how they construct the memory M<t and weight the retention termλ. Scialom et al. [27] conducted the first exploration of continual learning in instruction fine-tuning, proposing a simple yet effective uniform replay with a fixed prior-data proportion. This approach helps retain earlier-task performance and enhances generalization to new instructions. DYNAINST [58] extends this baseline with an entropy-based dynamic instance selection mechanism and an adaptive task replay strategy that effectively re-weightsM <t in (6) based on instance difficulty. [67] proposes an instructionbased continual learning method for LLMs. It first pre-trains on self-generated negative samples, then fine-tunes on normal data. During CL, it replays past task instructions instead of raw data to prevent forgetting. Instruction-based Continual Learning (InsCL) [69] is a novel replay-based framework for continual instruction tuning. Leveraging task similarity computed via Wasserstein Distance over instructions, InsCL dynamically replays relevant historical data. It further proposes an Instruction Information Metric (InsInfo) to quantify instruction complexity and diversity, prioritizing high-quality samples during replay. However, sometimes the original training data may no
+《LATEX 类文件杂志》,第 XX 卷,第 X 期,2025 年 9 月 8
+表 III 代表性持续微调方法及其主要设计选择
+论文 回放 基于正则化的方法 基于架构的方法 基础模型
+Scialom 等 [27] ✓ ✗ ✗ T0
+Mok 等 [58] ✓ ✓ ✗ BART Zhao 等 [59] ✓ ✗ ✓ T5、LLaMA‐2 Wang 等 [30] ✗ ✗ ✓ T5‐large
+Razdaibiedina 等 [60] ✗ ✗ ✓ T5、BERT
+Wang 等 [61] ✗ ✗ ✓ BERT Li 等 [32] ✗ ✗ ✓ LLaMA‐2
+Du 等 [62] ✗ ✗ ✓ LLaMA‐2 Diera 等 [63] ✗ ✗ ✓ BERT Tack 等 [64] ✗ ✗ ✓ LLaMA‐2 Momeni 等 [65] ✗ ✗ ✓ BART Qiu 等 [66] ✗ ✗ ✓ Mistral‐7B、LLaMA‐3.1‐8B
+Yin 等 [67] ✓ ✗ ✗ BART
+Huang 等 [68] ✓ ✗ ✗ LLaMA‐2‐7B Wang 等 [69] ✓ ✗ ✗ LLaMA‐7B
+Wu 等 [70] ✗ ✗ ✓ BLOOMZ‐7.1B
+Araujo 等 [71] ✓ ✗ ✓ BERT Jin 等 [72] ✗ ✗ ✓ Flan‐T5
+并且扩展后的架构可以合并回单个模型以用于部署。
+E. 讨论:持续预训练的关键启示
+综合上述四类方法,我们提出三点观察。第一,数据 混合回放已成为一个强有力的基线:在
+[28, 35, 36, 37, 38, 39], 中,将 5–15% 的先前领域数据
+与新语料混合,通常能够持续保持通用能力,尽管最优比 例仍取决于任务和模型。第二,基于架构的方法在预训练 规模上仍未得到充分利用,原因是在万亿 token 语料上 插入新模块并对其进行预热的成本高昂;MoE 风格转换 [33] 是少数具备可信 CPT 规模证据的架构路线之一。第 三,“稳定性差距” [44]——即性能先下降后恢复——在 理论上仍缺乏充分解释,这表明 CPT 的更新几何结构可 能与微调存在性质上的差异。
+IV. 持续微调
+持续微调以增量方式使经指令微调的模型适应一系列 下游任务,同时保留先前获得的能力。与持续预训练相比, 其数据规模更小,但行为退化的风险更为直接,因为遗忘 会直接影响任务执行。因此,核心设计问题是在快速任务 适应、遗忘控制和跨任务知识迁移之间取得平衡。如同传 统持续学习,现有方法可分为基于回放、基于正则化和基 于架构的类别,尽管许多近期 LLM 方法结合了多种要素。 表 III 总结了具有代表性的微调论文。
+A. 基于回放的方法
+在 LLM 持续学习领域,基于回放的方法是一种关键 策略,旨在解决模型在学习新任务时可能遇到的遗忘问题。
+这些方法通过保留并利用旧任务中的数据样本,帮助模型 保留先前学到的知识,从而促进持续学习。常见策略包括 经验回放和生成式回放。前者在训练新任务时保留一部分 旧任务数据样本,并在训练过程中将其与新数据混合。这 种方法使模型能够在获取新信息的同时回顾并强化对旧知 识的记忆。一种具有代表性的回放增强持续微调目标可抽
+象如下 [27, 58]:
+Lreplay = E(x,y)∼Dt [L(fθ(x), y)]+λE(x,y)∼M<t [L(fθ(x), y)] , (6) 其中 Dt 表示当前任务数据, M<t 是回放记忆或合成的 历史数据,而 λ 控制分配给先前任务的保留强度。下文讨 论的所有基于回放的微调方法都可视为 (6) 的实例,主要 区别在于它们如何构造记忆M<t 以及对保留项 λ 进行加 权。Scialom 等人 [27] 首次探索了指令微调中的持续学 习,提出了一种简单而有效的、采用固定先验数据比例的 统一回放方法。该方法有助于保持先前任务的性能,并增 强对新指令的泛化能力。DYNAINST [58] 通过基于熵的 动态实例选择机制和自适应任务回放策略扩展了该基线, 该策略会根据实例难度有效重新加权 (6) 中的 M<t。 [67] 提出了一种面向大语言模型(LLMs)的基于指令的 持续学习方法。该方法首先在自生成的负样本上进行预训 练,然后在正常数据上进行微调。在持续学习(CL)过 程中,它回放过去任务的指令而非原始数据,以防止遗忘。 基于指令的持续学习(InsCL) [69] 是一种用于持续指 令微调的新型基于回放的框架。InsCL 利用通过指令上的 Wasserstein 距离计算出的任务相似度,动态回放相关的 历史数据。它进一步提出了指令信息度量(InsInfo), 用于量化指令的复杂性和多样性,并在回放过程中优先选 择高质量样本。
+然而,有时原始训练数据可能不
+
+
+JOURNAL OF LATEX CLASS FILES, VOL. XX, NO. X, SEPTEMBER 2025 9
+longer be available due to privacy concerns or access restrictions. In such situations, some pseudo-sample generation techniques are proposed to create the pseudo-samples that closely resemble the distribution of original data. SAPT [59] incorporates an additional pseudo-sample generator to produce synthetic samples, which helps address catastrophic forgetting. These samples assist the attention reflection module in revisiting prior knowledge, ensuring the retention of previously learned information. SSR [68] introduces Self-Synthesized Rehearsal for mitigating catastrophic forgetting in LLM continual learning. It leverages the model’s in-context learning capability to generate and iteratively refine synthetic rehearsal data, thereby eliminating the need to store real training samples while reporting strong performance and improved data efficiency relative to traditional rehearsal-based methods.
+B. Regularization-based methods
+Regularization-based continual learning methods represent an effective strategy for mitigating catastrophic forgetting by imposing constraints on model parameter updates. The core idea is to evaluate the importance of individual model parameters to previously learned tasks using regularization terms during the training of new tasks. Based on these evaluations, targeted constraints are applied to parameter updates. Specifically, these methods prioritize preserving parameters that are critical for earlier tasks, thereby minimizing significant changes to these parameters during gradient updates. This reduces interference with the retention of prior knowledge during new task training. Representative regularization-based methods can be interpreted as optimizing a task loss plus an importance-weighted stability penalty [58,47]:
+Lreg =L task(θ;D t) +λ
+X
+i
+Ωi θi −θ <t
+i
+2 ,(7)
+whereΩ i measures the importance of parameterθ i to previous tasks andθ <t
+i denotes its reference value before adapting to taskt. A representative instantiation is the regularization branch of DYNAINST [58], which contributes the importance-weighted penalty in (7) via local-minima-inducing parameter regularization, while its replay branch (discussed above) supplies the data-side term in (6). Discussion.A striking observation in the LLM continual fine-tuning literature is the scarcity of pure regularization methods compared with their prevalence in classical CL. We attribute this asymmetry to three factors. First, classical importance estimators (Fisher information in EWC [29], path integrals in SI [73], gradient sensitivities in MAS [74]) require per-parameter statistics whose cost scales linearly with model size, becoming prohibitive at the billion-parameter regime. Second, modern LLM fine-tuning is increasingly conducted via PEFT modules (LoRA, prefix-tuning), which shrink the trainable footprint to the point where architectural isolation already provides much of the protection regularization is meant to give. Third, regularization inθ-space presupposes that ”important” weights are stable across tasks—an assumption weakened in over-parameterized LLMs whose loss landscape
+contains many degenerate solutions. We therefore view regularization not as obsolete but as best deployedinsidearchitectural modules (e.g., orthogonality losses on LoRA adapters, see SectionIV-C) rather than over the full parameter set.
+C. Architecture-based methods
+Architecture-based continual fine-tuning dynamically adjusts and expands the network structure to accommodate new tasks while preserving knowledge from prior ones. By introducing new modules, layers, or memory units, these approaches realize theisolationmode in our knowledgedynamics framework: previously learned weights are frozen and new tasks are absorbed by dedicated parameters, eliminating the parameter-level interference that (7) attempts to penalizea posteriori.
+A common strategy involves the use of adapters, lightweight network structures typically inserted into existing neural network layers as small, trainable modules. When learning a new task, these adapter modules are trained while the parameters of the original model remain frozen. This approach significantly reduces the number of parameters requiring adjustment, thereby lowering computational and storage costs. Additionally, the modular design of adapters enables both task-specific isolation and cross-task knowledge sharing. By incorporating adapters, models can flexibly transfer knowledge across multiple tasks while maintaining robust memory of previously learned tasks. Multi-LoRA [72] employs multiple LoRA modules for both target and auxiliary tasks, thereby improving the performance of continual information extraction. O-LoRA [30] extends LoRA (Low-Rank Adaptation) [75] to continual learning by introducing a new LoRA module for each task in a temporal sequence, enabling efficient task-specific adaptation. To mitigate catastrophic forgetting, O-LoRA leverages the concept of orthogonal subspaces: each LoRA module is treated as an independent subspace, and an orthogonality loss is imposed across modules. This design minimizes interference from new tasks on previously acquired knowledge. By enforcing orthogonality, O-LoRA effectively isolates task representations and alleviates forgetting. In contrast, SAPT [59] contends that orthogonality alone is insufficient to support knowledge transfer across tasks. To address this limitation, SAPT introduces a shared-attention framework that facilitates knowledge fusion. By leveraging attention mechanisms, SAPT enables the exchange of critical information between tasks, thereby enhancing transfer while avoiding the strict knowledge isolation inherent in orthogonality-based methods. As a result, SAPT achieves improved multi-task performance through balanced knowledge sharing and retention. Another approach is Parameter-Efficient Fine-Tuning (PEFT), which adapts to new tasks by updating only a small subset of trainable parameters. PEFT methods offer the advantage of significantly reducing computational and storage resource requirements while maintaining efficient learning for new tasks. This makes PEFT particularly suitable for resourceconstrained scenarios, where it substantially improves training
+LATEX CLASSFILES 期刊,第 XX 卷,第 X 期,2025 年 9 月 9
+再可用,由于隐私问题或访问限制。在这种情况下,一些 伪样本生成技术被提出,用于创建与原始数据分布高度相 似的伪样本。SAPT [59]引入了一个额外的伪样本生成器 来产生合成样本,这有助于应对灾难性遗忘。这些样本帮 助注意力反思模块重新审视先验知识,确保保留先前学到 的信息。SSR [68] 引入了自合成排练,用于缓解LLM持 续学习中的灾难性遗忘。它利用模型的上下文学习能力来 生成并迭代优化合成排练数据,从而无需存储真实训练样 本,同时相较于传统基于排练的方法展现出强劲性能和更 高的数据效率。
+B. 基于正则化的方法
+基于正则化的持续学习方法是一类有效策略,通过约 束模型参数更新来缓解灾难性遗忘。其核心思想是在训练 新任务时,利用正则项评估各个模型参数对先前学习任务 的重要性。基于这些评估,对参数更新施加有针对性的约 束。具体而言,这些方法优先保留对早期任务至关重要的 参数,从而在梯度更新过程中尽量减少这些参数的重大变 化。这降低了新任务训练期间对保留先前知识的干扰。具 有代表性的基于正则化的方法可以解释为优化任务损失加 上重要性加权的稳定性惩罚 [58, 47]:
+Lreg = Ltask(θ; Dt) + λ
+X
+i
+Ωi θi − θ<t
+i
+2 , (7)
+其中,Ωi 衡量参数 θi 对先前任务的重要性, θ<t
+i 表示 其在适应任务 t 之前的参考值。
+一个具有代表性的实例是 DYNAINST 的正则化分支 [58], ,它通过诱导局部极小值的参数正则化在式 (7) 中 贡献重要性加权惩罚;而其回放分支(上文已讨论)则在 式 (6) 中提供数据侧项。 讨论。大语言模型持续微调文献中一个引人注目的现象 是:与纯正则化方法在经典持续学习(CL)中普遍存在相比, 这类方法在 LLM 场景中却十分稀少。我们将这种不对称归 因于三个因素。第一,经典的重要性估计器(EWC 中的 Fisher 信息 [29],、SI 中的路径积分 [73], 、MAS 中的梯度 敏感度 [74])需要逐参数统计量,其成本随模型规模线性增 长,在十亿参数级别会变得难以为继。第二,现代 LLM 微 调越来越多地通过 PEFT 模块(LoRA、prefix‐tuning)进 行,这缩小了可训练足迹,以至于架构隔离已经提供了正则 化原本想要给予的大部分保护。第三,在 θ 空间中的正则 化预设“重要”权重在不同任务间是稳定的——而在过参数 化 LLM 中,这一假设会被削弱,因为其损失景观
+包含许多退化解。因此,我们认为正则化并未过时,而是 最好部署在架构模块内部(例如,对 LoRA 适配器施加 正交损失,见第 IV‐C 节),而非作用于整个参数集。
+C. 基于架构的方法
+基于架构的持续微调会动态调整和扩展网络结构,以 容纳新任务,同时保留来自先前任务的知识。通过引入新 模块、层或记忆单元,这些方法实现了我们知识动态框架 中的隔离模式:先前学习到的权重被冻结,新任务由专用 参数吸收,从而消除了 (7) 试图事后惩罚的参数级干扰。
+一种常见策略是使用适配器,即轻量级网络结构,通 常作为小型可训练模块插入现有神经网络层中。在学习新 任务时,这些适配器模块会被训练,而原始模型的参数保 持冻结。这种方法显著减少了需要调整的参数数量,从而 降低了计算和存储成本。此外,适配器的模块化设计能够 实现任务特定隔离和跨任务知识共享。通过引入适配器, 模型可以在多个任务之间灵活迁移知识,同时保持对先前 学习任务的稳健记忆。
+Multi‐LoRA [72] 采用多个 LoRA 模块来同时处理目 标任务和辅助任务,从而提升持续信息抽取的性能。 O‐LoRA [30] 将 LoRA(低秩适配) [75] 扩展到持续 学习,通过在时间序列中为每个任务引入新的 LoRA 模块, 实现高效的任务特定适配。为缓解灾难性遗忘, O‐LoRA 利用正交子空间的概念:每个 LoRA 模块被视为 一个独立子空间,并在模块之间施加正交性损失。这种设 计最大限度地减少了新任务对先前已获取知识的干扰。通 过强制正交性,O‐LoRA 有效隔离任务表示并减轻遗忘。
+相比之下,SAPT [59] 认为仅靠正交性不足以支持 跨任务的知识迁移。为解决这一局限,SAPT 引入了共享 注意力框架,以促进知识融合。通过利用注意力机制, SAPT 使任务之间能够交换关键信息,从而在增强迁移的 同时避免基于正交性的方法所固有的严格知识隔离。因此, SAPT 通过均衡的知识共享与保持,实现了改进的多任务 性能。
+另一种方法是参数高效微调(PEFT),它仅通过更 新一小部分可训练参数来适应新任务。PEFT 方法具有显 著降低计算和存储资源需求的优势,同时能够保持针对新 任务的高效学习。这使得 PEFT 特别适用于资源受限场景, 在这些场景中,它能大幅提升训练
+
+
+JOURNAL OF LATEX CLASS FILES, VOL. XX, NO. X, SEPTEMBER 2025 10
+efficiency. Based on Prompt-tuning [76], Razdaibiedina et al. [60] proposes a method called progressive prompts, which freezes the model’s parameters and learns a soft prompt for each task, concatenating it with prompts from previous tasks. Additionally, it introduces a more challenging continual learning task with long sequences. The method achieves strong performance in these settings. Similarly, based on prefixtuning [77], [61] explores a continual learning method that eliminates the need for storing historical data and relies on efficient parameter isolation. This approach performs competitively among methods that do not depend on replay. The method employs dynamic prefix tuning blocks for training and utilizes Mahalanobis distance [78] and Gaussian distributions to identify task types and select the corresponding block for new tasks. MixLoRA [32] proposes a parameter-efficient mixture-ofexperts method for fine-tuning large language models. It constructs multiple LoRA-based experts within the feed-forward network block of a frozen pre-trained dense model and uses a top-k router. It also employs independent attention-layer LoRA adapters and an auxiliary load balance loss to enhance performance and address router imbalance. [62] introduces MIGU, a method for continual learning that does not require rehearsal or task labels. It updates model parameters in linear layers with large magnitudes by leveraging the observation that different tasks have unique magnitude distributions. MIGU demonstrates strong performance on a range of continual learning benchmarks and can be integrated with current CL methods to improve overall performance. Diera et al. [63] proposes a DKVB architecture, which allows for localized updates by freezing the model parameters and only updating the discrete key-value pairs. It demonstrates competitive performance with lower computational costs compared to other continual learning methods. The authors also propose a generic discrete key initialization technique that is task-independent, further enhancing the model’s adaptability and efficiency in various NLP tasks. [64] proposes MAC (Memory of Amortized Contexts), an efficient online adaptation framework for LLMs. It freezes the base model and uses an amortization network to compress new data into compact modulations stored in memory. During inference, it retrieves and combines relevant modulations for adaptation—enabling knowledge retention without gradient updates. MAC outperforms fine-tuning methods in online adaptation tasks. [65] introduces KLDA for class-incremental learning (CIL), using a frozen foundation model’s features enhanced by RBF kernels and Random Fourier Features. It incrementally updates class means and a shared covariance matrix, achieving competitive performance without replay data while avoiding catastrophic forgetting and approaching the joint-training upper bound. [66] introduces CLOB, a verbalprompt-based continual learning method for black-box LLMs. It introduces CIS, which incrementally updates class-wise summaries to address context limitations, achieving near-zero forgetting and strong incremental performance. [70] explores SwitchCIT, which alleviates catastrophic forgetting by using a switch network to route computations to parameter-efficient tuned models. The switch network identifies tasks from instructions and routes them to specialized models fine-tuned
+via methods like LoRA. [71] introduces L2R, which isolates the training of new PEFT modules to prevent interference with previously learned modules and employs a memory-based router to dynamically compose these modules during inference. This approach enhances generalization and performance by leveraging a small memory of previous examples to learn effective routing functions.
+D. Discussion: take-aways for continual fine-tuning
+Three patterns emerge from the continual fine-tuning literature.First, PEFT-based isolation via LoRA variants has become the dominant design pattern: because fine-tuning starts from a strong pre-trained base, the primary risk is behavioral regression, making isolation a cheaper defensive strategy than full-parameter regularization or replay.Second, the small footprint of PEFT modules creates a new bottleneck—routing. Methods such as MixLoRA [32], SwitchCIT [70], and L2R [71] invest heavily in reliable task inference at inference time; the quality of routing directly determines whether isolation remains protective or degrades into siloed modules that fail to share knowledge.Third, the field lacks a unified benchmark covering all three method families under the same protocol, making cross-paper comparison unreliable.
+E. Illustrative Comparison under a Unified Protocol
+The methods reviewed above were proposed in different papers with different backbones, benchmarks, task orderings, and training budgets, making direct cross-paper comparison misleading. To complement the narrative survey with a concrete cross-method view, we report a supplementary comparison conducted under a unified protocol. Seven representative methods—spanning sequential baselines, regularization, and architecture/PEFT families—are evaluated with the same backbone (T5-Large), the same two benchmarks (Long Sequence Benchmark, LSB, and SuperNatural Instructions, SNI), and two task orders per benchmark, yielding four experimental conditions. The goal is not to produce a definitive ranking but to surface relative trends that are otherwise obscured by heterogeneous paper-specific setups. AP–F.Ra trade-off.Figure4and TableIVjointly show that the four architecture/PEFT methods (LFPT5, O-LoRA, C-LoRA, TaSL) simultaneously dominate both AP and F.Ra over the sequential baselines (SeqLoRA, IncLoRA) and regularization (EWC), confirming that isolation-oriented designs offer a favorable stability–plasticity frontier relative to naive sequential adaptation. Within the PEFT family, a finer tradeoff remains: O-LoRA achieves the lowest average F.Ra (9.13) by enforcing strict orthogonal subspace isolation, while LFPT5 achieves the highest average AP (50.69) through prompt-based task conditioning. This pattern is consistent with the claim in SectionIV-Dthat the quality of routing and knowledge sharing—not isolation alone—determines whether a method recovers plasticity. Order sensitivity.Across the two Long Sequence task orders, SeqLoRA exhibits a 21-point AP swing (34.48 vs. 55.79), illustrating that task ordering has a disproportionate effect on simple sequential adaptation. Architecture/PEFT methods are
+LATEX 类文件期刊,第 XX 卷,第 X 期,2025 年 9 月 10
+效率。基于提示微调(Prompt‐tuning), [76], Razdaibiedina 等人[60] 提出了一种称为渐进式提示 (progressive prompts)的方法,该方法冻结模型参数, 并为每个任务学习一个软提示,将其与先前任务的提示拼 接在一起。此外,它还引入了一个更具挑战性的长序列持 续学习任务。该方法在这些设置下取得了强劲性能。同样, 基于前缀微调(prefix‐tuning), [77], [61] 探索了一 种持续学习方法,该方法无需存储历史数据,并依赖高效 的参数隔离。该方法在不依赖回放的方法中具有竞争力。 该方法采用动态前缀微调块进行训练,并利用马哈拉诺比 斯距离 [78]和高斯分布来识别任务类型,并为新任务选择 相应的块。 MixLoRA [32] 提出了一种面向大语言模型微调的 高效参数混合专家方法。它在冻结的预训练稠密模型的前 馈网络模块内构建多个基于 LoRA 的专家,并使用 top‐k 路由器。它还采用独立的注意力层 LoRA 适配器和 辅助负载均衡损失来提升性能并缓解路由器不平衡问题。 [62] 提出了 MIGU,一种无需回放或任务标签的持续学 习方法。它利用不同任务具有独特幅度分布这一观察,在 幅度较大的线性层中更新模型参数。MIGU 在一系列持续 学习基准上展现出强劲性能,并可与当前 CL 方法结合以 提升整体性能。Diera 等人 [63] 提出了一种 DKVB 架构, 该架构通过冻结模型参数并仅更新离散键值对来实现局部 化更新。与其他持续学习方法相比,它展现出具有竞争力 的性能以及更低的计算成本。作者还提出了一种与任务无 关的通用离散键初始化技术,进一步增强了模型在各类 NLP 任务中的适应性和效率。 [64] 提出了 MAC( Memory of Amortized Contexts,摊销上下文记忆), 一种面向 LLM 的高效在线适应框架。它冻结基础模型, 并使用摊销网络将新数据压缩为存储在内存中的紧凑调制。 在推理过程中,它检索并组合相关的调制以进行适应—— 无需梯度更新即可实现知识保留。MAC 在在线适应任务 中优于微调方法。 [65] 介绍了用于类增量学习(CIL)的 KLDA,其使用由 RBF 核和随机傅里叶特征增强的冻结 基础模型特征。它增量更新类均值和共享协方差矩阵,在 无需回放数据的情况下取得具有竞争力的性能,同时避免 灾难性遗忘并接近联合训练上界。 [66] 介绍了 CLOB, 一种面向黑盒 LLM 的基于语言提示的持续学习方法。它 引入了 CIS,逐步更新按类别的摘要以应对上下文限制, 实现近乎零遗忘和强劲的增量性能。 [70] 探索了 SwitchCIT,该方法通过使用切换网络将计算路由到参数 高效调优模型来缓解灾难性遗忘。该切换网络从指令中识 别任务,并将它们路由到经过微调的专用模型
+通过 LoRA 之类的方法。 [71] 介绍了 L2R,该方法隔离 新 PEFT 模块的训练,以防止其干扰先前已学习的模块, 并采用基于记忆的路由器在推理期间动态组合这些模块。 这种方法利用少量先前示例的记忆来学习有效的路由函数, 从而提升泛化能力和性能。
+D. 讨论:持续微调的启示
+持续微调文献中呈现出三种模式。第一,基于 PEFT 的隔离(通过 LoRA 变体实现)已成为主导设计模 式:由于微调从强大的预训练基础模型开始,主要风险是 行为退化,因此隔离比全参数正则化或回放是一种成本更 低的防御策略。第二,PEFT 模块的小占用带来了新的瓶 颈——路由。MixLoRA [32],SwitchCIT [70], 和 L2R [71] 等方法在推理时投入大量精力进行可靠的任务推断; 路由质量直接决定隔离是仍具保护作用,还是退化为无法 共享知识的孤岛式模块。第三,该领域缺乏一个在相同协 议下覆盖全部三个方法族的统一基准,导致跨论文比较不 可靠。
+E. 统一协议下的示例比较
+上文综述的方法来自不同论文,其骨干模型、基准、 任务顺序和训练预算各不相同,因此直接进行跨论文比较 会产生误导。为了以具体的跨方法视角补充叙述性综述, 我们报告了一项在统一协议下开展的补充性对比。我们采 用相同的骨干模型(T5‐Large)、相同的两个基准( Long SequenceBenchmark,LSB,以及 SuperNatural Instructions,SNI),并在每个基准上 使用两种任务顺序,对七种代表性方法——涵盖序列式基 线、正则化以及架构/PEFT 类方法——进行评估,共形成 四种实验条件。目标并非给出确定性的排名,而是揭示那 些原本会被各论文特定异构设置所掩盖的相对趋势。
+AP–F.Ra 权衡。图 4 和表 IV 共同表明,四种架构/ PEFT 方法(LFPT5、O‐LoRA、C‐LoRA、TaSL)在 AP 和 F.Ra 两项指标上同时优于序列式基线( SeqLoRA、IncLoRA)以及正则化方法(EWC),这证 实了面向隔离的设计相较于朴素顺序适应能够提供更有利 的稳定性—可塑性前沿。在 PEFT 方法族内部,仍存在更 细微的权衡:O‐LoRA 通过强制严格的正交子空间隔离实 现了最低的平均 F.Ra(9.13),而 LFPT5 通过基于提示 的任务条件化实现了最高的平均 AP(50.69)。这一模式 与第 IV‐D 节中的论断一致:路由和知识共享的质量—— 而非仅仅是隔离——决定了一种方法能否恢复可塑性。
+顺序敏感性。在两种长序列任务顺序下,SeqLoRA 表现出 21 个点的 AP 波动(34.48 对 55.79),这表明任务顺序对简单 的顺序适应具有不成比例的影响。架构/PEFT 方法则
+
+
+JOURNAL OF LATEX CLASS FILES, VOL. XX, NO. X, SEPTEMBER 2025 11
+TABLE IV OVERALL RESULTS OFT5-LARGE ON TWO CONTINUAL FINE-TUNING BENCHMARKS UNDER FOUR TASK ORDERS. LSB = LONGSEQUENCE BENCHMARK; SNI = SUPERNATURALINSTRUCTIONS. AP↑=AVERAGE PERFORMANCE(HIGHER IS BETTER); F.RA↓=FORGETTING RATE(LOWER IS BETTER). BEST VALUE IN EACH COLUMN ISBOLD.
+Method
+Long Sequence Benchmark SuperNatural Instructions Average Order 1 Order 2 Order 3 Order 4 AP↑F.Ra↓
+AP↑F.Ra↓ AP↑F.Ra↓ AP↑F.Ra↓ AP↑F.Ra↓ SeqLoRA 34.48 44.92 55.79 19.84 7.30 47.60 7.03 47.97 26.15 40.08 IncLoRA 37.79 40.91 58.00 15.60 12.33 41.93 16.65 36.56 31.19 33.75 LFPT5 66.62 14.57 67.40 13.20 39.03 10.87 29.70 20.72 50.6914.84 EWC 43.24 23.66 46.25 32.90 15.32 26.78 18.19 30.28 30.75 28.41 O-LoRA 65.303.42 67.011.95 26.37 19.15 32.83 11.99 47.889.13 C-LoRA 66.83 8.64 61.86 14.18 22.69 24.25 32.81 11.60 46.05 14.67 TaSL 71.376.20 73.116.52 27.51 18.53 28.0517.39 50.01 12.16
+5 10 15 20 25 30 35 40 45 Avg Forgetting Rate (F.Ra)
+20
+25
+30
+35
+40
+45
+50
+55
+Avg Performance (AP)
+SeqLoRA
+IncLoRA
+LFPT5
+EWC
+O-LoRA C-LoRA
+TaSL
+better
+Each point is the average over two benchmarks (LSB, SNI) and two task orders. Backbone: T5-Large.
+Sequential baseline Architecture / PEFT Regularization
+Fig. 4. Average performance (AP, higher is better) vs. average forgetting rate (F.Ra, lower is better) for seven continual fine-tuning methods under a unified T5-Large protocol (averaged over Long Sequence and SuperNI benchmarks, two task orders each). Points in the upper-left are preferable. Color indicates method family: gray = sequential baseline, blue = regularization, green = architecture/PEFT.
+substantially more robust: O-LoRA’s AP varies by only 1.7 points across the same two orders. However, no method is fully order-insensitive: LFPT5 shows a 9.3-point gap between Orders 3 and 4 on SuperNI (39.03 vs. 29.70), indicating that order sensitivity is an open problem even for parameterefficient methods when the task stream is more diverse. No single dominant method.Across all four conditions, no method achieves the best AP and F.Ra simultaneously. LFPT5 leads on SuperNI Order 3 and on average AP (50.69); O-LoRA leads on average F.Ra (9.13) across all orders; TaSL achieves the best per-order AP on Long Sequence. This absence of a universal winner reinforces the survey’s broader point: performance in continual fine-tuning is highly benchmark- and metric-dependent, and rankings from individual papers should not be generalized beyond their specific evaluation protocols. Scope and limitations.This comparison is illustrative rather than exhaustive. Results are limited to T5-Large; behavior on larger decoder-only models (e.g., LLaMA-scale) may differ, particularly given the different impact of PEFT modules at higher parameter counts. The seven methods represent a crosssection of families but do not cover all approaches surveyed above. The intent is to demonstrate cross-method trends un
+der a controlled setting, not to replace per-paper evaluations conducted under optimized conditions.
+V. CONTINUAL ALIGNMENT
+Alignment [79] is no longer a one-off post-training step once LLM deployment spans evolving policies, domains, and user communities. Traditional RLHF pipelines assume a single alignment pass on a static preference dataset, with no mechanism to incorporate subsequent updates without re-running the full alignment pipeline—a process that becomes impractical when regulations, cultural norms, or newly discovered failure modes require targeted corrections. Continual alignment thus differs from ordinary continual fine-tuning: the alignment target itself drifts because the notion of desirable behavior is dynamic and sometimes contested. A useful abstraction is to treat continual alignment as optimizing current preference satisfaction while preserving historically validated alignment behavior [80,81,82]:
+Lalign =L (t)
+pref(θ) +λR(π θ, π<t)−γM <t,(8)
+whereL (t)
+pref denotes the current preference objective,Ris a retention term anchoring the model to previously aligned policies or preference distributions, andM <t denotes optional memory consolidation or retrieval over historical preference traces.
+A. RL-free methods
+RL-free continual alignment methods instantiate (8) without invoking an explicit reward model, treating the retention term R(πθ, π<t)as a regularizer over preference distributions rather than over scalar returns. Building on DPO (4) [19], COPR [81] regularizes current preference learning with optimal policy targets derived from earlier stages, directly suppressing collision between newly preferred behaviors and historically aligned ones, and accompanies the first dedicated TIL and DIL benchmarks for continual preference adaptation. Beyond COPR, modular editing approaches such as LEMoE [83] and BaFT [84] emphasize routing consistency, expert freezing, and inputconditioned composition, demonstrating that continual alignment can equally be framed as selectiveisolation—editing a sparse subset of preference-relevant components rather than retraining the full policy.
+LATEX 类文件期刊,第 XX 卷,第 X 期,2025 年 9 月 11
+表 IV 在四种任务顺序下,T5‐LARGE 在两个持续微调基准上的总体结果。LSB = 长序列基准;SNI = SuperNatural Instructions。AP↑ = 平均性能(越高越好);F.RA ↓ = 遗忘率(越低越好)。每列中的最佳值以粗体显示。
+方法
+长序列基准 SuperNatural Instructions 平均值
+顺序 1 顺序 2 顺序 3 顺序 4 AP↑ F.Ra↓
+AP↑ F.Ra↓ AP↑ F.Ra↓ AP↑ F.Ra↓ AP↑ F.Ra↓
+SeqLoRA 34.48 44.92 55.79 19.84 7.30 47.60 7.03 47.97 26.15 40.08 IncLoRA 37.79 40.91 58.00 15.60 12.33 41.93 16.65 36.56 31.19 33.75 LFPT5 66.62 14.57 67.40 13.20 39.03 10.87 29.70 20.72 50.69 14.84 EWC 43.24 23.66 46.25 32.90 15.32 26.78 18.19 30.28 30.75 28.41 O‐LoRA 65.30 3.42 67.01 1.95 26.37 19.15 32.83 11.99 47.88 9.13 C‐LoRA 66.83 8.64 61.86 14.18 22.69 24.25 32.81 11.60 46.05 14.67 TaSL 71.37 6.20 73.11 6.52 27.51 18.53 28.05 17.39 50.01 12.16
+5 10 15 20 25 30 35 40 45 平均遗忘率(F.Ra)
+20
+25
+30
+35
+40
+45
+50
+55
+Avg Performance (AP)
+SeqLoRA
+IncLoRA
+LFPT5
+EWC
+O‐LoRA C‐LoRA
+TaSL
+更好
+每个点均为两个基准(LSB、SNI)和两个任务顺序上的平均值。主干模型:T5‐Large。
+顺序基线 架构 / PEFT 正则化
+图 4. 在统一的 T5‐Large 协议下,七种持续微调方法的平均性能(AP,越高 越好)与平均遗忘率(F.Ra,越低越好)对比(在 Long Sequence 和 SuperNI 基准上取平均,各含两个任务顺序)。左上方的点更优。颜色表示 方法类别:灰色 = 序贯基线,蓝色 = 正则化,绿色 = 架构/PEFT。
+稳健得多:在相同的两种顺序下,O‐LoRA 的 AP 仅变化 1.7 个点。然而,没有方法能完全不受顺序影响:LFPT5 在 SuperNI 上的顺序 3 和顺序 4 之间表现出 9.3 个点的差距 (39.03 对 29.70),这表明当任务流更加多样时,即使对 于参数高效方法,顺序敏感性也是一个未解决的问题。
+没有单一占优方法。在所有四种条件下,没有任何方法 能同时取得最佳 AP 和 F.Ra。LFPT5 在 SuperNI Order 3 以及平均 AP(50.69)上领先;O‐LoRA 在所有顺序的平均 F.Ra(9.13)上领先;TaSL 在 Long Sequence 上取得各 顺序的最佳 AP。这种缺乏通用赢家的情况进一步印证了本 综述更广泛的观点:持续微调中的性能高度依赖基准和指标, 单篇论文的排名不应推广到其特定评估协议之外。
+范围与局限。本比较是示例性的,而非穷尽性的。结果 仅限于 T5‐Large;在更大的仅解码器模型(例如 LLaMA 规模)上的表现可能有所不同,尤其是考虑到 PEFT 模块在 更高参数数量下会产生不同影响。这七种方法代表了各方法 家族的一个横截面,但并未涵盖上文综述的所有方法。其意 图是展示跨方法趋势,un
+der 在受控设置下,而不是取代在优化条件下进行的逐论文 评估。
+V. 持续对齐
+一旦大语言模型(LLM)的部署跨越不断演变的策 略、领域和用户群体,对齐 [79] 就不再是一次性的训练 后步骤。传统 RLHF 流程假定在静态偏好数据集上执行 一次对齐,且没有机制能在不重新运行完整对齐流程的情 况下纳入后续更新——当法规、文化规范或新发现的失效 模式需要针对性修正时,这一过程会变得不切实际。因此, 持续对齐不同于普通的持续微调:对齐目标本身会发生漂 移,因为可取行为的观念是动态的,有时甚至存在争议。
+一种有用的抽象是,将持续对齐视为在优化当前偏好 满足度的同时保留历史上已验证的对齐行为 [80, 81, 82]:
+Lalign = L(t)
+pref(θ) + λR(πθ, π<t) − γM<t, (8)
+其中 L(t) pref 表示当前偏好目标, R 是一个保留项, 将模型锚定到先前已对齐的策略或偏好分布,而 M<t 表 示对历史偏好轨迹的可选记忆巩固或检索。
+A. 无强化学习的方法
+无需强化学习的持续对齐方法对 (8) 进行实例化,无 需调用显式奖励模型,并将保留项R(πθ, π<t)视为作用于 偏好分布而非标量回报的正则项。在 DPO (4) 基础上, [19], COPR [81]利用由早期阶段推导出的最优策略目标来 正则化当前偏好学习,直接抑制新偏好行为与历史对齐行 为之间的冲突,并配套提供首个专门用于持续偏好适配的 TIL 与 DIL 基准。除 COPR 外,LEMoE [83] 和 BaFT[84] 等模块化编辑方法强调路由一致性、专家冻结 和输入条件组合,表明持续对齐同样可被表述为选择性隔 离——编辑与偏好相关的稀疏组件子集,而不是重新训练 完整策略。
+
+
+JOURNAL OF LATEX CLASS FILES, VOL. XX, NO. X, SEPTEMBER 2025 12
+TABLE V REPRESENTATIVE CONTINUAL ALIGNMENT PAPERS. “TYPE”INDICATES WHETHER THE METHOD AVOIDS(RL-FREE)OR USES(RL)REINFORCEMENT LEARNING. “MECHANISM”MAPS EACH METHOD TO THE KNOWLEDGE-DYNAMICS FRAMEWORK: C =COLLISION MITIGATION, I =ISOLATION, F = FUSION/MEMORY INTEGRATION.
+Method Type Base Model Mechanism Key Idea COPR [81] RL-free DPO-based C Regularizes current preference learning with optimal-policy targets from prior stages LEMoE [83] RL-free MoE-based I Expert routing with consistency constraints to isolate preference-specific modules BaFT [84] RL-free LLM I Input-conditioned module composition with expert freezing for selective alignment editing CPPO [80] RL (PPO) PPO-based C Extends PPO with retention-aware weighting to balance policy improvement and stability LifeAlign [82] RL (PPO) LLM F Memory-augmented focalized preference optimization; consolidates preference traces over time LANCET [85] RL-free LLM C Traces undesirable behaviors to influential training data and applies targeted corrections Mechanism abbreviations: C = collision mitigation (constraining parameter drift to preserve prior alignment); I = isolation (modular updates shielding prior policy); F = fusion/memory integration (consolidating historical preference traces).
+B. Reinforcement learning methods
+RL-based continual alignment methods retain the full RLHF pipeline but extend the PPO update in (3) with retentionaware terms that mirror the structure of (8). Zhang et al. [80] introduce continual proximal policy optimization (CPPO), which augments PPO with retention-aware reweighting to balance ongoing policy improvement and behavioral stability. LifeAlign [82] further adds memory-augmented focalized preference optimization, consolidating short-term preference traces into longer-term alignment memory—a concrete realization of theM <t term in (8). LANCET [85] complements these ideas from a corrective perspective by tracing undesirable behaviors back to influential data and refining the model accordingly, effectively performing targetedcollisioncleanup.
+C. Preference Drift and Value Conflict
+When alignment targets evolve, the key problem is not merely forgetting but preference conflict. A response that is newly preferred in one domain or cultural setting may violate older safety assumptions or conflict with previously learned norms. This makes continual alignment qualitatively different from continual pre-training, where old knowledge is usually treated as factual memory rather than normative commitment. Three issues are central. First,temporal weightingdetermines how much new preference data should override historical alignment anchors; CPPO and COPR address this via retention-aware weighting [80,81]. Second,safety hierarchy asks whether high-level safety constraints should dominate local preference updates [86]. Third,domain-conditioned alignmentsuggests a single globally averaged preference model is inadequate when values differ across cultures; LifeAlign [82] points toward conditionally retrieving historical preference patterns. Continual alignment is therefore not only a retention problem but a continual arbitration problem over which values should be preserved, updated, or contextually activated [87].
+D. Discussion: take-aways for continual alignment
+Continual alignment is the most under-studied of the three stages, and this asymmetry likely does not reflect its actual
+difficulty or importance. Three observations stand out.First, the existing literature conflates two structurally distinct problems—alignmentforgetting(a previously compliant behavior degrades) and alignmentconflict(two simultaneously active norms are incompatible)—but most current methods address only the former. Preference-conflict arbitration therefore remains a largely open research direction.Second, the handful of available methods all operate at the level of the fullmodel policy and rely on scalar preference scores; none yet addresses the fine-grained case where safety norms and helpfulness preferences must be kept in separate, identifiable sub-policies. Modular alignment—where safety constraints are encoded in frozen layers and helpfulness preferences are updated in lightweight adapters—appears to be a promising architectural direction for avoiding value collision without compromising adaptability.Third, continual alignment inherits the measurement problem of conventional alignment research: reward hacking, rater drift, and Goodhart’s law all apply, but in a continual setting where evaluation data from earlier stages may be unavailable or unrepresentative of current deployment contexts, these issues are compounded. Investing in dedicated longitudinal evaluation protocols is, in our view, an important infrastructure need for this sub-field.
+VI. EVALUATIONS
+The main goals of continual learning in large language models are to prevent catastrophic forgetting and facilitate knowledge transfer. Following standard continual learning evaluation protocols [20,24], there are four main metrics in continual learning for LLMs: (1) average performance (AP), (2) forgetting rate (F.Ra), (3) forward transfer rate (FWT), and (4) backward transfer rate (BWT). Here,a i,j denotes the performance on taskjafter training on taski.
+A. Average Performance
+As the main metric for evaluating the overall effectiveness of continual learning methods, the average performance, defined in (9), is the mean accuracy of the final model across all tasks.
+LATEX 类文件杂志,第 XX 卷,第 X 期,2025 年 9 月 12
+表 V 代表性持续对齐论文。“类型”表示该方法避免(RL‐free)还是使用(RL)强化学习。“机制”将每种方法映射到知识动力学框架:C = 冲突缓解,I = 隔离,F = 融 合/记忆整合。
+方法 Type 基础模型 机制 核心思想
+COPR [81] 无强化学 习
+基于 DPO 的 C 以最优策略正则化当前偏好学习 来自先前阶段的目标
+LEMoE [83] 无强化学
+习
+基于 MoE I 专家路由 with 一致性 约束 to 隔离
+偏好专用模块
+BaFT [84] 无强化学
+习 LLM I 输入条件化的模块组合与专家冻结,用于
+选择性对齐编辑
+CPPO [80] 强化学习(
+PPO)
+基于 PPO C 通过保留感知加权扩展 PPO,以平衡策略 改进与稳定性
+LifeAlign [82] 强化学习(
+PPO) LLM F 记忆增强的聚焦式偏好优化;巩固
+偏好轨迹随时间
+LANCET [85] 无强化学
+习 LLM C 将不良行为追溯至有影响力的训练数据,并
+实施有针对性的修正 机制缩写:C =碰撞缓解(约束参数漂移以保持先前的对齐);I = 隔离(模块化更新,保护先前的策略);F = 融合/记忆整合(巩固历史偏好轨迹)。
+B. 强化学习方法
+基于强化学习的持续对齐方法保留完整的 RLHF 流 程,但用与 (8) 结构相仿的保留感知项扩展 (3) 中的 PPO 更新。Zhang 等人[80]提出持续近端策略优化( CPPO),通过保留感知重加权增强 PPO,以平衡持续的 策略改进与行为稳定性。LifeAlign [82] 进一步加入记忆 增强的聚焦式偏好优化,将短期偏好痕迹整合为长期对齐 记忆——这是 (8) 中 M<t 项的具体实现。LANCET [85] 从纠正性视角补充了这些思路,将不良行为追溯至有影响 的数据并据此修正模型,从而有效执行有针对性的冲突清 理。
+C. 偏好漂移与价值冲突
+当对齐目标演变时,关键问题不只是遗忘,而是偏好 冲突。某个回答在一个领域或文化环境中新近受到偏好, 却可能违反较早的安全假设,或与先前学到的规范相冲突。 这使得持续对齐与持续预训练存在本质不同:在持续预训 练中,旧知识通常被视为事实性记忆,而不是规范性承诺。
+三个问题至关重要。第一,时间加权决定新的偏好数 据应在多大程度上覆盖历史对齐锚点;CPPO 和 COPR 通过保留感知加权 [80, 81]来处理这一问题。第二,安全 层级要问:高层安全约束是否应支配局部偏好更新 [86]。 第三,领域条件化对齐表明,当不同文化中的价值存在差 异时,单一的全局平均偏好模型并不充分;LifeAlign [82] 指向有条件地检索历史偏好模式。因此,持续对齐不仅是 一个保留问题,还是一个持续的仲裁问题:哪些价值应被 保留、更新或按情境激活 [87]。
+D. 讨论:持续对齐的要点
+持续对齐是三个阶段中研究得最不充分的,而这种不对 称很可能并不反映其实际
+难度或重要性。有三点观察尤为突出。第一,现有文献混 淆了两个结构上不同的问题——对齐遗忘(原本合规的行 为发生退化)与对齐冲突(两个同时生效的规范彼此不兼 容)——但当前大多数方法只处理前者。因此,偏好冲突 仲裁在很大程度上仍是一个开放的研究方向。第二,现有 少数方法都在全模型策略层面运作,并依赖标量偏好分数; 尚无方法处理安全规范与有益性偏好必须保留在彼此分离、 可识别的子策略中的细粒度情形。模块化对齐——将安全 约束编码在冻结层中,并在轻量级适配器中更新有益性偏 好——似乎是避免价值碰撞且不牺牲可适应性的一个有前 景的架构方向。第三,持续对齐继承了传统对齐研究的测 量问题:奖励破解、评分者漂移和古德哈特定律都适用, 但在持续设置中,早期阶段的评估数据可能无法获得或不 能代表当前部署情境,这些问题会进一步加剧。我们认为, 投入专门的纵向评估协议是该子领域的一项重要基础设施 需求。
+VI. 评估
+大语言模型持续学习的主要目标是防止灾难性遗忘并 促进知识迁移。遵循标准持续学习评估协议 [20, 24], , 大语言模型持续学习中有四个主要指标:(1) 平均性能 (AP),(2) 遗忘率(F.Ra),(3) 前向迁移率(FWT), (4) 后向迁移率(BWT)。其中,ai、j 表示在任务 i 上 训练后,在任务 j 上的性能。
+A. 平均性能
+作为评估持续学习方法整体效果的主要指标,平均性 能(定义见(9))是最终模型在所有任务上的平均准确率。
+
+
+JOURNAL OF LATEX CLASS FILES, VOL. XX, NO. X, SEPTEMBER 2025 13
+A high AP, however, may mask uneven task-wise behavior, which motivates the complementary metrics introduced below.
+AP= 1
+T
+T
+X
+i=1
+aT,i (9)
+B. Forgetting Rate
+The forgetting rate quantifies how much knowledge of old tasks has been lost after training on new tasks. As formalized in (10), F.Ra captures the maximum performance drop observed on each prior task between its peak and its final value. A higher F.Ra signals that learning new tasks erodes consolidated knowledge—precisely the failure mode that an effective continual learning algorithm should minimize.
+F.Ra= 1
+T−1
+T−1
+X
+i=1
+max
+k∈[i, T−1]
+(ak,i −a T,i)(10)
+C. Forward Transfer Rate
+Forward transfer assesses the facilitative effect of previously acquired knowledge on the learning of new tasks. Following (11), wherea i−1,i denotes the performance on taski before training on it andb i denotes the performance of a model trained solely on thei-th dataset, a positive FWT indicates that the continually learned model leverages prior knowledge to accelerate adaptation to incoming tasks. This is a particularly desirable property for LLMs, whose pre-training already endows them with broad priors that downstream tasks should ideally exploit rather than discard.
+F W T= 1
+T−1
+T
+X
+i=2
+(ai−1,i −b i)(11)
+D. Backward Transfer Rate
+Backward transfer measures the impact of learning new tasks on previously acquired ones, as defined in (12). A positive BWT indicates that new knowledge retroactively benefits old tasks—a hallmark of genuine knowledge fusion rather than mere isolation. We argue that BWT, although less frequently reported than F.Ra, is the more discriminative indicator of whether a method achieves true cross-task synergy: methods that score well on AP but near-zero on BWT typically rely on isolation rather than integration.
+BW T= 1
+T−1
+T−1
+X
+i=1
+(aT,i −a i,i)(12)
+VII. BENCHMARKS
+In the field of continual learning in LLMs, benchmarks play a crucial role in evaluating model performance, generalization capabilities, and resistance to catastrophic forgetting. As LLMs are increasingly applied to complex tasks and diverse domains, well-designed benchmarks are essential for assessing their ability to learn and retain knowledge in dynamic environments. Existing benchmarks typically encompass a variety of task types (e.g., classification, generation, reasoning) and simulate
+real-world task streams to evaluate model performance in incremental learning scenarios. Additionally, benchmarks must consider inter-task relationships, task difficulty distributions, and the diversity of evaluation metrics to reflect the strengths and limitations of models in continual learning more comprehensively. This section reviews and compares mainstream continual learning benchmarks, analyzing their design characteristics, applicable scenarios, and their contributions and limitations in evaluating LLMs. In continual pretraining, models are typically trained on specialized vertical domains to enhance their performance in these specific areas through knowledge injection. Evaluation metrics often involve domain-specific benchmarks. Additionally, models are evaluated on general-purpose benchmarks to assess whether catastrophic forgetting has occurred in the original domain. Commonly used general-purpose benchmarks include MMLU and GSM8K, among others. In the continual fine-tuning stage, a series of benchmarks has been proposed, typically consisting of a collection of endtask evaluations. TRACE[88] consists of several distinct challenging tasks, including domain-specific tasks, multilingual capabilities, code generation, and mathematical reasoning. Zhang et al. [89] introduced CITB, a benchmark for Continual Instruction Tuning, addressing the challenge of enabling language models to continuously learn new tasks without forgetting prior knowledge. The authors curated two long task streams, InstrDialog and InstrDialog++, to systematically evaluate various continual learning methods. Their findings highlight the importance of rich natural language instructions and suggest that current continual learning methods fail to fully leverage these instructions. Jang et al. [90] proposed invariantlama, updatedlama, and newlama benchmarks to evaluate knowledge retention, updating, and acquisition, along with the FUAR metric quantifying learning-forgetting tradeoffs. Razdaibiedina et al. [60] introduce a long sequence benchmark that consists of 15 text classification tasks, which has been widely adopted. Wu et al. [91] introduces StreamBench, a benchmark for assessing LLM agents’ continuous improvement via input-feedback sequences. It introduces cost-effective, multi-agent baselines that enhance performance through shared memory, advancing adaptive AI in streaming scenarios. TableVIcompares the key design properties of representative CL benchmarks across all three stages. A notable gap is the absence of a dedicated continual alignment benchmark with normative-conflict scenarios; the existing benchmarks for alignment evaluation (COPR’s TIL/DIL suites [81]) are smallscale and not yet widely adopted.
+VIII. CROSS-STAGESYNTHESIS
+The three training stages reviewed in this paper—continual pre-training, continual fine-tuning, and continual alignment—share a common objective (preserve while adapting) but differ substantially in their threat model, data regime, and practical constraints. TableIcaptures their resource tradeoffs; here we synthesize the methodological divergences and convergences that cut across stage boundaries.
+LATEX 类文件期刊,第 XX 卷,第 X 期,2025 年 9 月 13
+然而,较高的AP可能会掩盖任务间不均衡的表现,因此促使 我们引入下文介绍的补充指标。
+AP = 1
+T
+T
+X
+i=1
+aT,i (9)
+B. 遗忘率
+遗忘率量化了在新任务上训练后旧任务知识损失的程 度。如式 (10) 所形式化,F.Ra 捕捉了每个先前任务在其 峰值与最终值之间观测到的最大性能下降。F.Ra 越高, 表明学习新任务会侵蚀已巩固的知识——这正是有效的持 续学习算法应尽量减少的失败模式。
+F.Ra = 1
+T −1
+T −1
+X
+i=1
+max
+k∈[i, T −1]
+(ak,i − aT,i) (10)
+C. 前向迁移率
+前向迁移评估了先前获得的知识对新任务学习的促进 作用。遵循 (11),其中 ai−1、i 表示在任务 i 上训练之 前该任务上的性能,而 bi 表示仅在第 i 个数据集上训 练的模型的性能,正的 FWT 表明持续学习得到的模型利 用先验知识来加速对新到任务的适应。对于大语言模型 (LLMs)而言,这是一个尤其理想的性质,因为其预训 练已经赋予了它们广泛的先验知识,下游任务理想情况下 应利用而不是丢弃这些先验。
+FWT = 1
+T −1
+T
+X
+i=2
+(ai−1,i − bi) (11)
+D. 反向迁移率
+反向迁移衡量学习新任务对先前已习得任务的影响, 其定义见 (12)。正的 BWT 表明新知识会回溯性地有益于 旧任务——这是真正知识融合而非单纯隔离的标志。我们 认为,BWT 虽然比 F.Ra 报告得更少,但它是判断一种 方法是否实现真正跨任务协同的更具区分度的指标:在 AP 上得分高但 BWT 接近零的方法通常依赖隔离而非整 合。
+BWT = 1
+T −1
+T −1
+X
+i=1
+(aT,i − ai,i) (12)
+VII. 基准测试
+在LLM的持续学习领域,基准测试在评估模型性能、 泛化能力以及抵御灾难性遗忘的能力方面发挥着至关重要 的作用。随着LLM日益应用于复杂任务和多样领域,精 心设计的基准测试对于评估其在动态环境中学习和保留知 识的能力至关重要。现有基准测试通常涵盖多种任务类型 (例如分类、生成、推理),并模拟
+真实世界任务流,以评估模型在增量学习场景中的性能。 此外,基准测试必须考虑任务间关系、任务难度分布以及 评估指标的多样性,从而更全面地反映模型在持续学习中 的优势与局限。本节回顾并比较主流持续学习基准测试, 分析其设计特征、适用场景,以及在评估LLM方面的贡 献与局限。
+在持续预训练中,模型通常会在专门的垂直领域上接 受训练,通过知识注入来增强其在这些特定领域中的表现。 评估指标通常涉及领域特定的基准测试。此外,还会在通 用基准测试上评估模型,以判断原始领域是否发生了灾难 性遗忘。常用的通用基准测试包括 MMLU 和 GSM8K 等。
+在持续微调阶段,已经提出了一系列基准测试,通常 由一组终端任务评估组成。TRACE[88] 包含若干各具挑 战性的不同任务,包括领域特定任务、多语言能力、代码 生成和数学推理。
+Zhang 等人 [89] 提出了 CITB,一个用于持续指令 微调的基准,旨在应对使语言模型能够持续学习新任务且 不遗忘先前知识的挑战。作者构建了两个长任务流 InstrDialog 和 InstrDialog++,以系统评估各种持续学 习方法。他们的发现凸显了丰富自然语言指令的重要性, 并表明当前持续学习方法未能充分利用这些指令。Jang 等人 [90] 提出了 invariantlama、updatedlama 和 newlama 基准,用于评估知识的保留、更新与获取,以 及量化学习—遗忘权衡的 FUAR 指标。Razdaibiedina 等人 [60] 提出了一个由 15 个文本分类任务组成的长序 列基准,该基准已被广泛采用。Wu 等人 [91]提出了 StreamBench,这是一个通过输入—反馈序列评估 LLM 智能体持续改进能力的基准。它引入了具有成本效 益的多智能体基线,通过共享记忆提升性能,推动流式场 景中的自适应 AI 发展。
+表 VI 比较了代表性持续学习基准在三个阶段的关键 设计属性。一个显著空白是缺少一个专门针对规范性冲突 场景的持续对齐基准;现有的对齐评估基准(COPR 的 TIL/DIL 套件 [81])规模较小,尚未被广泛采用。
+VIII. 跨阶段综合
+本文回顾的三个训练阶段——持续预训练、持续微调 和持续对齐——具有共同目标(在适应的同时保持),但 在威胁模型、数据机制和实际约束方面存在显著差异。表 I 概括了它们的资源权衡;在此,我们综合梳理跨越阶段 边界的方法论分歧与趋同。
+
+
+JOURNAL OF LATEX CLASS FILES, VOL. XX, NO. X, SEPTEMBER 2025 14
+TABLE VI COMPARISON OF REPRESENTATIVE CONTINUAL LEARNING BENCHMARKS. “STAGE”INDICATES THE PRIMARY TRAINING STAGE TARGETED; “# TASKS” IS THE NUMBER OF TASKS OR TASK STREAMS; “FORGETTING METRIC”LISTS THE EVALUATION METRICS PROVIDED; “OPEN-ENDED”INDICATES WHETHER FREE-FORM GENERATION(RATHER THAN CLASSIFICATION)IS THE PRIMARY EVALUATION FORMAT.
+Benchmark Stage # Tasks Domain Forgetting metric Notes Open-ended
+MMLU + GSM8K CPT 2+ General/Math AP, F.Ra Widely used as CPT retention gauges No TRACE [88] CFT 8 Multi-domain AP, F.Ra Covers code, math, multilingual, domain tasks
+Yes
+CITB / InstrDialog++ [89] CFT 16 Instructions AP, F.Ra, BWT Rich natural-language instruction stream
+Yes
+FUAR [90] CFT 3 Knowledge FUAR metric Evaluates retention, update, and acquisition
+No
+Prog. Prompts (15-task) [60] CFT 15 Text classif. AP, F.Ra, BWT, FWT Long sequence; widely adopted for comparison
+No
+StreamBench [91] CFT/Agent Stream Multi-task Improvement rate Focuses on in-context online improvement
+Yes
+COPR TIL/DIL [81] Alignment 6 Preference AP, F.Ra Only dedicated alignment CL benchmark
+Yes
+TABLE VII THREE-STAGE×KNOWLEDGE-DYNAMICS MAPPING. EACH CELL LISTS REPRESENTATIVE METHOD(S)AND THEIR PRIMARY ROLE. C =COLLISION MITIGATION; I =ISOLATION; F =FUSION. “—”INDICATES THAT THE COMBINATION IS NOT CURRENTLY WELL-EXPLORED.
+Collision mitigation Isolation Fusion
+Cont. pre-trainingData augmentation [44,43]; process optimization [45] (C)
+Adapter plugins [31]; DGA/DAS [47]; LLaMA-MoE [33] (I)
+Rehearsal data mixing [28,35,36] (F)
+Cont. fine-tuningRegularization inside LoRA adapters [30] (C)
+O-LoRA [30]; Progressive Prompts [60]; L2R [71] (I)
+SAPT shared attention [59]; InsCL replay [69]; SSR [68] (F)
+Cont. alignmentCOPR [81]; CPPO [80]; LANCET [85] (C)
+LEMoE [83]; BaFT [84] (I) LifeAlign memory consolidation [82] (F); —
+A. Divergences across stages
+Data scale and supervision.CPT operates on unlabeled corpora at the trillion-token scale, where per-sample gradient signals are diffuse and forgetting manifests slowly but persistently. CFT works with curated instruction datasets at the million-sample scale, where task identity is explicit and forgetting is immediate and task-specific. Continual alignment trains on pairwise preference feedback at the thousand-example scale, where the supervision signal encodes normative rather than factual content. These three regimes call for qualitatively different detection and intervention strategies.
+Nature of what is forgotten.CPT forgets factual and linguistic representations; the forgotten content is relatively stable and objective, making evaluation straightforward. CFT forgets behavioral patterns—instruction following on particular task formats—which are more brittle but also more recoverable through replay. Continual alignment forgets normative commitments, which are neither stable nor objective, making both detection and recovery fundamentally harder.
+Method efficacy by family.Rehearsal is most commonly and successfully applied in CPT, where the only cost is storage and mixing logistics. Architecture-based isolation is most commonly adopted in CFT, where PEFT modules provide lightweight per-task protection. For continual alignment, neither family is yet dominant, and the field is still in an exploratory phase.
+B. Convergences and shared principles
+Despite these differences, three design principles recur across all three stages and can be regarded as universal heuristics for LLM continual learning.
+Sparse updates protect more than dense updates.Across CPT (adapter plugins [31]), CFT (LoRA isolation [30]), and alignment (modular editing [83]), restricting gradient flow to a small subset of parameters consistently reduces forgetting without proportional sacrifices in plasticity.
+Memory and retrieval complement parametric updates. Whether the memory stores pre-training tokens (CPT rehearsal), historical instruction examples (CFT replay), or past preference traces (LifeAlign [82]), providing the optimizer with access to historical data at training time is the most reliable forgetting-mitigation strategy currently available.
+Stage-aware initialization accelerates adaptation.PIT [45] pre-conditions CPT with instruction-tuning; SSR [68] uses the model itself to generate synthetic rehearsal data; COPR [81] initializes alignment with prior optimal policies. In each case, using the previous stage’s outputs as the starting point for the next reduces the magnitude of corrective updates required and shrinks the collision footprint.
+C. Open coordination problem
+A key observation from this cross-stage perspective is that the three stages are currently treated as sequential and independent pipeline steps, but in practice they interact: a poorly designed CPT may amplify forgetting during subsequent CFT,
+《LATEX 类文件杂志》,第 XX 卷,第 X 期,2025 年 9 月 14
+表 VI 代表性持续学习基准比较。“阶段”表示所针对的主要训练阶段;“# 任务”是任务或任务流的数量;“遗忘指标”列出了所提供的评估指标;“开放式”表示自由形式生 成(而非分类)是否为主要评估形式。
+基准 阶段 # 任务 领域 遗忘指标 备注 开放式
+MMLU + GSM8K CPT 2+ 通用/数学 AP、F.Ra 广泛用作 CPT 保留度衡量指标 No
+TRACE [88] CFT 8 多领域 AP、F.Ra 涵盖代码、数学、多语言、领 域任务
+Yes
+CITB / InstrDialog++ [89] CFT 16 指令 AP、F.Ra、BWT Rich 自然语言 指令
+流
+Yes
+FUAR [90] CFT 3 知识 FUAR 指标 评估保留、更新和获取
+No
+渐进式提示(15 项任务) [60] CFT 15 文本分类。 AP, F.Ra, BWT, FWT 长序列;广泛用于 比较
+No
+StreamBench [91] CFT/Agent 流式 多任务 提升率 侧重于上下文内的在线改进
+Yes
+COPR TIL/DIL [81] 对齐 6 偏好 AP, F.Ra 仅专门用于对齐的 CL 基准
+mark
+Yes
+表 VII 三阶段 × 知识动态映射。每个单元格列出代表性方法及其主要作用。C = 冲突缓解;I = 隔离;F = 融合。“—”表示该组合目前尚未得到充分探索。
+冲突缓解 隔离 融合
+持续预训练 数据增强 [44, 43];处理 优化 [45](C)
+适配器插件 [31];DGA/DAS [47]; LLaMA‐MoE [33](I)
+回放数据混合 [28, 35, 36](F)
+持续微调 LoRA 内部正则化 适配器 [30](C)
+O‐LoRA [30];渐进式提示 [60]; L2R [71](I)
+SAPT 共享注意力 [59];InsCL 回放 [69];SSR [68](F)
+持续对齐 COPR [81];CPPO [80];LANCET [85] (C)
+LEMoE [83];BaFT [84] (I) LifeAlign 记忆巩固 [82] (F); —
+A. 跨阶段的差异
+数据规模与监督。CPT 在万亿 token 规模的未标注 语料上运行,此时逐样本梯度信号较为弥散,遗忘表现为 缓慢但持续发生。CFT 使用百万样本规模的精选指令数 据集,其中任务身份明确,遗忘是即时且任务特定的。持 续对齐在千样本规模上基于成对偏好反馈进行训练,其中 监督信号编码的是规范性内容而非事实性内容。这三种机 制需要性质不同的检测与干预策略。
+遗忘内容的性质。CPT 遗忘的是事实性与语言性表 征;被遗忘的内容相对稳定且客观,因此评估较为直接。 CFT 遗忘的是行为模式——对特定任务格式的指令遵循—— 这类模式更脆弱,但也更可通过回放恢复。持续对齐遗忘 的是规范性承诺,这些承诺既不稳定也不客观,使得检测 和恢复从根本上都更加困难。
+各方法族的有效性。回放法在CPT中最常见且应用最 成功,其唯一成本在于存储与混合调度。基于架构的隔离 在CFT中最常采用,其中PEFT模块为每个任务提供轻量 级保护。对于持续对齐而言,尚无一种方法族占据主导, 该领域仍处于探索阶段。
+B. 趋同与共同原则
+尽管存在这些差异,三条设计原则在三个训练阶段中反 复出现,可被视为面向LLM持续学习的通用启发式原则。
+稀疏更新比稠密更新具有更强的保护作用。在 CPT (适配器插件 [31])、CFT(LoRA 隔离 [30])和对齐 (模块化编辑 [83])中,将梯度流限制在一小部分参数 上,能够稳定减少遗忘,而不会成比例地牺牲可塑性。 记忆与检索补充参数更新。无论记忆存储的是预训练 词元(CPT 复述)、历史指令示例(CFT 回放),还是 过往偏好轨迹(LifeAlign [82]),在训练时让优化器能 够访问历史数据,都是目前最可靠的缓解遗忘策略。
+阶段感知初始化可加速适应。PIT [45] 通过指令微调 为 CPT 预置条件;SSR [68] 利用模型自身生成合成复述 数据;COPR [81] 用先前的最优策略初始化对齐。在每 种情况下,将上一阶段的输出作为下一阶段的起点,都能 降低所需纠正更新的幅度,并缩小碰撞足迹。
+C. 开放协调问题
+从这一跨阶段视角获得的一个关键观察是,当前这三个阶 段被视为顺序且独立的流水线步骤,但在实践中它们会相互作 用:设计不佳的 CPT 可能会放大后续 CFT 过程中的遗忘,
+
+
+JOURNAL OF LATEX CLASS FILES, VOL. XX, NO. X, SEPTEMBER 2025 15
+and misaligned fine-tuning may corrupt alignment stability. We argue that the field would benefit from end-to-end continual learning protocols that optimize the full CPT→CFT→ Alignment pipeline jointly, rather than solving each stage in isolation. One promising direction is joint objective design where CPT corpus selection, CFT task ordering, and alignment preference weighting are co-optimized against a unified retention-transfer metric, ensuring that decisions made at the pre-training stage do not inadvertently narrow the hypothesis space available to subsequent fine-tuning and alignment. This represents, in our view, an important architectural shift for moving from isolated CL methods toward a practical lifelong LLM infrastructure.
+IX. CHALLENGES AND OPPORTUNITIES
+A. Challenges
+1) Catastrophic Forgetting at Scale:Catastrophic forgetting—sharp performance degradation on prior tasks when training on new ones—remains the central obstacle, and its severity is amplified at the LLM scale. Classical remedies such as EWC [29] rely on per-parameter importance statistics whose memory and compute cost grow linearly with model size, rendering them infeasible for billion-parameter models. Replay-based approaches face the twin burdens of storage and privacy: retaining real samples is increasingly restricted by data-governance regulations, while synthetic replay is still insufficiently faithful to original distributions in open-ended generation tasks. We argue that forgetting at the LLM scale is not a scaled-up version of the classical problem but a qualitatively different one, because the over-parameterized loss landscape offers many degenerate paths that can satisfy new objectives without correcting old ones—making it hard to detect forgetting before it becomes severe.
+2) Scalability and Efficiency:Continual learning methods designed for small classifiers often impose per-task overheads (growing architectures, fresh LoRA modules, updated importance matrices) that accumulate over long task sequences. The field lacks a principled account of how these costs scale with the number of tasks, the size of the base model, and the diversity of the task stream. Without such an account, claims of ”efficient” CL are difficult to compare across papers.
+3) Limited Knowledge Transfer:Most existing methods prioritize stability (preventing forgetting) over plasticity (facilitating transfer). Forward transfer—where prior knowledge actively accelerates learning of new tasks—is rarely reported and even more rarely optimized. We view this imbalance as a missed opportunity: LLMs already possess rich prior representations that should, in principle, enable steep learning curves on related tasks. Closing the gap between theoretical potential and observed transfer rates is, in our view, one of the highest-value research directions in this field.
+4) Evaluation and Benchmark Gaps:As detailed in SectionVII, existing benchmarks cover continual pre-training and fine-tuning reasonably well but leave continual alignment nearly unaddressed. More critically, most benchmarks evaluate a fixed short task sequence (typically 5–15 tasks), making it
+difficult to assess long-horizon behavior. Pseudo-sample generation has emerged as a promising approach to mitigate dataprivacy concerns in replay [92]; techniques from federated learning [93] offer complementary tools for privacy-preserving replay, but their integration with continual learning evaluation remains nascent.
+5) Cross-Modal and Multi-Stage Generalization:As LLMs increasingly operate in multimodal settings, continual learning must address cross-modal alignment drift: the gradual desynchronization of representations across modalities when new data arrives for only one modality. Real deployments further involve sequential stage transitions (CPT→CFT→ Alignment), where interventions at one stage propagate as initialization bias into subsequent stages. The field lacks systematic methods for diagnosing these cross-stage interactions, meaning gains at one stage can be silently erased by the next—a structural challenge with no adequate solution yet.
+B. Opportunities
+Despite recent progress, many promising research opportunities remain open, including but not limited to the following. 1) Improving Performance:Developing more effective methods to enhance the efficiency, scalability, and robustness of continual learning remains a central challenge. Several studies approach catastrophic forgetting through principled geometric analyses—for example, ProNC [94] uses ETFstructured prototypes to preserve geometric separability across tasks. A key open direction is understanding why the “stability gap” occurs and how the loss landscape evolves under sequential domain shifts, which could support more principled continual-update methods.
+2) Multimodal Continual Learning:Continual learning research has predominantly focused on NLP, while multimodal continual learning (MM-CL) remains underexplored. MMCL must address not only catastrophic forgetting within each modality but also cross-modal alignment drift, where representations become inconsistent as new data arrives for only one modality. Recent work [95,96,97,98] proposes efficient continual instruction-tuning frameworks for multimodal models, and a key open question is whether modalityinvariant prompts can decouple modality-specific drift from task-semantic evolution.
+3) Reinforcement Learning Approaches:Recent studies suggest that LLMs trained through reinforcement learning can retain acquired knowledge more effectively, indicating the potential of RL-based strategies for advancing continual learning. Leveraging RL in CL enables models to actively interact with the learning environment, facilitating adaptive knowledge acquisition and long-term retention. Pan et al. [99] provides a comprehensive survey of RL methods in the context of continual learning; [100,101] demonstrate that RL can enhance knowledge transfer in sequential tasks. An important direction for future work is to examine whether reward signals can serve as an implicit curriculum, especially in online CL settings where task boundaries are unclear.
+4) Semi-Parametric Methods:Most traditional continual learning approaches rely on fully parametric models that con
+LATEX 类文件期刊,第 XX 卷,第 X 期,2025 年 9 月 15
+而错位的微调可能破坏对齐稳定性。我们认为,该领域将 受益于端到端的持续学习协议,即联合优化完整的 CPT → CFT →Alignment 流水线,而不是孤立地解决每 个阶段。一个有前景的方向是联合目标设计,其中 CPT 语料选择、CFT 任务排序和对齐偏好加权围绕统一的保 留‐迁移指标进行协同优化,确保在预训练阶段做出的决 策不会无意中缩小后续微调和对齐可用的假设空间。我们 认为,这代表了一种重要的架构转变:从孤立的持续学习 方法迈向实用的终身 LLM 基础设施。
+IX. 挑战与机遇
+A. 挑战
+1) 规模化场景下的灾难性遗忘:灾难性遗忘——在新 任务上训练时,对先前任务的性能会急剧下降——仍是核 心障碍,且其严重程度在 LLM 规模下会被放大。诸如 EWC [29] 等经典补救方法依赖于逐参数的重要性统计, 而其内存和计算成本会随模型规模线性增长,这使得它们 对于数十亿参数的模型而言不可行。基于回放的方法面临 存储与隐私的双重负担:保留真实样本日益受到数据治理 法规的限制,而合成回放在开放式生成任务中仍不足以忠 实于原始分布。我们认为,LLM 规模下的遗忘并非经典 问题的放大版本,而是一个性质不同的问题,因为过参数 化的损失景观提供了许多退化路径,这些路径可以在不纠 正旧目标的情况下满足新目标——这使得在遗忘变得严重 之前很难将其检测出来。
+2)可扩展性与效率:面向小型分类器设计的持续学习方法 通常会带来逐任务开销(不断增长的架构、新增的 LoRA 模块、 更新的重要性矩阵),这些开销会在长任务序列中累积。该领 域缺乏一种系统性的理论说明,来解释这些成本如何随任务数 量、基础模型规模和任务流多样性而变化。缺少这种说明,不 同论文中关于“高效”CL 的主张就难以比较。
+3)知识迁移有限:大多数现有方法优先考虑稳定性 (防止遗忘),而非可塑性(促进迁移)。前向迁移—— 即先验知识主动加速新任务学习——很少被报告,更少被 优化。我们认为这种失衡是错失的机会:LLM 已经拥有 丰富的先验表示,原则上应能在相关任务上实现陡峭的学 习曲线。在我们看来,缩小理论潜力与观察到的迁移率之 间的差距,是该领域最有价值的研究方向之一。
+4)评估与基准缺口:如第七节详述,现有基准对持 续预训练和微调覆盖得较为充分,但几乎未涉及持续对齐。 更关键的是,大多数基准评估的是固定的短任务序列(通 常为5–15个任务),这使得其
+难以评估长时程行为。伪样本生成已成为缓解重放中数据 隐私问题的一种有前景的方法 [92];联邦学习 [93]中的技 术为隐私保护重放提供了补充工具,但其与持续学习评估 的集成仍处于起步阶段。
+5)跨模态与多阶段泛化:随着大语言模型越来越多 地在多模态环境中运行,持续学习必须应对跨模态对齐漂 移:当新数据仅来自单一模态时,各模态表征会逐渐失去 同步。实际部署还涉及按顺序进行的阶段转换(CPT → CFT →对齐),其中某一阶段的干预会作为初始化偏差 传播到后续阶段。该领域缺乏用于诊断这些跨阶段交互的 系统性方法,这意味着某一阶段取得的收益可能会被下一 阶段悄然抹去——这是一个尚无充分解决方案的结构性挑 战。
+B. 机遇
+尽管近期取得了进展,但仍有许多富有前景的研究机会
+尚未被探索,包括但不限于以下方面。 1)提升性能:开发更有效的方法来增强持续学习的 效率、可扩展性和鲁棒性,仍是一项核心挑战。若干研究 通过有理论依据的几何分析来应对灾难性遗忘——例如, ProNC [94] 使用 ETF 结构化原型来保持跨任务的几何 可分性。一个关键的开放方向是理解为何会出现“稳定性 差距”,以及损失景观在顺序域偏移下如何演化,这可能 有助于支持更具原则性的持续更新方法。
+2) 多模态持续学习:持续学习研究主要集中于NLP, 而多模态持续学习(MM‐CL)仍探索不足。MM‐CL不 仅须应对各模态内部的灾难性遗忘,还须处理跨模态对齐 漂移——当新数据仅针对某一模态到来时,表征会变得不 一致。近期工作 [95, 96, 97, 98] 提出了面向多模态模型 的高效持续指令微调框架,而一个关键未决问题是:模态 不变提示能否将模态特定漂移与任务语义演化解耦。
+3) 强化学习方法:近期研究表明,通过强化学习训练 的LLM能够更有效地保留已获得的知识,这表明基于 RL的策略在推进持续学习方面具有潜力。在CL中利用 RL可使模型主动与学习环境交互,促进自适应知识获取 和长期保持。Pan等人 [99]对持续学习背景下的RL方法进 行了全面综述; [100, 101] 证明RL能够增强顺序任务中 的知识迁移。未来工作的一个重要方向是考察奖励信号能 否充当隐式课程,尤其是在任务边界不清晰的在线CL设 定中。
+4)半参数方法:大多数传统的持续学习方法依赖于完 全参数化的模型,这些模型会持
+
+
+JOURNAL OF LATEX CLASS FILES, VOL. XX, NO. X, SEPTEMBER 2025 16
+tinuously update weights to incorporate new knowledge. Semiparametric methods have recently emerged as a promising alternative [102,103], combining parametric updates with non-parametric memory mechanisms to achieve a more effective balance between plasticity and stability. Semi-parametric frameworks often employ external memory modules, retrievalaugmented components, or agent-based architectures that selectively recall relevant past information without overwriting model parameters. These designs may be especially attractive for long-horizon continual learning, because the nonparametric component can absorb fast factual updates while the parametric component remains a relatively stable competence store.
+5) Towards a General CL Agent:A compelling long-term direction is a general continual learning agent that combines external retrieval, selective parameter updates, and continual alignment within one loop. Retrieval-augmented memory would absorb recent or provenance-sensitive knowledge without immediately overwriting model parameters, while repeated or high-value patterns would be selectively internalized through modular or parameter updates [64,104,103]. Continual alignment would govern how these evolving capabilities are prioritized under changing safety requirements, mirroring lifelong human learning. A central open problem in this setting is stage coordination: when to retrieve, when to internalize, and when to re-align.
+6) Online Continual Learning:In real-world environments, task boundaries are often ambiguous or non-existent. Designing algorithms that learn from streaming data while mitigating catastrophic forgetting is a key frontier for practical deployment. Recent studies [104,105] explore OCL frameworks that update models continuously without revisiting past tasks, likely requiring retrieval-based mechanisms for time-sensitive knowledge while reserving gradient updates for validated information.
+X. CONCLUSION
+Moving beyond static models requires treating continual learning not as an isolated toolbox but as an evolving framework for large language models across pre-training, finetuning, and alignment. We have organized the field around these three stages, highlighted the knowledge dynamics that govern collision, isolation, and fusion, and argued that continual alignment introduces a distinct problem of preference drift and value conflict rather than simple task transfer. Stage-level findings.For continual pre-training, rehearsal is a strong baseline—mixing 5–15% of prior-domain data with new corpora consistently preserves general capabilities, though the optimal ratio remains setting-dependent. The ”stability gap”—an initial performance dip before recovery—remains theoretically unexplained. For continual fine-tuning, PEFTbased isolation has become the dominant strategy; the main open subproblem is reliable task routing at inference, which determines whether isolated modules remain accessible and composable. For continual alignment, the distinction between alignment forgetting and preference conflict has only recently been articulated, and its practical consequences remain poorly characterized.
+Cross-stage perspective.The three stages share a common design pressure: sparse, memory-augmented, stage-aware updates often outperform dense full-parameter rewrites, but they currently operate as independent pipeline steps. As argued in SectionVIII, the field would benefit from end-to-end protocols that optimize the full CPT→CFT→Alignment pipeline jointly, rather than solving each stage in isolation. The interaction effects between stages remain underappreciated: CPT geometry shapes the landscape on which CFT operates, and CFT behavior determines the difficulty of subsequent alignment. Priorities for future work.Three priorities stand out. First, a principled theory of forgetting at the LLM scale—accounting for over-parameterization, the stability gap, and sequential domain-shift geometry—is needed to move beyond empirical heuristics. Second, longitudinal benchmarks covering long task sequences (50+ tasks), multiple training stages, and alignmentspecific metrics would replace the fragmented evaluations currently used; SectionIV-Eshows how even a minimal unified protocol surfaces behaviors—order sensitivity, the AP–F.Ra trade-off—invisible from per-paper rankings. Third, a general CL agent combining retrieval, selective internalization, and continual alignment offers a long-term path toward LLMs that evolve safely with new knowledge.
+REFERENCES
+[1]A. Vaswani, “Attention is all you need,”Advances in Neural Information Processing Systems, 2017.
+[2]J. Devlin, “Bert: Pre-training of deep bidirectional transformers for language understanding,”arXiv preprint arXiv:1810.04805, 2018.
+[3]T. B. Brownet al., “Language models are few-shot learners,” 2020. [Online]. Available:https://arxiv.org/ abs/2005.14165 [4]H. Touvronet al., “Llama: Open and efficient foundation language models,” 2023. [Online]. Available:https://arxiv.org/abs/2302.13971 [5]W. X. Zhaoet al., “A survey of large language models,” 2024. [Online]. Available:https://arxiv.org/ abs/2303.18223 [6]Z. Ke and B. Liu, “Continual learning of natural language processing tasks: A survey,” 2023. [Online]. Available:https://arxiv.org/abs/2211.12701 [7]S. Gururangan, A. Marasovi c ́, S. Swayamdipta, K. Lo, I. Beltagy, D. Downey, and N. A. Smith, “Don’t stop pretraining: Adapt language models to domains and tasks,” inProceedings of the 58th Annual Meeting of the Association for Computational Linguistics, 2020, pp. 8342–8360. [8]T. Wu, L. Luo, Y.-F. Li, S. Pan, T.-T. Vu, and G. Haffari, “Continual learning for large language models: A survey,” 2024. [Online]. Available:https: //arxiv.org/abs/2402.01364 [9]H. Shi, Z. Xu, H. Wang, W. Qin, W. Wang, Y. Wang, Z. Wang, S. Ebrahimi, and H. Wang, “Continual learning of large language models: A comprehensive survey,” 2024. [Online]. Available: https://arxiv.org/abs/2404.16789
+LATEX 类文件期刊,第 XX 卷,第 X 期,2025 年 9 月 16
+续更新权重以纳入新知识。半参数方法近来作为一种有前 景的替代方案 [102, 103], 将参数更新与非参数记忆机制 相结合,以在可塑性与稳定性之间实现更有效的平衡。半 参数框架通常采用外部记忆模块、检索增强组件或基于智 能体的架构,这些架构能有选择地召回相关的过往信息, 而不会覆盖模型参数。这些设计对于长时程持续学习可能 尤其有吸引力,因为非参数组件可以吸收快速的事实更新, 而参数组件则保持为相对稳定的能力存储库。
+5) 迈向通用持续学习智能体:一个令人信服的长期方 向是构建通用持续学习智能体,在单一循环中结合外部检 索、选择性参数更新和持续对齐。检索增强记忆将吸收近 期知识或对来源敏感的知识,而不会立即覆盖模型参数; 同时,重复出现或高价值的模式将通过模块化更新或参数 更新被选择性地内化 [64, 104, 103]。持续对齐将调控在 安全要求不断变化时如何排定这些演进能力的优先级,这 与人类终身学习相呼应。该设定下的一个核心开放问题是 阶段协调:何时检索、何时内化以及何时重新对齐。
+6) 在线持续学习:在真实世界环境中,任务边界往往 模糊或不存在。设计能够从流式数据中学习、同时缓解灾 难性遗忘的算法,是实际部署的一个关键前沿。近期研究 [104, 105] 探索了 OCL 框架,这类框架无需重访过往任 务即可持续更新模型,很可能需要基于检索的机制来处理 时间敏感知识,同时将梯度更新保留给已验证的信息。
+X. 结论
+要超越静态模型,就需要将持续学习视为一个不断演 进的框架,而不是一个孤立的工具箱;该框架贯穿大语言 模型的预训练、微调和对齐阶段。我们围绕这三个阶段组 织了该领域,强调了支配碰撞、隔离与融合的知识动态, 并指出持续对齐引入的是一个关于偏好漂移和价值冲突的 独特问题,而非简单的任务迁移。
+阶段级发现。对于持续预训练,重放是一种强基线—— 将 5%–15% 的先前领域数据与新语料混合,能够持续保 持通用能力,不过最优比例仍取决于具体设置。所谓的 “稳定性差距”——即性能先下降后恢复——在理论上仍 无法解释。对于持续微调,基于 PEFT 的隔离已成为主导 策略;主要的开放子问题是推理时可靠的任务路由,它决 定了隔离模块是否仍可访问和可组合。对于持续对齐,对 齐遗忘与偏好冲突之间的区别直到最近才被阐明,其实际 后果仍缺乏充分刻画。
+跨阶段视角。这三个阶段共享同一种设计压力:稀疏 的、记忆增强的、阶段感知的更新通常优于稠密的全参数 重写,但它们目前仍作为独立的流水线步骤运行。正如第 VIII 节所论述的,该领域将受益于能够联合优化完整的 CPT → CFT → 对齐流水线的端到端协议,而不是孤 立地解决每个阶段。阶段间的交互效应仍未得到充分重视: CPT 的几何结构塑造了 CFT 所处的景观,而 CFT 的行 为决定了后续对齐的难度。
+未来工作的优先事项。有三项优先事项尤为突出。第 一,需要建立大语言模型规模下的原则性遗忘理论——考 虑过参数化、稳定性差距以及序列领域偏移几何——以超 越经验启发式方法。第二,覆盖长任务序列(50+ 个任务)、 多个训练阶段和对齐专用指标的纵向基准,将取代当前使 用的碎片化评估;第 IV‐E 节展示了即使一个最小化的统 一协议也能揭示出从单篇论文排名中不可见的行为——顺 序敏感性、AP–F.Ra 权衡。第三,一种结合检索、选择 性内化和持续对齐的通用持续学习智能体,为能够随新知 识安全演进的大语言模型提供了一条长期路径。
+参考文献 [1] A. Vaswani,“注意力就是你所需要的一切”,《神 经信息处理系统进展》,2017。[2] J. Devlin,“BERT: 用于语言理解的双向 Transformer 深度预训练”, arXiv 预印本 arXiv:1810.04805,2018。[3]T. B. Brown 等,“语言模型是少样本学习者”,2020。 [在 线]。可访问:https://arxiv.org/ abs/2005.14165[4]H. Touvron 等,“Llama:开放且高效的基础语言模型”, 2023。[在线]。可访问: https://arxiv.org/abs/2302.13971[5]W. X. Zhao 等, “大语言模型综述”,2024。 [在线]。可访问: https://arxiv.org/ abs/2303.18223[6]Z. Ke 和 B. Liu, “自然语言处理任务的持续学习:综述”,2023。 [在线]。 可访问:https://arxiv.org/abs/2211.12701[7] S. Gururangan、A. Marasovi ́c、S. Swayamdipta、K. Lo、I. Beltagy、D. Downey 和 N. A. Smith,“不要停 止预训练:使语言模型适应领域和任务”,载于《第58届 计算语言学协会年会论文集》,2020,第8342–8360页。 [8]T. Wu、L. Luo、Y.‐F. Li、S. Pan、T.‐T. Vu 和 G. Haffari,“大语言模型的持续学习:综述”,2024。 [ 在线]。可访问:https: //arxiv.org/abs/2402.01364[9] H. Shi、Z. Xu、H. Wang、W. Qin、W. Wang、Y. Wang、Z. Wang、S. Ebrahimi 和 H. Wang,“大语言 模型的持续学习:综合综述”,2024。 [在线]。可访问: https://arxiv.org/abs/2404.16789
+
+
+JOURNAL OF LATEX CLASS FILES, VOL. XX, NO. X, SEPTEMBER 2025 17
+[10]H. Guo, F. Zeng, F. Zhu, J. Wang, X. Wang, J. Zhou, H. Zhao, W. Liu, S. Ma, X.-Y. Zhanget al., “A comprehensive survey on continual learning in generative models,”arXiv preprint arXiv:2506.13045, 2025.
+[11]Anthropic, “Model card addendum:claude 3.5 haiku and upgraded claude 3.5 sonnet,” 2024. [Online]. Available: https://assets.anthropic.com/m/1cd9d098ac3e6467/ original/Claude-3-Model-Card-October-Addendum.pdf [12]Qwenet al., “Qwen2.5 technical report,” 2025. [Online]. Available:https://arxiv.org/abs/2412.15115 [13]DeepSeek-AIet al., “Deepseek-v3 technical report,” 2024. [Online]. Available:https://arxiv.org/abs/2412. 19437 [14]L. Hu, Z. Liu, Z. Zhao, L. Hou, L. Nie, and J. Li, “A survey of knowledge enhanced pre-trained language models,”IEEE Transactions on Knowledge and Data Engineering, 2023.
+[15]L. Dong, N. Yang, W. Wang, F. Wei, X. Liu, Y. Wang, J. Gao, M. Zhou, and H.-W. Hon, “Unified language model pre-training for natural language understanding and generation,”Advances in neural information processing systems, vol. 32, 2019.
+[16]S. Zhang, L. Dong, X. Li, S. Zhang, X. Sun, S. Wang, J. Li, R. Hu, T. Zhang, F. Wuet al., “Instruction tuning for large language models: A survey,”arXiv preprint arXiv:2308.10792, 2023.
+[17]Y. Wang, W. Zhong, L. Li, F. Mi, X. Zeng, W. Huang, L. Shang, X. Jiang, and Q. Liu, “Aligning large language models with human: A survey,”arXiv preprint arXiv:2307.12966, 2023.
+[18]J. Schulman, F. Wolski, P. Dhariwal, A. Radford, and O. Klimov, “Proximal policy optimization algorithms,” 2017. [Online]. Available:https://arxiv.org/abs/1707. 06347 [19]R. Rafailov, A. Sharma, E. Mitchell, C. D. Manning, S. Ermon, and C. Finn, “Direct preference optimization: Your language model is secretly a reward model,” Advances in Neural Information Processing Systems, vol. 36, 2024. [20]Z. Chen and B. Liu,Lifelong machine learning. Morgan & Claypool Publishers, 2018. [21]R. French, “Catastrophic forgetting in connectionist networks,”Trends in cognitive sciences, vol. 3, pp. 128– 135, 05 1999. [22]J. Serra, D. Suris, M. Miron, and A. Karatzoglou, “Overcoming catastrophic forgetting with hard attention to the task,” inInternational conference on machine learning. PMLR, 2018, pp. 4548–4557. [23]T. Konishi, M. Kurokawa, C. Ono, Z. Ke, G. Kim, and B. Liu, “Parameter-level soft-masking for continual learning,” inInternational Conference on Machine Learning. PMLR, 2023, pp. 17 492–17 505. [24]Z. Ke, B. Liu, N. Ma, H. Xu, and L. Shu, “Achieving forgetting prevention and knowledge transfer in continual learning,”Advances in Neural Information Processing Systems, vol. 34, pp. 22 443–22 456, 2021. [25]G. E. Hinton, A. Krizhevsky, and S. D. Wang, “Transforming auto-encoders,” inArtificial Neural Networks
+and Machine Learning–ICANN 2011: 21st International Conference on Artificial Neural Networks, Espoo, Finland, June 14-17, 2011, Proceedings, Part I 21. Springer, 2011, pp. 44–51. [26]M. Wortsman, V. Ramanujan, R. Liu, A. Kembhavi, M. Rastegari, J. Yosinski, and A. Farhadi, “Supermasks in superposition,”Advances in Neural Information Processing Systems, vol. 33, pp. 15 173–15 184, 2020. [27]T. Scialom, T. Chakrabarty, and S. Muresan, “Finetuned language models are continual learners,” inProceedings of the 2022 Conference on Empirical Methods in Natural Language Processing, 2022, pp. 6107–6122. [28]K. Fujii, T. Nakamura, M. Loem, H. Iida, M. Ohi, K. Hattori, H. Shota, S. Mizuki, R. Yokota, and N. Okazaki, “Continual pretraining for cross-lingual LLM adaptation: Enhancing japanese language capabilities,” inFirst Conference on Language Modeling, 2024. [Online]. Available: https://openreview.net/forum?id=TQdd1VhWbe [29]J. Kirkpatrick, R. Pascanu, N. Rabinowitz, J. Veness, G. Desjardins, A. A. Rusu, K. Milan, J. Quan, T. Ramalho, A. Grabska-Barwinskaet al., “Overcoming catastrophic forgetting in neural networks,”Proceedings of the National Academy of Sciences, vol. 114, no. 13, pp. 3521–3526, 2017. [30]X. Wang, T. Chen, Q. Ge, H. Xia, R. Bao, R. Zheng, Q. Zhang, T. Gui, and X.-J. Huang, “Orthogonal subspace learning for language model continual learning,” inFindings of the Association for Computational Linguistics: EMNLP 2023, 2023, pp. 10 658–10 671. [31]Z. Ke, H. Lin, Y. Shao, H. Xu, L. Shu, and B. Liu, “Continual training of language models for few-shot learning,” inProceedings of the 2022 Conference on Empirical Methods in Natural Language Processing, Y. Goldberg, Z. Kozareva, and Y. Zhang, Eds. Abu Dhabi, United Arab Emirates: Association for Computational Linguistics, Dec. 2022, pp. 10 205– 10 216. [Online]. Available:https://aclanthology.org/ 2022.emnlp-main.695 [32]D. Li, Y. Ma, N. Wang, Z. Ye, Z. Cheng, Y. Tang, Y. Zhang, L. Duan, J. Zuo, C. Yang, and M. Tang, “Mixlora: Enhancing large language models fine-tuning with lora-based mixture of experts,” 2024. [Online]. Available:https://arxiv.org/abs/2404.15159 [33]T. Zhu, X. Qu, D. Dong, J. Ruan, J. Tong, C. He, and Y. Cheng, “Llama-moe: Building mixture-of-experts from llama with continual pre-training,” inProceedings of the 2024 Conference on Empirical Methods in Natural Language Processing, 2024, pp. 15 913–15 923. [34]C.-A. Li and H.-Y. Lee, “Examining forgetting in continual pre-training of aligned large language models,” 2024. [Online]. Available:https://arxiv.org/ abs/2401.03129 [35]Y. Cui, Z. Yang, and X. Yao, “Efficient and effective text encoding for chinese llama and alpaca,” 2024. [Online]. Available:https://arxiv.org/abs/2304.08177 [36]H. Que, J. Liu, G. Zhang, C. Zhang, X. Qu, Y. Ma, F. Duan, Z. Bai, J. Wang, Y. Zhang, X. Tan, J. Fu,
+LATEX 类文件期刊,第 XX 卷,第 X 期,2025 年 9 月 17
+[10] H. Guo、F. Zeng、F. Zhu、J. Wang、X. Wang、J. Zhou、H. Zhao、W. Liu、S. Ma、X.‐Y. Zhang 等,“生成 模型中的持续学习:综合综述”,arXiv 预印本 arXiv:2506.13045,2025。[11] Anthropic,“模型卡附录: Claude 3.5 Haiku 与升级版 Claude 3.5 Sonnet”,2024。 [ 在线]。可访问: https://assets.anthropic.com/m/1cd9d098ac3e6467/ original/Claude‐3Model‐Card‐October‐Addendum.pdf[12]Qwen 等,“ Qwen2.5 技术报告”,2025。[在线]。可访问: https://arxiv.org/abs/2412.15115[13]DeepSeek‐AI 等,“ DeepSeek‐V3 技术报告”,2024。 [在线]。可访问: https://arxiv.org/abs/2412. 19437[14] L. Hu、Z. Liu、Z. Zhao、L. Hou、L. Nie 和 J. Li,“知识增强预训练语言模型 综述”,《IEEE 知识与数据工程汇刊》,2023。[15] L. Dong、N. Yang、W. Wang、F. Wei、X. Liu、Y. Wang、 J. Gao、M. Zhou 和 H.‐W. Hon,“面向自然语言理解与生 成的统一语言模型预训练”,《神经信息处理系统进展》,第 32卷,2019。[16] S. Zhang、L. Dong、X. Li、S. Zhang、 X. Sun、S. Wang、J. Li、R. Hu、T. Zhang、F. Wu 等, “大语言模型指令微调:综述”,arXiv 预印本 arXiv:2308.10792,2023。[17] Y. Wang、W. Zhong、L. Li、F. Mi、X. Zeng、W. Huang、L. Shang、X. Jiang 和 Q. Liu,“使大语言模型与人类对齐:综述”,arXiv 预印本 arXiv:2307.12966,2023。[18] J. Schulman、F. Wolski、 P. Dhariwal、A. Radford 和 O. Klimov,“近端策略优化 算法”,2017。 [在线]。可访问: https://arxiv.org/abs/1707. 06347[19] R. Rafailov、A. Sharma、E. Mitchell、C. D. Manning、S. Ermon 和 C. Finn,“直接偏好优化:你的语言模型其实是一个奖励模型”, 《神经信息处理系统进展》,第36卷,2024。[20] Z. Chen 和 B. Liu,《终身机器学习》。Morgan & Claypool 出版社, 2018。[21]R. French,“连接主义网络中的灾难性遗忘”, 《认知科学趋势》,第3卷,第128–135页,1999年5月。[22] J. Serra、D. Suris、M. Miron 和 A. Karatzoglou,“通过 任务硬注意力克服灾难性遗忘”,载于《国际机器学习会议》。 PMLR,2018,第4548–4557页。[23]T. Konishi、M. Kurokawa、C. Ono、Z. Ke、G. Kim 和 B. Liu,“面向持 续学习的参数级软掩码”,载于《国际机器学习会议》。 PMLR,2023,第17492–17505页。[24] Z. Ke、B. Liu、 N. Ma、H. Xu 和 L. Shu,“在持续学习中实现遗忘预防与知 识迁移”,《神经信息处理系统进展》,第34卷,第22443– 22456页,2021。[25] G. E. Hinton、A. Krizhevsky 和 S. D. Wang,“变换自编码器”,载于《人工神经网络》
+以及 Machine Learning–ICANN 2011:第21届国际 人工神经网络会议,芬兰埃斯波,2011年6月14‐17日,会 议论文集,第I部分 21。Springer,2011,第44–51页。 [26]M. Wortsman、V. Ramanujan、R. Liu、A. Kembhavi、M. Rastegari、J. Yosinski 和 A. Farhadi, “叠加中的超级掩码”,《神经信息处理系统进展》,第 33卷,第15 173–15 184页,2020年。[27]T. Scialom、T. Chakrabarty 和 S. Muresan,“微调后的语言模型是持 续学习者”,载于《2022年自然语言处理经验方法会议论 文集》,2022年,第6107–6122页。[28]K. Fujii、T. Nakamura、M. Loem、H. Iida、M. Ohi、K. Hattori、 H. Shota、S. Mizuki、R. Yokota 和 N. Okazaki,“面 向跨语言大语言模型适配的持续预训练:增强日语能力”, 载于第一届语言建模会议,2024年。 [在线]。可访问: https://openreview.net/forum?id=TQdd1VhWbe[29]J. Kirkpatrick、R. Pascanu、N. Rabinowitz、J. Veness、G. Desjardins、A. A. Rusu、K. Milan、J. Quan、T. Ramalho、A. Grabska‐Barwinska 等,“克 服神经网络中的灾难性遗忘”,《美国国家科学院院刊》, 第114卷,第13期,第3521–3526页,2017年。[30] X. Wang、T. Chen、Q. Ge、H. Xia、R. Bao、R. Zheng、 Q. Zhang、T. Gui 和 X.‐J. Huang,“面向语言模型持续 学习的正交子空间学习”,载于《计算语言学协会发现: EMNLP 2023》,2023年,第10 658–10 671页。[31] Z. Ke、H. Lin、Y. Shao、H. Xu、L. Shu 和 B. Liu,“面 向少样本学习的语言模型持续训练”,载于《2022年自然 语言处理经验方法会议论文集》,Y. Goldberg、Z. Kozareva 和 Y. Zhang 编。阿联酋阿布扎比:计算语言学 协会,2022年12月,第10 205–10 216页。 [在线]。可访 问:https://aclanthology.org/ 2022.e mnlp‐main.695[32]D. Li、Y. Ma、N. Wang、Z. Ye、 Z. Cheng、Y. Tang、Y. Zhang、L. Duan、J. Zuo、C. Yang 和 M. Tang,“Mixlora:利用基于 LoRA 的专家 混合增强大语言模型微调”,2024年。 [在线]。可访问: https://arxiv.org/abs/2404.15159[33] T. Zhu、X. Qu、 D. Dong、J. Ruan、J. Tong、C. He 和 Y. Cheng,“ Llama‐moe:通过持续预训练从 Llama 构建专家混合模 型”,载于《2024年自然语言处理经验方法会议论文集》, 2024年,第15 913–15 923页。[34]C.‐A. Li 和 H.‐Y. Lee, “考察对齐后大语言模型持续预训练中的遗忘”,2024年。 [在线]。可访问:https://arxiv.org/ abs/2401.03129 [35] Y. Cui、Z. Yang 和 X. Yao,“面向中文 Llama 和 Alpaca 的高效且有效的文本编码”,2024年。[在线]。可 访问:https://arxiv.org/abs/2304.08177[36] H. Que、 J. Liu、G. Zhang、C. Zhang、X. Qu、Y. Ma、F. Duan、Z. Bai、J. Wang、Y. Zhang、X. Tan、J. Fu,
+
+
+JOURNAL OF LATEX CLASS FILES, VOL. XX, NO. X, SEPTEMBER 2025 18
+W. Su, J. Wang, L. Qu, and B. Zheng, “D-cpt law: Domain-specific continual pre-training scaling law for large language models,” 2024. [Online]. Available: https://arxiv.org/abs/2406.01375 [37]W. Zheng, W. Pan, X. Xu, L. Qin, L. Yue, and M. Zhou, “Breaking language barriers: Crosslingual continual pre-training at scale,” inProceedings of the 2024 Conference on Empirical Methods in Natural Language Processing, Y. Al-Onaizan, M. Bansal, and Y.-N. Chen, Eds. Miami, Florida, USA: Association for Computational Linguistics, Nov. 2024, pp. 7725–7738. [Online]. Available: https://aclanthology.org/2024.emnlp-main.441/ [38]J. Gu, Z. Yang, C. Ding, R. Zhao, and F. Tan, “Cmr scaling law: Predicting critical mixture ratios for continual pre-training of language models,” inProceedings of the 2024 Conference on Empirical Methods in Natural Language Processing, 2024, pp. 16 143–16 162. [39]N. Xi, Y. Wu, K. Fan, T. Chen, Q. Gu, P. Yu, J. Qu, C. Liu, Z. Jiang, Y. Chenet al., “A practice of post-training on llama-3 70b with optimal selection of additional language mixture ratio,”arXiv preprint arXiv:2409.06624, 2024.
+[40]D. Cheng, S. Huang, and F. Wei, “Adapting large language models via reading comprehension,” in The Twelfth International Conference on Learning Representations, 2024. [Online]. Available:https: //openreview.net/forum?id=y886UXPEZ0 [41]D. Cheng, Y. Gu, S. Huang, J. Bi, M. Huang, and F. Wei, “Instruction pre-training: Language models are supervised multitask learners,” inConference on Empirical Methods in Natural Language Processing, 2024. [Online]. Available:https://api.semanticscholar. org/CorpusID:270620509 [42]J. Jiang, J. Li, W. X. Zhao, Y. Song, T. Zhang, and J.R. Wen, “Mix-cpt: A domain adaptation framework via decoupling knowledge learning and format alignment,” arXiv preprint arXiv:2407.10804, 2024.
+[43]Y. Xie, K. Aggarwal, and A. Ahmad, “Efficient continual pre-training for building domain specific large language models,” inAnnual Meeting of the Association for Computational Linguistics, 2023. [Online]. Available:https://api.semanticscholar.org/ CorpusID:265213147 [44]Y. Guo, J. Fu, H. Zhang, D. Zhao, and Y. Shen, “Efficient continual pre-training by mitigating the stability gap,”arXiv preprint arXiv:2406.14833, 2024.
+[45]Z. Jiang, Z. Sun, W. Shi, P. Rodriguez, C. Zhou, G. Neubig, X. V. Lin, W. tau Yih, and S. Iyer, “Instruction-tuned language models are better knowledge learners,” inAnnual Meeting of the Association for Computational Linguistics, 2024. [Online]. Available: https://api.semanticscholar.org/CorpusID:267759882 [46]I. Jindal, C. Badrinath, P. Bharti, L. Vinay, and S. D. Sharma, “Balancing continuous pre-training and instruction fine-tuning: Optimizing instruction-following in llms,”arXiv preprint arXiv:2410.10739, 2024.
+[47]Z. Ke, Y. Shao, H. Lin, H. Xu, L. Shu, and B. Liu,
+“Adapting a language model while preserving its general knowledge,” inProceedings of the 2022 Conference on Empirical Methods in Natural Language Processing, Dec. 2022, pp. 10 177–10 188. [48]C. Wu, Y. Gan, Y. Ge, Z. Lu, J. Wang, Y. Feng, Y. Shan, and P. Luo, “Llama pro: Progressive llama with block expansion,” 2024. [Online]. Available: https://arxiv.org/abs/2401.02415 [49]W. Chen, Y. Zhou, N. Du, Y. Huang, J. Laudon, Z. Chen, and C. Cui, “Lifelong language pretraining with distribution-specialized experts,” inInternational Conference on Machine Learning. PMLR, 2023, pp. 5383–5395. [50]K.-M. Chen and H. yi Lee, “Instructioncp: A fast approach to transfer large language models into target language,” 2024. [Online]. Available: https://arxiv.org/abs/2405.20175 [51]K. Gupta, B. Th e ́rien, A. Ibrahim, M. L. Richter, Q. Anthony, E. Belilovsky, I. Rish, and T. Lesort, “Continual pre-training of large language models: How to (re)warm your model?” 2023. [Online]. Available: https://arxiv.org/abs/2308.04014 [52]V. Arannil, N. Narwal, S. S. Bhabesh, S. N. Thirandas, D. Y.-B. Wang, G. Horwood, A. A. Chirayath, and G. Pandeshwar, “Dopamine: Domain-specific pretraining adaptation from seed-guided data mining,” 2024. [Online]. Available:https://arxiv.org/abs/2410. 00260 [53]J. Kaplan, S. McCandlish, T. Henighan, T. B. Brown, B. Chess, R. Child, S. Gray, A. Radford, J. Wu, and D. Amodei, “Scaling laws for neural language models,” ArXiv, vol. abs/2001.08361, 2020. [Online]. Available: https://api.semanticscholar.org/CorpusID:210861095 [54]J. Hoffmann, S. Borgeaud, A. Mensch, E. Buchatskaya, T. Cai, E. Rutherford, D. d. L. Casas, L. A. Hendricks, J. Welbl, A. Clarket al., “Training computeoptimal large language models,”arXiv preprint arXiv:2203.15556, 2022.
+[55]Z. Ke, Y. Shao, H. Lin, T. Konishi, G. Kim, and B. Liu, “Continual pre-training of language models,” in Proceedings of The Eleventh International Conference on Learning Representations (ICLR-2023), 2023.
+[56]N. Shazeer, A. Mirhoseini, K. Maziarz, A. Davis, Q. Le, G. Hinton, and J. Dean, “Outrageously large neural networks: The sparsely-gated mixtureof-experts layer,” 2017. [Online]. Available:https: //arxiv.org/abs/1701.06538 [57]D. Lepikhin, H. Lee, Y. Xu, D. Chen, O. Firat, Y. Huang, M. Krikun, N. Shazeer, and Z. Chen, “Gshard: Scaling giant models with conditional computation and automatic sharding,” 2020. [Online]. Available:https://arxiv.org/abs/2006.16668 [58]J. Mok, J. Do, S. Lee, T. Taghavi, S. Yu, and S. Yoon, “Large-scale lifelong learning of in-context instructions and how to tackle it,” inProceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), 2023, pp. 12 573– 12 589.
+LATEX 类文件杂志,第 XX 卷,第 X 期,2025 年 9 月 18
+W. Su、J. Wang、L. Qu 和 B. Zheng,“D‐cpt 定律: 面向大语言模型的领域特定持续预训练缩放定律”,2024 年。 [在线]。可访问: https://arxiv.org/abs/2406.01375[37]W. Zheng、W. Pan、X. Xu、L. Qin、L. Yue 和 M. Zhou,“打破语言 障碍:大规模跨语言持续预训练”,载于《2024年自然语 言处理经验方法会议论文集》,Y. Al‐Onaizan、M. Bansal 和 Y.‐N. Chen 编。美国佛罗里达州迈阿密:计算 语言学协会,2024年11月,第7725–7738页。[在线]。可访 问:https://aclanthology.org/2024.emnlp‐main.441/ [38] J. Gu、Z. Yang、C. Ding、R. Zhao 和 F. Tan,“ CMR 缩放定律:预测语言模型持续预训练的关键混合比例”, 载于《2024年自然语言处理经验方法会议论文集》,2024 年,第16 143–16 162页。[39] N. Xi、Y. Wu、K. Fan、 T. Chen、Q. Gu、P. Yu、J. Qu、C. Liu、Z. Jiang、Y. Chen 等,“在 Llama‐3 70B 上以附加语言混合比例最优 选择进行后训练的实践”,arXiv 预印本 arXiv:2409.06624,2024年。[40]D. Cheng、S. Huang 和 F. Wei,“通过阅读理解适配大语言模型”,载于第十 二届国际学习表征会议,2024年。[在线]。可访问: https: //openreview.net/forum?id=y886UXPEZ0[41] D. Cheng、Y. Gu、S. Huang、J. Bi、M. Huang 和 F. Wei,“指令预训练:语言模型是监督式多任务学习器”, 载于自然语言处理经验方法会议,2024年。 [在线]。可访 问:https://api.semanticscholar. org/CorpusID:270620509[42] J. Jiang、J. Li、W. X. Zhao、Y. Song、T. Zhang 和 J.‐R. Wen,“Mix‐cpt: 通过解耦知识学习与格式对齐的领域适应框架”,arXiv 预 印本 arXiv:2407.10804,2024年。[43]Y. Xie、K. Aggarwal 和 A. Ahmad,“面向构建领域特定大语言模型 的高效持续预训练”,载于计算语言学协会年会,2023年。 [在线]。可访问:https://api.semanticscholar.org/ CorpusID:265213147[44] Y. Guo、J. Fu、H. Zhang、 D. Zhao 和 Y. Shen,“通过缓解稳定性差距实现高效持续 预训练”,arXiv 预印本 arXiv:2406.14833,2024年。[45] Z. Jiang、Z. Sun、W. Shi、P. Rodriguez、C. Zhou、 G. Neubig、X. V. Lin、W. tau Yih 和 S. Iyer,“指令微 调后的语言模型是更好的知识学习者”,载于计算语言学协 会年会,2024年。 [在线]。可访问: h
+ttps://api.se manticscholar.org/CorpusID:267759882[46] I. Jindal、 C. Badrinath、P. Bharti、L. Vinay 和 S. D. Sharma, “平衡持续预训练与指令微调:优化大语言模型中的指令遵 循”,arXiv 预印本 arXiv:2410.10739,2024年。[47] Z. Ke、Y. Shao、H. Lin、H. Xu、L. Shu 和 B. Liu,
+“在适应语言模型的同时保留其通用知识”,载于《 2022年自然语言处理经验方法会议论文集》,2022年12月, 第10177–10188页。[48]C. Wu、Y. Gan、Y. Ge、Z. Lu、J. Wang、Y. Feng、Y. Shan 和 P. Luo,“Llama Pro:通过 块扩展实现的渐进式 Llama”,2024年。 [在线]。可访问: https://arxiv.org/abs/2401.02415[49]W. Chen、Y. Zhou、 N. Du、Y. Huang、J. Laudon、Z. Chen 和 C. Cui,“具有 分布专用专家的终身语言预训练”,载于《国际机器学习会议》。 PMLR,2023年,第5383–5395页。[50]K.‐M. Chen 和 H. yi Lee,“InstructionCP:将大语言模型迁移到目标语言的 快速方法”,2024年。 [在线]。可访问: https://arxiv.org/abs/2405.20175[51]K. Gupta、B. Th ́ erien、A. Ibrahim、M. L. Richter、Q. Anthony、E. Belilovsky、I. Rish 和 T. Lesort,“大语言模型的持续预训 练:如何(重新)预热你的模型?”,2023年。 [在线]。可访 问:https://arxiv.org/abs/2308.04014[52] V. Arannil、 N. Narwal、S. S. Bhabesh、S. N. Thirandas、D. Y.‐B. Wang、G. Horwood、A. A. Chirayath 和 G. Pandeshwar,“Dopamine:基于种子引导数据挖掘的领域 特定预训练适配”,2024年。 [在线]。可访问: https://arxiv.org/abs/2410. 00260[53] J. Kaplan、S. McCandlish、T. Henighan、T. B. Brown、B. Chess、 R. Child、S. Gray、A. Radford、J. Wu 和 D. Amodei, “神经语言模型的缩放定律”,《ArXiv》,第 abs/2001.08361卷,2020年。 [在线]。可访问: https://api.semanticscholar.org/CorpusID:210861095 [54] J. Hoffmann、S. Borgeaud、A. Mensch、E. Buchatskaya、T. Cai、E. Rutherford、D. d. L. Casas、 L. A. Hendricks、J. Welbl、A. Clark 等,“训练计算最优 的大语言模型”,arXiv预印本 arXiv:2203.15556,2022年。 [55]Z. Ke、Y. Shao、H. Lin、T. Konishi、G. Kim 和 B. Liu,“语言模型的持续预训练”,载于《第十一届国际学习 表征会议论文集》(ICLR‐2023),2023年。[56]N. Shazeer、A. Mirhoseini、K. Maziarz、A. Davis、Q. Le、 G. Hinton 和 J. Dean,“超大神经网络:稀疏门控的专家混 合层”,2017年。 [在线]。可访问:https: // arxiv.org/abs/1701.06538[57]D. Lepikhin、H. Lee、Y. Xu、D. Chen、O. Firat、Y. Huang、M. Krikun、N. Shazeer 和 Z. Chen,“GShard:利用条件计算和自动分片 扩展巨型模型”,2020年。 [在线]。可访问: https://arxiv.org/abs/2006.16668[58] J. Mok、J. Do、S. Lee、T. Taghavi、S. Yu 和 S. Yoon,“上下文指令的大规 模终身学习及应对方法”,载于《第61届计算语言学协会年会 论文集(第1卷:长论文)》,2023年,第12573–12589页。
+.
+
+
+JOURNAL OF LATEX CLASS FILES, VOL. XX, NO. X, SEPTEMBER 2025 19
+[59]W. Zhao, S. Wang, Y. Hu, Y. Zhao, B. Qin, X. Zhang, Q. Yang, D. Xu, and W. Che, “Sapt: A shared attention framework for parameter-efficient continual learning of large language models,” inProceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), 2024, pp. 11 641– 11 661. [60]A. Razdaibiedina, Y. Mao, R. Hou, M. Khabsa, M. Lewis, and A. Almahairi, “Progressive prompts: Continual learning for language models,” inThe Eleventh International Conference on Learning Representations, 2023.
+[61]Z. Wang, Y. Liu, T. Ji, X. Wang, Y. Wu, C. Jiang, Y. Chao, Z. Han, L. Wang, X. Shaoet al., “Rehearsalfree continual language learning via efficient parameter isolation,” inProceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), 2023, pp. 10 933–10 946. [62]W. Du, S. Cheng, T. Luo, Z. Qiu, Z. Huang, K. C. Cheung, R. Cheng, and J. Fu, “Unlocking continual learning abilities in language models,” 2024. [Online]. Available:https://arxiv.org/abs/2406.17245 [63]A. Diera, L. Galke, F. Karl, and A. Scherp, “Continual learning for encoder-only language models via a discrete key-value bottleneck,” 2024. [Online]. Available:https://arxiv.org/abs/2412.08528 [64]J. Tack, J. Kim, E. Mitchell, J. Shin, Y. W. Teh, and J. R. Schwarz, “Online adaptation of language models with a memory of amortized contexts,” 2024. [Online]. Available:https://arxiv.org/abs/2403.04317 [65]S. Momeni, S. Mazumder, and B. Liu, “Continual learning using a kernel-based method over foundation models,” 2024. [Online]. Available:https://arxiv.org/ abs/2412.15571 [66]J. Qiu, Z. Ke, and B. Liu, “Continual learning using only large language model prompting,” 2024. [Online]. Available:https://arxiv.org/abs/2412.15479 [67]W. Yin, J. Li, and C. Xiong, “Contintin: Continual learning from task instructions,” inProceedings of the 60th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), 2022, pp. 3062– 3072. [68]J. Huang, L. Cui, A. Wang, C. Yang, X. Liao, L. Song, J. Yao, and J. Su, “Mitigating catastrophic forgetting in large language models with self-synthesized rehearsal,” inProceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), 2024, pp. 1416–1428. [69]Y. Wang, Y. Liu, C. Shi, H. Li, C. Chen, H. Lu, and Y. Yang, “Inscl: A data-efficient continual learning paradigm for fine-tuning large language models with instructions,” inProceedings of the 2024 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers), 2024, pp. 663–677.
+[70]X. Wu, M. Hartman, V. A. Jayaraman, and L. R. Varshney, “Switchcit: Switching for continual instruction tuning,” 2024. [Online]. Available:
+https://arxiv.org/abs/2407.11780 [71]V. Araujo, M.-F. Moens, and T. Tuytelaars, “Learning to route for dynamic adapter composition in continual learning with language models,” 2024. [Online]. Available:https://arxiv.org/abs/2408.09053 [72]Y. Jin, J. Liu, and S. Chen, “Multi-lora continual learning based instruction tuning framework for universal information extraction,”KnowledgeBased Systems, vol. 308, p. 112750, 2025. [Online]. Available:https://www.sciencedirect.com/ science/article/pii/S0950705124013844 [73]F. Zenke, B. Poole, and S. Ganguli, “Continual learning through synaptic intelligence,” inInternational conference on machine learning. PMLR, 2017, pp. 3987– 3995. [74]R. Aljundi, F. Babiloni, M. Elhoseiny, M. Rohrbach, and T. Tuytelaars, “Memory aware synapses: Learning what (not) to forget,” inProceedings of the European Conference on Computer Vision, 2018, pp. 139–154. [75]E. J. Hu, P. Wallis, Z. Allen-Zhu, Y. Li, S. Wang, L. Wang, W. Chenet al., “Lora: Low-rank adaptation of large language models,” inInternational Conference on Learning Representations, 2021.
+[76]B. Lester, R. Al-Rfou, and N. Constant, “The power of scale for parameter-efficient prompt tuning,” inProceedings of the 2021 Conference on Empirical Methods in Natural Language Processing, 2021, pp. 3045–3059. [77]X. L. Li and P. Liang, “Prefix-tuning: Optimizing continuous prompts for generation,”arXiv preprint arXiv:2101.00190, 2021.
+[78]J. Ren, S. Fort, J. Liu, A. G. Roy, S. Padhy, and B. Lakshminarayanan, “A simple fix to mahalanobis distance for improving near-ood detection,” 2021. [Online]. Available:https://arxiv.org/abs/2106.09022 [79]Z. Wang, B. Bi, S. K. Pentyala, K. Ramnath, S. Chaudhuri, S. Mehrotra, Zixu, Zhu, X.-B. Mao, S. Asur, Na, and Cheng, “A comprehensive survey of llm alignment techniques: Rlhf, rlaif, ppo, dpo and more,” 2024. [Online]. Available:https://arxiv.org/abs/ 2407.16216 [80]H. Zhang, Y. Lei, L. Gui, M. Yang, Y. He, H. Wang, and R. Xu, “CPPO: Continual learning for reinforcement learning with human feedback,” in The Twelfth International Conference on Learning Representations, 2024. [Online]. Available:https: //openreview.net/forum?id=86zAUE80pP [81]H. Zhang, L. Gui, Y. Zhai, H. Wang, Y. Lei, and R. Xu, “Copr: Continual learning human preference through optimal policy regularization,” 2024. [Online]. Available:https://arxiv.org/abs/2310.15694 [82]J. Li, J. Zhou, B. Zhan, Y. Yang, Q. Pan, S. Chen, T. Huai, X. Li, Q. Chen, and L. He, “Lifealign: Lifelong alignment for large language models with memoryaugmented focalized preference optimization,” 2025. [Online]. Available:https://arxiv.org/abs/2509.17183 [83]R. Wang and P. Li, “Lemoe: Advanced mixture of experts adaptor for lifelong model editing of large language models,” 2024. [Online]. Available:
+LATEX 类文件期刊,第 XX 卷,第 X 期,2025 年 9 月 19
+[59] W. Zhao、S. Wang、Y. Hu、Y. Zhao、B. Qin、 X. Zhang、Q. Yang、D. Xu 和 W. Che,“SAPT:面 向大语言模型参数高效持续学习的共享注意力框架”, 载于《第62届计算语言学协会年会论文集(第1卷:长论 文)》,2024年,第11641–11661页。[60]A. Razdaibiedina、Y. Mao、R. Hou、M. Khabsa、 M. Lewis 和 A. Almahairi,“渐进式提示:面向语言 模型的持续学习”,载于《第十一届国际学习表征会议》, 2023年。[61]Z. Wang、Y. Liu、T. Ji、X. Wang、Y. Wu、C. Jiang、Y. Chao、Z. Han、L. Wang、X. Shao 等,“通过高效参数隔离实现无排练的持续语言学 习”,载于《第61届计算语言学协会年会论文集(第1卷: 长论文)》,2023年,第10933–10946页。[62] W. Du、S. Cheng、T. Luo、Z. Qiu、Z. Huang、K. C. Cheung、R. Cheng 和 J. Fu,“释放语言模型中的持 续学习能力”,2024年。 [在线]。可访问: https://arxiv.org/abs/2406.17245[63]A. Diera、L. Galke、F. Karl 和 A. Scherp,“通过离散键值瓶颈实 现仅编码器语言模型的持续学习”,2024年。 [在线]。 可访问:https://arxiv.org/abs/2412.08528[64] J. Tack、J. Kim、E. Mitchell、J. Shin、Y. W. Teh 和 J. R. Schwarz,“具有摊销上下文记忆的语言模型在线 适应”,2024年。 [在线]。可访问: https://arxiv.org/abs/2403.04317[65]S. Momeni、S. Mazumder 和 B. Liu,“在基础模型上使用基于核的方 法进行持续学习”,2024年。 [在线]。可访问: https://arxiv.org/ abs/2412.15571[66] J. Qiu、Z. Ke 和 B. Liu,“仅使用大语言模型提示进行持续学习”, 2024年。 [在线]。可访问: https://arxiv.org/abs/2412.15479[67] W. Yin、J. Li 和 C. Xiong,“Contintin:从任务指令中进行持续学 习”,载于《第60届计算语言学协会年会论文集(第1卷: 长论文)》,2022年,第3062–3072页。[68] J. Huang、L. Cui、A. Wang、C. Yang、X. Liao、L. Song、J. Yao 和 J. Su,“利用自合成排练缓解大语言 模型中的灾难性遗忘”,载于《第62届计算语言学协会 年会论文集(第1卷:长论文)》,2024年,第1416– 1428页。[69]Y. Wang、Y. Liu、C. Shi、H. Li、C. Chen、H. Lu 和 Y. Yang,“InsCL:一种面向基于指 令微调大语言模型的数据高效持续学习范式”,载于 《2024年计算语言学协会北美分会:人类语言技术会议 论文集(第1卷:长论文)》,2024年,第663–677页。 [70]X. Wu、M. Hartman、V. A. Jayaraman 和 L. R. Varshney,“SwitchCIT:面向持续指令微调的切 换方法”,2024年。[在线]。可访问:
+https://arxiv.org/abs/2407.11780 [71] V. Araujo、M.‐F. Moens 和 T. Tuytelaars,“学习 路由以实现语言模型持续学习中的动态适配器组合”, 2024 年。 [在线]。可获取: https://arxiv.org/abs/2408.09053[72]Y. Jin、J. Liu 和 S. Chen,“基于多 LoRA 持续学习的通用信息抽取指令微 调框架”,《Knowledge‐Based Systems》,第 308 卷, 第 112750 页,2025 年。[在线]。可获取: https://www.sciencedirect.com/ science/article/pii/S0950705124013844[73] F. Zenke、 B. Poole 和 S. Ganguli,“通过突触智能实现持续学习”, 载于国际机器学习会议。PMLR,2017 年,第 3987– 3995 页。[74] R. Aljundi、F. Babiloni、M. Elhoseiny、 M. Rohrbach 和 T. Tuytelaars,“记忆感知突触:学习 (不)该忘记什么”,载于《欧洲计算机视觉会议论文集》, 2018 年,第 139–154 页。[75]E. J. Hu、P. Wallis、Z. Allen‐Zhu、Y. Li、S. Wang、L. Wang、W. Chen 等, “LoRA:大语言模型的低秩适应”,载于国际学习表征会 议,2021 年。[76] B. Lester、R. Al‐Rfou 和 N. Constant,“规模对参数高效提示微调的作用”,载于 《2021 年自然语言处理实证方法会议论文集》,2021 年, 第 3045–3059 页。[77]X. L. Li 和 P. Liang,“前缀微调: 优化用于生成的连续提示”,arXiv 预印本 arXiv:2101.00190,2021 年。[78]J. Ren、S. Fort、J. Liu、A. G. Roy、S. Padhy 和 B. Lakshminarayanan, “一种用于改进近分布外检测的马氏距离简单修正方法”, 2021 年。[在线]。可获取: https://arxiv.org/abs/2106.09022[79]Z. Wang、B. Bi、 S. K. Pentyala、K. Ramnath、S. Chaudhuri、S. Mehrotra、Zixu、Zhu、X.‐B. Mao、S. Asur、Na 和 Cheng,“大语言模型对齐技术全面综述:RLHF、 RLAIF、PPO、DPO 及更多”,2024 年。 [在线]。可获 取:https://arxiv.org/ 2407.16216[80]H. Zhang、Y. Lei、L. Gui、M. Yang、Y. He、H. Wang 和 R. Xu, “CPPO:面向基于人类反馈的强化学习的持续学习”,载 于第十二届国际学习表征会议,2024 年。[在线]。可获取: https: //openreview.net/forum?id=86zAUE80pP[81] H. Zhang、L. Gui、Y. Zhai、H. Wang、Y. Lei 和 R. Xu,“Copr:通过最优策略正则化持续学习人类偏好”, 2024 年。 [在线]。可获取: https://arxiv.org/abs/2310.15694[82] J. Li、J. Zhou、 B. Zhan、Y. Yang、Q. Pan、S. Chen、T. Huai、X. Li、 Q. Chen 和 L. He,“Lifealign:通过记忆增强的聚焦偏 好优化实现大语言模型终身对齐”,2025 年。[在线]。可获 取:https://arxiv.org/abs/2509.17183[83]R. Wang 和 P. Li,“Lemoe:用于大语言模型终身模型编辑的高级专 家混合适配器”,2024 年。 [在线]。可获取:
+
+
+JOURNAL OF LATEX CLASS FILES, VOL. XX, NO. X, SEPTEMBER 2025 20
+https://arxiv.org/abs/2406.20030 [84]T. Liu, R. Li, Y. Qi, H. Liu, X. Tang, T. Zheng, Q. Yin, M. X. Cheng, J. Huan, H. Wang, and J. Gao, “Unlocking efficient, scalable, and continual knowledge editing with basis-level representation fine-tuning,” 2025. [Online]. Available:https://arxiv.org/abs/2503.00306 [85]H. Zhang, Z. Zhang, Y. Zhang, Y. Zhai, H. Peng, Y. Lei, Y. Yu, H. Wang, B. Liang, L. Gui, and R. Xu, “Correcting large language model behavior via influence function,” 2024. [Online]. Available: https://arxiv.org/abs/2412.16451 [86]G. Puthumanaillam, M. Vora, P. Thangeda, and M. Ornik, “A moral imperative: The need for continual superalignment of large language models,” 2024. [Online]. Available:https://arxiv.org/abs/2403.14683 [87]E. Elelimy, D. Szepesvari, M. White, and M. Bowling, “Rethinking the foundations for continual reinforcement learning,” 2025. [Online]. Available:https://arxiv.org/ abs/2504.08161 [88]X. Wang, Y. Zhang, T. Chen, S. Gao, S. Jin, X. Yang, Z. Xi, R. Zheng, Y. Zou, T. Guiet al., “Trace: A comprehensive benchmark for continual learning in large language models,”arXiv preprint arXiv:2310.06762, 2023. [89]Z. Zhang, M. Fang, L. Chen, and M.-R. Namazi-Rad, “Citb: A benchmark for continual instruction tuning,” inFindings of the Association for Computational Linguistics: EMNLP 2023, 2023, pp. 9443–9455.
+[90]J. Jang, S. Ye, S. Yang, J. Shin, J. Han, G. Kim, J. Choi, and M. Seo, “Towards continual knowledge learning of language models,” in10th International Conference on Learning Representations, ICLR 2022. International Conference on Learning Representations, 2022. [91]C.-K. Wu, Z. R. Tam, C.-Y. Lin, Y.-N. V. Chen, and H.-y. Lee, “Streambench: Towards benchmarking continuous improvement of language agents,”Advances in Neural Information Processing Systems, vol. 37, pp. 107 039–107 063, 2024. [92]N. Lee, T. Wattanawong, S. Kim, K. Mangalam, S. Shen, G. Anumanchipalli, M. Mahoney, K. Keutzer, and A. Gholami, “Llm2llm: Boosting llms with novel iterative data enhancement,” inFindings of the Association for Computational Linguistics ACL 2024, 2024, pp. 6498–6526. [93]S. Li, F. Ye, M. Fang, J. Zhao, Y.-H. Chan, E. C. H. Ngai, and T. Voigt, “Synergizing foundation models and federated learning: A survey,” 2024. [Online]. Available:https://arxiv.org/abs/2406.12844 [94]Z. Wang, W. Yu, L. Yang, and S. Lin, “Rethinking continual learning with progressive neural collapse,” 2025. [Online]. Available:https://arxiv.org/abs/2505. 24254 [95]F. Zeng, F. Zhu, H. Guo, X.-Y. Zhang, and C.-L. Liu, “Modalprompt: Towards efficient multimodal continual instruction tuning with dual-modality guided prompt,” 2025. [Online]. Available:https://arxiv.org/abs/2410. 05849 [96]C. Cai, Z. Wang, J. Gao, W. Liu, Y. Lu, R. Zhang,
+and K.-H. Yap, “Empowering large language model for continual video question answering with collaborative prompting,” 2025. [Online]. Available:https://arxiv.org/ abs/2410.00771 [97]H. Li, Z. Tan, X. Li, and W. Huang, “Atlas: Adapter-based multi-modal continual learning with a two-stage learning strategy,” 2024. [Online]. Available: https://arxiv.org/abs/2410.10923 [98]W. Liu, F. Zhu, L. Wei, and Q. Tian, “C-CLIP: Multimodal continual learning for vision-language model,” inThe Thirteenth International Conference on Learning Representations, 2025. [Online]. Available: https://openreview.net/forum?id=sb7qHFYwBc [99]C. Pan, X. Yang, Y. Li, W. Wei, T. Li, B. An, and J. Liang, “A survey of continual reinforcement learning,” 2025. [Online]. Available:https://arxiv.org/ abs/2506.21872 [100]J. Hu, Z. Lian, Z. Wen, C. Li, G. Chen, X. Wen, B. Xiao, and M. Tan, “Continual knowledge adaptation for reinforcement learning,” 2025. [Online]. Available: https://arxiv.org/abs/2510.19314 [101]L. Wei, Y. Li, C. Wang, Y. Wang, L. Kong, W. Huang, and L. Sun, “First sft, second rl, third upt: Continual improving multi-modal llm reasoning via unsupervised post-training,” 2025. [Online]. Available: https://arxiv.org/abs/2505.22453 [102]M. Du, A. T. Luu, B. Ji, and S. kiong Ng, “From static to dynamic: A continual learning framework for large language models,” 2023. [Online]. Available: https://arxiv.org/abs/2310.14248 [103]J. Zheng, C. Shi, X. Cai, Q. Li, D. Zhang, C. Li, D. Yu, and Q. Ma, “Lifelong learning of large language model based agents: A roadmap,” 2025. [Online]. Available: https://arxiv.org/abs/2501.07278 [104]D. Li, Z. Sun, X. Hu, B. Hu, and M. Zhang, “Cmt: A memory compression method for continual knowledge learning of large language models,” inProceedings of the AAAI Conference on Artificial Intelligence, vol. 39, no. 23, 2025, pp. 24 413–24 421. [105]S. A. Bidaki, A. Mohammadkhah, K. Rezaee, F. Hassani, S. Eskandari, M. Salahi, and M. M. Ghassemi, “Online continual learning: A systematic literature review of approaches, challenges, and benchmarks,” 2025. [Online]. Available: https://arxiv.org/abs/2501.04897
+LATEX CLASSFILES 期刊,第 XX 卷,第 X 期,2025 年 9 月 20
+https://arxiv.org/abs/2406.20030
+[84] T. Liu、R. Li、Y. Qi、H. Liu、X. Tang、T. Zheng、Q. Yin、M. X. Cheng、J. Huan、H. Wang 和 J. Gao,“通过基级表示微调解锁高效、可扩展且持续的知 识编辑”,2025 年。 [在线]。可获取: https://arxiv.org/abs/2503.00306[85]H. Zhang、Z. Zhang、Y. Zhang、Y. Zhai、H. Peng、Y. Lei、Y. Yu、 H. Wang、B. Liang、L. Gui 和 R. Xu,“通过影响函数 校正大语言模型行为”,2024 年。 [在线]。可获取: https://arxiv.org/abs/2412.16451[86]G. Puthumanaillam、M. Vora、P. Thangeda 和 M. Ornik,“道德使命:大语言模型持续超级对齐的必要性”, 2024 年。[在线]。可获取: https://arxiv.org/abs/2403.14683[87] E. Elelimy、D. Szepesvari、M. White 和 M. Bowling,“重新思考持续 强化学习的基础”,2025 年。 [在线]。可获取: https://arxiv.org/ abs/2504.08161[88] X. Wang、Y. Zhang、T. Chen、S. Gao、S. Jin、X. Yang、Z. Xi、 R. Zheng、Y. Zou、T. Gui 等,“Trace:大语言模型持 续学习的综合基准”,arXiv 预印本 arXiv:2310.06762, 2023 年。[89] Z. Zhang、M. Fang、L. Chen 和 M.‐R. Namazi‐Rad,“Citb:持续指令微调的基准”,载于 《计算语言学协会发现:EMNLP 2023》,2023 年,第 9443–9455 页。[90] J. Jang、S. Ye、S. Yang、J. Shin、 J. Han、G. Kim、J. Choi 和 M. Seo,“迈向语言模型的 持续知识学习”,载于第十届国际学习表征会议,ICLR 2022。国际学习表征会议,2022 年。[91]C.‐K. Wu、Z. R. Tam、C.‐Y. Lin、Y.‐N. V. Chen 和 H.‐y. Lee,“ Streambench:面向语言智能体持续改进的基准测试”, 《神经信息处理系统进展》,第 37 卷,第 107 039– 107063 页,2024 年。[92]N. Lee、T. Wattanawong、 S. Kim、K. Mangalam、S. Shen、G. Anumanchipalli、M. Mahoney、K. Keutzer 和 A. Gholami,“Llm2llm:通过新颖的迭代数据增强提升大 语言模型”,载于《计算语言学协会发现:ACL 2024》, 2024 年,第 6498–6526 页。[93] S. Li、F. Ye、M. Fang、J. Zhao、Y.‐H. Chan、E. C. H. Ngai 和 T. Voigt,“协同基础模型与联邦学习:综述”,2024 年。 [ 在线]。可获取:https://arxiv.org/abs/2406.12844[94]Z. Wang、W. Yu、L. Yang 和 S. Lin,“从渐进神经坍缩重 新思考持续学习”,2025 年。 [在线]。可获取: https://arxiv.org/abs/2505. 24254[95] F. Zeng、F. Zhu、H. Guo、X.‐Y. Zhang 和 C.‐L. Liu,“ Modalprompt:面向高效多模态持续指令微调的双模态引 导提示”,2025 年。 [在线]。可获取: https://arxiv.org/abs/2410. 05849[96] C. Cai、Z. Wang、J. Gao、W. Liu、Y. Lu、R. Zhang,
+以及 K.‐H. Yap,“通过协作提示赋能大语言模型实 现持续视频问答”,2025 年。 [在线]。可访问: https://arxiv.org/ abs/2410.00771[97]H. Li、Z. Tan、 X. Li 和 W. Huang,“Atlas:采用两阶段学习策略的基 于适配器多模态持续学习”,2024 年。 [在线]。可访问: https://arxiv.org/abs/2410.10923[98]W. Liu、F. Zhu、 L. Wei 和 Q. Tian,“C‐CLIP:面向视觉‐语言模型的多 模态持续学习”,载于第十三届国际学习表征会议, 2025 年。 [在线]。可访问: https://openreview.net/forum?id=sb7qHFYwBc[99] C. Pan、X. Yang、Y. Li、W. Wei、T. Li、B. An 和 J. Liang,“持续强化学习综述”,2025 年。 [在线]。可 访问:https://arxiv.org/ abs/2506.21872[100]J. Hu、 Z. Lian、Z. Wen、C. Li、G. Chen、X. Wen、B. Xiao 和 M. Tan,“面向强化学习的持续知识适应”, 2025 年。 [在线]。可访问: https://arxiv.org/abs/2510.19314[101]L. Wei、Y. Li、 C. Wang、Y. Wang、L. Kong、W. Huang 和 L. Sun, “先 SFT、再 RL、后 UPT:通过无监督后训练持续提升 多模态 LLM 推理能力”,2025 年。 [在线]。可访问: https://arxiv.org/abs/2505.22453[102]M. Du、A. T. Luu、B. Ji 和 S. kiong Ng,“从静态到动态:面向大语 言模型的持续学习框架”,2023 年。 [在线]。可访问: https://arxiv.org/abs/2310.14248[103] J. Zheng、C. Shi、X. Cai、Q. Li、D. Zhang、C. Li、D. Yu 和 Q. Ma,“基于大语言模型的智能体的终身学习:路线图”, 2025 年。 [在线]。可访问: https://arxiv.org/abs/2501.07278[104] D. Li、Z. Sun、 X. Hu、B. Hu 和 M. Zhang,“Cmt:面向大语言模型 持续知识学习的记忆压缩方法”,载于《AAAI 人工智能 会议论文集》,第 39 卷,第 23 期,2025 年,第 24413– 24421 页。[105]S. A. Bidaki、A. Mohammadkhah、 K. Rezaee、F. Hassani、S. Eskandari、M. Salahi 和 M. M. Ghassemi,“在线持续学习:方法、挑战与基准 的系统文献综述”,2025 年。 [在线]。可访问: https://arxiv.org/abs/2501.04897

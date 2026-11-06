@@ -1,0 +1,841 @@
+RASP: Read-All, Sparse-Plasticity Continual Learning in a Stationary-Size
+LoRA
+Wen-Hsuan Liu University of California, Irvine
+Amara Okonkwo University of Washington
+Tom Saliencro University of California, Irvine
+Rohan Desai University of Washington
+Maya Lindqvist University of California, Irvine
+Abstract
+Parameter-efficient continual learning on pre-trained Vision Transformers largely relies on a costly premise: preventing catastrophic forgetting requires either spawning a dedicated LoRA branch per session—causing adapter parameters to scale linearly with task horizon—or applying sparse Mixture-of-Experts gating symmetrically to both forward and backward passes, which sacrifices representational rank at test time. We argue that reading consolidated knowledge and writing new task credit are fundamentally asymmetric operations. Because visual features in a shared low-rank space distribute across rank1 atoms rather than localizing in disjoint task silos, forward inference should readallatoms at full rank capacity, whereas backward optimization should restrict plasticity to a sparse subset of input-aligned channels. We introduceRASP(Read-All,Sparse-Plasticity LoRA), which adapts a single stationary-size adapter across sequential tasks. At each step, a scene-modulated cosine router selects the top-qunlocked atoms to receive gradients, blocks updates on the remainingr−qchannels, and penalizes Frobenius Gram coherence between active and non-updated output directions. Across sessions, the router’s empirical activation trace and each atom’s exact spectral norm form a zero-overhead geometric consolidation indexω j = p ̃jc ̃jσ that drives Cauchy step attenuation and boundary anchor locking. Across CIFAR-100, CUB-200, ImageNet-R, and ImageNet-A, RASP matches or surpasses branch-expanding LoRA learners under a strictly constant parameter footprint.
+1. Introduction
+Exemplar-free class-incremental learning (CIL) seeks to absorb a sequence of visual categories without storing rehearsal buffers or querying task identifiers at inference time [1]. Early continual learners attributed catastrophic forget
+ting to unconstrained stochastic gradient updates overwriting shared network weights [2]. With frozen pre-trained Vision Transformers (ViTs) [3] now serving as the standard visual backbone, adaptation is predominantly localized inside Low-Rank Adaptation (LoRA) modules [4,5], shifting the core design question from full-network regularization to low-rank subspace governance.
+To shield earlier sessions from later updates, mainstream LoRA-based continual learners instantiate a fresh adapter branch for every incoming task. InfLoRA initializes each new branch inside the empirical feature null-space of prior sessions [6]; SD-LoRA decouples directional bases from learnable magnitudes across growing branches [7]; BiLoRA constructs probabilistically orthogonal bilinear subspaces [8]; PLAN selects low-sensitivity bases via perturbation probing [9]; LoRA-P&M interpolates perturbed task vectors [10]; and SplitLoRA partitions the gradient space into primary and minor subspaces [11]. While effective, branch expansion hard-codes two structural liabilities: adapter memory grows linearly without bound as tasks accumulate, and locking each session inside a private branch prevents later tasks from reusing fine-grained visual primitives learned earlier. Conversely, recent intra-adapter routing methods—such as FlyLoRA [12], NeuroLoRA [13], and rank-1 expert pools [14]—maintain a shared parameter pool but apply top-qsparsity symmetrically to both forward and backward passes. Zeroingr−qchannels during forward evaluation discards(1−q/r)of the adapter’s effective rank capacity on every test sample.
+Our key insight is illustrated in Figure1. When a single fixed-size LoRA is trained across a task stream, discriminative visual structure does not segregate into mutually exclusive per-task ranks; instead, it organizes as a distributed superposition across allrrank-1 atoms. Consequently, forward representation reading and backward gradient writing should not share the same sparsity mask. During the forward pass, allratoms should remain active (ReadAll) so the classifier always operates at full rank capac
+1
+arXiv:2611.03513v1 [cs.LG] 2 Nov 2026
+
+
+CIFAR-100 CUB-200 IN-R IN-A
+0.0
+0.5
+1.0
+1.5
+2.0
+2.5
+Gain over unmasked q=r (ΔFAA, pp)
++0.93
++2.30
++2.06
++1.68
+(a) Decoupling forward read from write
+Symmetric top-q (Fwd+Bwd) Read-All + Sparse-Bwd only RASP (+ trace-spectral lock)
+1 2 4 6 8 10 Incremental session t (CIFAR-100)
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+1.2
+1.4
+Probe logit drift ‖Δzold‖2
+−84.0%
+old-logit drift at T=10
+(b) Cross-session interference drift
+Unmasked shared (q=r) Symmetric sparse gate Read-All + Sparse-Bwd RASP (full consolidation)
+0.03 0.1 0.3 1 3 Total adapter parameters at T=10 (M, log)
+60
+65
+70
+75
+4-benchmark mean FAA (%)
+L2P
+DualPrompt
+CODA-Prompt
+EASE
+FM-LoRA
+InfLoRA
+PLAN
+BiLoRA
+SD-LoRA
+SplitLoRA
+LoRA-P&M
+RASP (Ours) 77.49% @ 0.27M
+(c) Accuracy vs. parameter frontier
+Figure 1. Motivation for RASP. (a) Across all four benchmarks, decoupling full-rank forward reading from sparse backward writing consistently outperforms both unmasked shared updates (q=r) and symmetric top-qgating, with trace-spectral consolidation providing an additional boost. (b) On CIFAR-100, unmasked shared training suffers severe old-task logit drift; symmetric gating curbs drift at the expense of forward rank; RASP suppresses84.0%of cumulative logit drift while preserving full forward capacity. (c) AtT= 10sessions under a unified ViT-B/16 protocol, RASP occupies the Pareto frontier of final accuracy versus total adapter parameters.
+ity and can compose features learned in any prior session. During the backward pass, credit assignment should be restricted to thequnlocked atoms most aligned with the current input (Sparse-Plasticity), leaving the remainingr−q channels untouched at that step. Better still, this backward router generates its own crosssession consolidation signal at zero extra compute. By pairing each atom’s cumulative routing trace ̃cj with its exact rank-1 spectral norm ̃σj =∥u j∥2∥vj∥2, we obtain a geometric consolidation indexω j = p ̃jc ̃jσ that identifies atoms that are both frequently recruited across tasks and energetically load-bearing. This single index governs continuous Cauchy step-size attenuation on active unlocked channels and locks a small quota of top-ωj atoms into an immutable anchor set at each session boundary. The main contributions of this work are fourfold: •We formulate stationary-budget LoRA continual learning throughread-write asymmetry: unmasked rank-r forward superposition preserves representational capacity and cross-task transfer, while routed top-qbackward gating localizes per-step plasticity. •We design a scene-modulated, usage-equalized cosine router coupled with a cross-partition Frobenius Gram coherence penalty that steers active output updates away from non-updated and locked directions. •We introduce a zero-overheadtrace-spectral consolidationmechanism (ω j = p ̃jc ̃jσ) with provable falselocking suppression and a three-tier cross-session logit drift bound. •Extensive experiments on CIFAR-100, CUB-200, ImageNet-R, and ImageNet-A under a unified ViT-B/16 protocol show that RASP matches or outperforms pertask expansion methods at strictly constant adapter size.
+2. Related Work
+Pre-trained continual learning.Classical continual learning relies on rehearsal buffers, parameter regularization, or network expansion [1,2]. With strong pre-trained ViTs, rehearsal-free methods adapt lightweight modules instead. Prompt-tuning approaches such as L2P, DualPrompt, and CODA-Prompt assemble task-conditioned prompts from learnable pools [15–17]. Adapter and prototype methods—including LAE [18], EASE [19], and MOS [20]—combine lightweight feature adapters with calibrated class prototypes, while analytic learners such as Fly-CL and guided random projections fit closed-form ridge heads over expanded representations [21,22]. RASP is orthogonal to classifier-side calibration: it governs how a single low-rank backbone adapter updates and consolidates internal representations across sessions.
+Subspace-expanding vs. stationary LoRA.Most LoRA-based continual learners enforce stability via spatial branch isolation [6–11] or inter-branch orthogonal constraints [23–25]. Because each session claims a dedicated parameter block, memory scales asO(T)and early features are locked away from later tasks unless explicitly merged. Recent efforts toward shared low-rank spaces explore learnable routing matrices in C-LoRA [26], meta-prompted rank selection in FM-LoRA [27], paced updates in PaLoRA [28], activation-subspace protection in SPACE-LoRA [29], geodesic subspace evolution in Geo-LoRA [30], spectral balancing in MuLoRA [31], and post-hoc parameter freezing or task-conditioned transforms [32,33]. Closer in spirit, E 2-LoRA [34] orders task drift via post-session SVD to recycle low-energy ranks, but still
+2
+
+
+requires an extra eigendecomposition pass. In contrast, RASP operates inside a single stationary-size LoRA and extracts its consolidation signal directly from the router’s runtime trace and rank-1 norms.
+Mixture-of-Experts and rank-level routing.MoELoRA architectures route tokens across multiple adapter experts [35–37]. Moving routing inside a single adapter, FlyLoRA [12] and NeuroLoRA [13] select top-qranks via sparse projections or neuromodulated gates, while DAC [14] and noise-floor squelching [38] compose sparse rank-1 pools. As recent diagnostics emphasize, routing alone does not eliminate subspace contention within shared adapters [39]. Crucially, all prior rank routers apply their sparsity gate symmetrically to the forward pass, truncating inference rank. RASP keeps forward composition completely dense and confines sparsity, Gram decoupling, and trace-spectral consolidation to the backward update.
+3. Preliminaries
+We study rehearsal-free class-incremental learning overT sequential sessions{T 1, . . . ,T T }. Sessiontprovides train
+ing datasetD t ={(x i, yi)}nt
+i=1 with label setY t, where Yt ∩ Ys =∅fort̸=s. No historical exemplars are retained, and test-time evaluation requires classifying across all seen categoriesY 1:t = St
+s=1 Ys without task identity.
+LetW 0 ∈R d×d denote a frozen pre-trained projection layer (key or value matrix in ViT-B/16). Instead of allocating task-indexed adapters{B t, At}T
+t=1, RASP maintains a single stationary-size low-rank module parameterized by input probe matrixV∈R d×r and output synthesis matrixU∈R d×r (r≪d). WritingV= [v 1, . . . , vr]and U= [u 1, . . . , ur], the weight update decomposes intor rank-1 atomic channels:
+∆W= 1
+rUV ⊤ = 1
+r
+r
+X
+j=1
+uj v⊤
+j , h=W 0x+ 1
+r
+r
+X
+j=1
+uj (v⊤
+j x).
+(1) Herev ⊤
+j x∈Rmeasures how strongly tokenx∈R d excites thej-th input probe, andu j ∈R d specifies the output synthesis direction added to the residual stream. Throughout training on sessiont, the input probesVare held fixed while only selected columns ofUand a lightweight scene gate are updated.
+4. RASP Framework
+RASP resolves the stability–plasticity dilemma inside a stationary rank-radapter by coupling two mechanisms into a closed loop (Figure2): (i) intra-sessionRead-All, SparsePlasticityupdates with cross-partition Gram decoupling, and (ii) inter-sessionTrace-Spectral Consolidationthat con
+verts routing history into graded step attenuation and permanent anchor locking.
+4.1. Read-All Forward & Scene-Gated Router
+In the forward pass, allratomic channels contribute via Equation (1). No channel is dropped during feature extraction or test-time prediction, ensuring that visual primitives encoded in earlier sessions remain continuously accessible for cross-task composition. To decide which channels should absorb backward credit on the current minibatch, we first compute a scale-invariant directional cosine probe for each channelj∈ {1, . . . , r}:
+aj(x) = |v⊤
+j x|
+∥vj∥2 ∥x∥2 +ε .(2)
+Dividing by∥v j∥2 ∥x∥2 prevents probe norm variations or token magnitude spikes from biasing channel selection. Because Equation (2) evaluates tokens locally, two patches from semantically different categories (e.g., background foliage vs. bird plumage) could trigger identical probes. To inject global scene context at negligible cost, we form the RMS-normalized token summary  ̄x= RMSNorm 1
+N
+PN
+n=1 xn ∈R d and pass it through a lightweight bottleneck modulator (dg = 64,∼0.10M fixed parameters across the network):
+φ( ̄x) =1+ tanh W2 SiLU(W1  ̄x) ⊙ξ,(3)
+whereW 1 ∈R dg×d,W 2 ∈R r×dg , andξ∈R r is initialized to zero soφ( ̄x) =1at the beginning of training. The scenemodulated affinity is ̃aj(x) =a j(x)·φ j( ̄x). Finally, to prevent early winner-take-all routing collapse among unlocked channelsP t−1 ={1, . . . , r} \ L t−1, we maintain an exponential moving averageˆpj of each channel’s selection probability and add a centered usageequalizing prior:
+ρj =  ̃ja(x) +μ eq
+1
+|Pt−1| −ˆpj , j∈ P t−1,(4)
+whereμ eq >0boosts under-explored channels during early epochs while letting data-driven affinity dominate once representations specialize.
+4.2. Sparse-Plasticity Backward & Gram Decoupling
+Given routing scores{ρ j :j∈ P t−1}aggregated over the minibatch, RASP selects the top-qt unlocked channels (qt = min(q,|P t−1|)) as the active write setA t and applies a hard binary stop-gradient mask to all other synthesis columns:
+At = Top-qt {ρj :j∈ P t−1} , guj = 0∀j /∈ A t, (5)
+3
+
+
+1 Read-All Forward & Scene-Gated Router 2 Sparse-Plasticity Backward & Gram Decoupling 3 Trace-Spectral Consolidation & Locking
+Read-All Forward Over Stationary Rank-r Atoms
+h = W0x + 1
+r Σr
+j = 1 uj(v ⊤
+j x)
+(100% Rank Capacity & Cross-Task Transfer)
+Cosine Probe & Scene Gate
+aj(x) =
+v⊤
+jx ‖vj‖2 ‖x‖2
+φ(x̄ ): scene gate
+ãj = aj(x) ⋅ φj(x̄ )
+Usage-Equalized Priority
+ρj = ãj +
+μeq(
+1
+|Pt − 1| − p̂ j)
+over pool Pt − 1=[r] ∖ Lt − 1
+Top-q Backward Plasticity Gate At = Top-q(ρj)
+Selected j ∈ At: plastic write Unselected j ∉ At: guj = 0 (exact invariance)
+Cross-Partition Gram Coherence Penalty
+Rdec = λdec
+|At| |Ac
+t | ‖Ũ⊤
+At
+U ̃Ac
+t
+‖2
+F
+(ũj = uj/‖uj‖2)
+U ̃At
+U ̃Ac
+t
+Trace-Spectral Consolidation Index
+ωj = √ c̃j ⋅ σ̃j
+Routing trace
+cj ← cj + [j ∈ At] × Spectral norm
+σj = ‖uj‖2 ‖vj‖2
+Cauchy Attenuation
+guj ←
+guj 1 + κ ωj
+for active j ∈ At
+ωj
+1
+Boundary Anchor Lock
+Lt = Lt − 1 ∪ Top-mlock(ωj)
+keeps (uj, vj) invariant
+Figure 2. Overview of the RASP pipeline.Stage 1 (Left):Every input batch traverses allrrank-1 atoms in the forward pass without truncation; a cosine probe modulated by an image-level scene gateφ( ̄x)and a usage-equalizing prior scores the unlocked poolP t−1. Stage 2 (Middle):Only the top-qunlocked channelsA t receive backward gradients, while a Frobenius Gram coherence penaltyR dec pushes active synthesis columns orthogonal to non-updated and locked columns.Stage 3 (Right):Cumulative routing trace ̃c j and rank-1 spectral norm ̃σj form the consolidation indexω j =
+p
+ ̃jc ̃jσ, driving continuous Cauchy step attenuation and boundary anchor locking.
+whereg uj =∇ uj Lce is the backpropagated cross-entropy gradient. The plasticity ratioq/rdirectly governs how much of the shared subspace a single minibatch may perturb:r−q t channels experience exact zero parameter drift at every step, while allrchannels participate in the forward prediction, unlike the symmetric mask of FlyLoRA [12]. Masking gradients onA c
+t ={1, . . . , r} \ A t freezes their coordinates for the current step, but does not prevent the actively updated columns{u i :i∈ A t}from rotating into the subspace already spanned byA c
+t . To enforce geometric separation between plastic updates and protected knowledge, we penalize the Frobenius norm of the cross-partition Gram matrix between unit-normalized active columns U ̃At
+and non-active columns U ̃Ac
+t ( ̃ju =u j /∥u j ∥2):
+Rdec = λdec
+|At| |Ac
+t|
+U ̃ ⊤
+At
+U ̃Ac
+t
+2
+F
+.(6)
+Unlike all-pairs orthogonalization, Equation (6) leaves correlationswithinA t unconstrained so co-selected channels can cooperatively fit the current task, while repelling their updates from inactive and locked anchors.
+4.3. Trace-Spectral Consolidation & Locking
+Stepwise masking protects channels outsideA t, yet an unlocked channel crucial to Session1may still be routed into At during Session4and overwritten. Rather than introducing a separate Fisher pass [2] or post-session SVD [34], RASP harvests a consolidation signal directly from two quantities intrinsic to the routing loop. First, every top-qt selection emits a binary indicator I[j∈ A t], which we accumulate into a cumulative routing trace across all training steps:
+cj ←c j +I[j∈ A t], j= 1, . . . , r.(7)
+Second, whilec j records how consistently channeljis recruited, it does not measure how strongly atomu jv⊤
+j modifies the frozen backbone. By Proposition2, the exact operator (and nuclear) norm of thej-th rank-1 atom is
+σj = uj v⊤
+j 2 =∥u j ∥2 ∥vj ∥2 .(8)
+We normalize both quantities to[0,1]via ̃c j =c j/max k ck and ̃σj =σ j/max k σk, and define their geometric mean as thetrace-spectral consolidation index:
+ωj =
+p
+ ̃jc · ̃σj ∈[0,1].(9)
+A channel attains a highω j if and only if it is both frequently selected across tasks and spectrally energetic. Noisy tie-breaker channels ( ̃jc ≫0, ̃σj ≈0) and stale onetask spikes ( ̃jc ≈0, ̃σj ≫0) are automatically suppressed.
+Intra-session Cauchy step attenuation.For unlocked channels selected intoA t, gradients are rescaled inversely by their consolidation index consolidated at the end of sessiont−1:
+guj ← guj
+1 +κ ω (t−1)
+j
+, j∈ A t,(10)
+whereκ >0is the attenuation gain. Becauseω j already incorporates the square-root geometric compression of Equation (9), the Cauchy multiplier(1 +κ ω j)−1 smoothly decelerates updates on shared high-utility atoms without numerically zeroing their plasticity.
+Inter-session boundary anchor locking.At the end of sessiont, we refreshσ j andω (t)
+j . To prevent a single highgradient step in future tasks from corrupting the most critical consolidated atoms, we permanently lock the topm lock
+4
+
+
+Algorithm 1:RASP Training Procedure at Session t
+Input:Shared adapter(U, V), scene gateφ, locked anchor setL t−1, tracec, session dataD t, budget q, gainκ
+Output:Updated(U, V,L t, c, ω(t))
+//Null-space probe alignment on unlocked pool only Pt−1 ← {1, . . . , r} \ Lt−1 ;
+Project{v j :j∈ P t−1}onto null-space of prior feature covariance; keep{v j :j∈ L t−1}intact ; foreachminibatch(X, Y)⊂ D t do
+Compute Read-All forward outputhover allratoms via Eq. (1) ; Evaluate cosine probesa j(x), scene gateφ( ̄x), and scoresρ j onP t−1 via Eqs. (2)–(4) ; SelectA t ←Top-q t({ρj :j∈ P t−1})and mask guj = 0forj /∈ At ;
+Compute gradient ofL ce +R dec (Eq. (6)) and apply Cauchy attenuationg uj ←(1 +κ ω (t−1)
+j )−1guj ; Update active synthesis atoms{u j :j∈ A t}and scene gate; accumulatec j ←c j +I[j∈ A t];
+Update spectral normsσ j =∥u j∥2 ∥vj∥2 and
+consolidation indicesω (t)
+j=
+p
+ ̃jc ̃jσ ; if|P t−1| ≥q+ 2then
+Lt ← Lt−1 ∪Top-m lock({ω(t)
+j :j∈ P t−1});
+return(U, V,L t, c, ω(t))
+unlocked channels into the anchor setL t:
+Lt =L t−1 ∪Top-m lock {ω(t)
+j :j∈ P t−1} ,(11)
+wherem lock = clip(⌊ηlock|Pt−1|⌋,1,3)withη lock = 0.05, and locking halts once|P t−1|< q+ 2to prevent plasticity starvation. Crucially, at the start of sessiont+ 1, only the unlockedinput probes{v j :j∈ P t}are re-initialized in the empirical feature null-space of prior tasks [6], whereas locked pairs{(u j, vj) :j∈ L t}remain completely invariant in both factors. Algorithm1summarizes the complete procedure.
+5. Theoretical Analysis
+We now formalize why decoupling forward reading from backward writing preserves representational rank while bounding cross-session interference. Full proofs are provided in AppendixA.
+Proposition 1(Read-write capacity–interference decoupling).For any active write subsetA t ⊂ {1, . . . , r}of cardinalityq, let∆W sym = 1
+r
+P
+j∈At uj v⊤
+j denote the sym
+metrically gated adapter. For any inputx∈R d, the forward truncation error incurred by symmetric gating satisfies
+∥(∆W−∆W sym)x∥2 ≤ ∥x∥2
+r
+X
+j /∈ tA
+σj aj(x),(12)
+whereas RASP incurs zero forward truncation error (∆Wfwd = ∆W). Simultaneously, under isotropic perchannel gradient varianceς 2, RASP’s sparse-plasticity mask reduces expected backward update energy fromrς 2 toqς 2.
+Proposition1exposes the structural flaw of symmetric rank routing [12]: zeroingr−qchannels in the forward pass discards a feature residual proportional to the spectral normsσ j of unselected atoms, whereas RASP eliminates (1−q/r)of backward perturbation energy without sacrificing forward rank.
+Theorem 1(Three-tier session drift bound).Consider sessiontwith locked anchor setL t−1 and unlocked poolP t−1. LetS j ⊂ {1, . . . , Mt}denote the minibatch steps at which channelj∈ P t−1 is routed intoA t with step sizes{η s}. Because locked pairs{(u j, vj) :j∈ L t−1}and unlocked probes{v j :j∈ P t−1}remain fixed during sessiont, the functional output shift∆h t(x) = ∆W (t)x−∆W (t−1)xon any probe inputxdecomposes into three tiers:
+∥∆ht(x)∥2 ≤ ∥x∥2
+r
+X
+j∈Pt−1 Sj ̸=∅
+∥vj∥2 aj(x)
+1 +κ ω (t−1)
+j
+X
+s∈Sj
+ηs g(s)
+uj 2
+,
+(13) with exact zero drift contributed by locked anchors (j∈ Lt−1) and unrouted unlocked channels (j∈ P t−1, Sj =∅).
+Theorem1guarantees that locked anchors (L t−1) and unrouted unlocked atoms (Sj =∅) contributeexact zero functional drift, while drift on revisited channels is damped by(1 +κ ω (t−1)
+j )−1.
+Proposition 2(Spectral identity and conjunctive outlier filtering).Each rank-1 atomM j =u jv⊤
+j satisfies∥M j∥2 = ∥Mj∥∗ =∥u j∥2 ∥vj∥2 =σ j. Moreover, for any locking thresholdτ∈(0,1), the geometric consolidation conditionω j = p ̃jc ̃jσ > τenforces the conjunctive lower
+boundmin( ̃cj, ̃σj)> τ 2, whereas the arithmetic mean
+1
+2 ( ̃jc +  ̃jσ)> τadmits single-cue false positives with min( ̃jc, ̃σj) = 0wheneverτ <0.5.
+6. Experiments
+6.1. Experimental Setup
+Benchmarks and evaluation protocol.We evaluate RASP on four standard CIL benchmarks spanning natural objects, fine-grained taxonomy, artistic domain shifts, and natural adversarial examples:CIFAR-100[40],CUB200-2011[41],ImageNet-R[42], andImageNet-A[43].
+Following the standard rehearsal-free protocol [6,20], each dataset is partitioned intoT= 10sequential sessions with equal class splits (10classes/session on CIFAR-100;20 classes/session on CUB-200, ImageNet-R, and ImageNetA), plus aT= 20long-horizon split on ImageNet-R (10
+5
+
+
+Table 1. Comparison with state-of-the-art rehearsal-free CIL methods across four 10-session benchmarks on ViT-B/16-IN21K. “∆Params” denotes additional adapter parameters allocated per session, and “Total@T10” is the cumulative adapter overhead after 10 sessions (†: 0.25M forr= 50,0.30M forr= 64,0.35M forr= 80, including the fixed0.10M scene gate). All cells are evaluated under a unified 3-seed protocol.Boldand underline indicate best and second-best among LoRA-based methods.
+CIFAR-100 CUB-200 ImageNet-R ImageNet-A
+Method Venue∆Params Total@T 10 FAA CAA FAA CAA FAA CAA FAA CAA
+Prompt-tuning families
+L2P [15] CVPR’22 +0 0.04M 82.79 88.45 62.28 73.89 66.54 72.81 33.84 45.91 DualPrompt [16] ECCV’22 +0 0.04M 85.61 90.36 66.08 77.96 68.47 72.64 33.79 46.83 CODA-Prompt [17] CVPR’23 +0.31M 3.07M 86.65 91.12 74.83 83.06 71.52 75.86 42.79 53.61
+Adapter & prototype-surgery families
+LAE [18] ICCV’23 +0.19M 1.90M 85.32 90.41 75.64 83.72 72.68 77.95 45.12 55.84 EASE [19] CVPR’24 +0.30M 3.00M 86.58 91.71 79.94 86.69 77.79 83.91 56.45 66.61 MOS [20] AAAI’25 +0.30M 3.00M 89.29 93.34 89.86 92.82 77.96 83.01 55.26 65.82
+LoRA with per-session branch expansion
+InfLoRA [6] CVPR’24 +0.15M 1.53M 85.24 90.61 79.92 88.2177.63 83.48 49.26 60.98 SD-LoRA [7] ICLR’25 +0.15M 1.53M 88.05 92.58 77.54 85.63 77.38 82.09 56.01 65.02 BiLoRA [8] CVPR’25 +0.15M 1.53M 87.51 92.47 78.12 85.94 77.98 81.56 55.04 64.48 PLAN [9] ICCV’25 +0.15M 1.53M 87.59 92.25 77.65 85.42 75.31 80.46 54.68 63.92 LoRA-P&M [10] NeurIPS’25 +0.15M 1.53M 88.49 92.92 78.34 83.45 79.92 85.24 56.63 65.41 SplitLoRA [11] ICLR’26 +0.15M 1.53M 90.24 93.6672.88 83.1880.96 85.7957.98 68.97
+LoRA with stationary parameter budget
+C-LoRA [26] arXiv’25 +0 0.24M 87.84 92.15 76.92 84.88 76.85 81.74 53.92 63.45 FM-LoRA [27] CVPRW’25 +0 0.25M 88.41 92.69 77.84 85.96 77.91 82.63 54.45 64.18 RASP (Ours)–+0 0.25M † 90.41±.04 93.36±.0881.36±.22 85.68 ±.34 79.68±.14 83.52±.1558.52±.0970.26±.13
+Table 2. Benchmark-specific operating configurations for RASP. Total rankr, active plasticity quotaq, base learning rate, training epochs per session, and Cauchy attenuation gainκ.
+Benchmarkr q(q/r) lr Epochsκ
+CIFAR-100 50 6 (12.0%)5e−420 0.05 CUB-200 50 15 (30.0%)5e−420 0.05 ImageNet-R 64 18 (28.1%)1e−330 0.08 ImageNet-A 80 50 (62.5%)5e−420 0.05
+classes/session). We reportFAA(Final Average Accuracy AT after the last session),CAA(Cumulative Average Accuracy 1
+T
+PT
+t=1 At), andForgetting(F T , mean accuracy drop across prior sessions).
+Implementation details.All methods use a ViT-B/16 backbone pre-trained on ImageNet-21K [3,44] with LoRA modules inserted into the key and value projections of all 12blocks. We optimizeUand the scene gate using Adam (β1 = 0.9, β2 = 0.999) with cosine learning-rate decay and batch size64. Table2summarizes the benchmark-specific operating parameters(r, q,lr,epochs, κ). Across all benchmarks, we fix scene-gate widthd g = 64, usage-prior weight μeq = 0.1, Gram decoupling weightλ dec = 0.3, and boundary locking fractionη lock = 0.05clipped to[1,3]. The stationary parameter budget of RASP is a single LoRA (0.15M forr= 50,0.20M forr= 64,0.25M forr= 80)
+plus the0.10M scene gate. All results in our comparison tables are averaged over three random seeds.
+6.2. Main Benchmark Comparison
+Table1reports the complete comparison across all four benchmarks, with every baseline evaluated across all eight accuracy columns. Three findings stand out:
+Outperforming branch expansion at stationary memory.On three of the four benchmarks, RASP achieves the highest final accuracy (FAA) among all LoRA methods without adding parameters across sessions. On CIFAR100, RASP reaches90.41%FAA with0.25M total parameters, surpassing SplitLoRA (90.24%,1.53M parameters). On ImageNet-A, RASP reaches58.52%FAA and70.26% CAA, outperforming both SplitLoRA (57.98%/68.97%) and LoRA-P&M (56.63%/65.41%). Against stationarybudget peers (C-LoRA and FM-LoRA), RASP gains+2.00 pp on CIFAR-100,+3.52pp on CUB-200,+1.77pp on ImageNet-R, and+4.07pp on ImageNet-A.
+Cross-session feature reuse on fine-grained streams. The advantage of Read-All forward superposition is clearest on CUB-200. Because bird species share local anatomical attributes (beak geometry, wing barring, plumage texture), isolating each session inside a private branch (SplitLoRA) starves later tasks of reusable primitives, dropping FAA to72.88%. By reading allrshared atoms in the forward pass while protecting established directions in the backward pass, RASP reaches81.36%FAA—beating SplitLoRA by+8.48pp, LoRA-P&M by+3.02pp, and InfLoRA by+1.44pp.
+6
+
+
+0 25 50 75 100 Plasticity ratio q/r (%)
+−0.5
+0.0
+0.5
+1.0
+1.5
+2.0
+2.5
+ΔFAA over q=r (pp)
+(a) Optimal q/r vs. domain shift
+CIFAR-100 (12%) CUB-200 (30%) ImageNet-R (28%) ImageNet-A (63%)
+0 25 50 75 100 Plasticity ratio q/r (%)
+2
+3
+4
+5
+6
+7
+Average Forgetting (%) ↓
+(b) Forgetting profile vs. q/r
+CIFAR-100 CUB-200
+ImageNet-R ImageNet-A
+13579 Session index t
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8
+0.9
+1.0
+Rank correlation ρs(ω(t))
+ρs = 0.90
+(c) Consolidation order maturity
+vs. session t − 1 (CIFAR) vs. final T (CIFAR) vs. final T (IN-R)
+0 0.25 0.5 0.75 1 Normalized routing trace c̃j
+0
+0.25
+0.5
+0.75
+1
+Normalized spectral norm ̃
+σj
+ω=0.45
+ω=0.68
+Cauchyattenuated
+Boundarylocked
+Plastic pool
+Single-cue outlier
+(d) Trace-spectral plane ωj
+Figure 3. Mechanistic analysis of RASP. (a, b) Effect of plasticity ratioq/ron∆FAA (relative toq=r) and Average Forgetting across four benchmarks; stars mark the operating configurations in Table2. The optimalq/rshifts rightward as domain divergence from ImageNet-21K increases. (c) Spearman rank correlationρ s of consolidation indicesω (t) against sessiont−1and final sessionT, showing rapid stabilization after session 3. (d) In the 2D trace-spectral plane( ̃cj, ̃σj), hyperbolic contours ofω j =
+p
+ ̃jc ̃jσ isolate true high-trace, high-energy anchors (crimson diamonds) while rejecting single-cue outliers (amber triangles).
+Table 3. Long-horizon scalability on ImageNet-R (T= 20sessions, 10 classes/session). “Total@T20” is the total adapter parameter count after session 20, andF 20 denotes final forgetting.
+Method Venue Total@T20 FAA CAAF 20 ↓
+InfLoRA [6] CVPR’24 3.06M 71.08 77.34 6.42 PLAN [9] ICCV’25 3.06M 71.15 77.98 6.18 LoRA-P&M [10] NeurIPS’25 3.06M 76.94 82.85 4.12 SplitLoRA [11] ICLR’26 3.06M78.79 84.523.45 FM-LoRA [27] CVPRW’250.25M74.62 80.41 4.86
+RASP (Ours)–0.30M78.16 83.64 3.18
+Behavior under multi-style rendition shifts.ImageNetR is the only benchmark where branch expansion retains a narrow lead (80.96%for SplitLoRA and79.92%for LoRAP&M vs.79.68%for RASP), while RASP beats InfLoRA (77.63%), BiLoRA (77.98%), SD-LoRA (77.38%), and PLAN (75.31%). Artistic renditions require a wider plasticity quota (q/r= 28.1%vs.12.0%on CIFAR-100), leaving fewer channels unrouted per step (71.9%vs.88.0%). However, on theT= 20ImageNet-R stream (Table3), expansion methods double their overhead to3.06M (10.2× RASP’s fixed0.30M), while the gap to SplitLoRA shrinks from1.28pp to0.63pp (78.79%vs.78.16%).
+6.3. Ablation and Mechanistic Analysis
+Dissecting read-write asymmetry and router design. Table4evaluates each component of Stage 1 on CIFAR100 and CUB-200. Starting from an unmasked shared LoRA (q=r, Row 1), applying top-qgating symmetrically to both passes (Row 2, as in FlyLoRA [12]) reduces CIFAR-100 forgetting from5.68%to5.01%but yields only+0.16pp FAA because forward truncation discards (1−q/r)of inference rank. Switching toRead-All for
+Table 4. Stage-1 architectural ablation on CIFAR-100 and CUB200. Every row includes trace-spectral consolidation in Stage 2; Row 7 replaces null-space probe initialization on unlocked channelsP t−1 with Kaiming normal initialization.
+CIFAR-100 CUB-200
+Configuration FAA Forget↓FAA Forget↓
+1. Unmasked shared LoRA (q=r) 89.48 5.68 79.06 6.81 2. Symmetric sparse (Fwd & Bwd) 89.64 5.01 79.52 6.24 3. Read-All Fwd + Sparse Bwd 89.89 4.86 80.34 5.95 4.+Scene modulatorφ( ̄x)only 89.82 4.80 80.61 5.84 5.+Gram decouplingR dec only 89.79 4.88 80.52 5.89 6.+Both (RASP full)90.41 4.71 81.36 5.62
+7. Full model, random init ofV P 89.84 4.89 80.48 5.91
+ward + Sparse-Plasticity backward(Row 3) immediately lifts FAA to89.89%on CIFAR-100 and80.34%on CUB200. Adding the scene gateφ( ̄x)alone (Row 4) or Gram decouplingR dec alone (Row 5) brings modest gains, whereas combining both (Row 6) jumps to90.41%on CIFAR-100 and81.36%on CUB-200: scene modulation selects contextually coherent channel subsets, and Gram decoupling prevents those active columns from drifting into inactive subspaces. Row 7 replaces null-space probe alignment on unlocked channels with Gaussian initialization; accuracy drops by0.57pp on CIFAR-100 (89.84%) but still solidly beats unmasked shared training (89.48%).
+Plasticity ratioq/ras a domain-shift control.Figure3(a,b) sweeps the plasticity ratioq/rfrom4%to100%. Each benchmark exhibits a broad, flat plateau around its optimum—varyingq∈ {4,6,8}on CIFAR-100 changes FAA by less than0.25pp—confirming that RASP does not require brittle integer tuning. Past the star-marked operating
+7
+
+
+1 4 7 10 Session index t
+82
+86
+90
+94
+Cumulative accuracy At (%)
+(a) CIFAR-100 session curve
+L2P InfLoRA SD-LoRA SplitLoRA (+1.5M) RASP (+0M)
+1 4 7 10 Session index t
+75
+80
+85
+90
+95
+Cumulative accuracy At (%)
++8.48 pp vs. SplitLoRA
+(b) CUB-200 feature reuse
+CODA-Prompt SplitLoRA FM-LoRA InfLoRA RASP (Ours)
+1 3 5 8 10 Silenced session-top-m atoms
+0
+5
+10
+15
+20
+25
+Session accuracy drop (%)
+(c) Distributed atom resilience
+1 5 10
+0
+0.5
+1
+<1% drop at
+top-10 pruning
+Isolated branch (InfLoRA) RASP Shared (ImageNet-R) RASP Shared (CIFAR-100) InfLoRA
+SplitLoRA
+RASP (Ours)
+242 s
+141 s
+122 s
+Time per epoch (s) ↓
+(d) Compute & VRAM footprint
+InfLoRA
+SplitLoRA
+RASP (Ours)
+13.2 GB
+7.5 GB
+3.4 GB
+Peak VRAM (GB) ↓
+Figure 4. Trajectories, resilience, and system cost. (a) On CIFAR100, RASP matches the top expansion method across all 10 sessions at constant size. (b) On CUB-200, shared forward reading yields a+8.48pp final lead over branch-isolated SplitLoRA. (c) Silencing the top-mtask-associated atoms after training collapses isolated branches (−23.84%atm= 10) but costs<1% on RASP, confirming distributed encoding. (d) Training time and peak VRAM on CIFAR-100.
+point, opening additional backward channels monotonically increases forgetting without improving plasticity. Across benchmarks, the optimal ratio scales predictably with the visual domain gap relative to ImageNet-21K pre-training: 12.0%on CIFAR-100,28.1%on ImageNet-R,30.0%on CUB-200, and62.5%on ImageNet-A.
+Trace-spectral consolidation and cue fusion.Table5
+ablates Stage 2 on ImageNet-A and ImageNet-R. In Part A, adding boundary anchor locking (Lt) or Cauchy step attenuation ((1 +κω j)−1) individually improves ImageNet-A FAA by+0.38pp and+0.78pp over Stage 1 alone, while their combination yields+1.28pp (58.52%) and cuts forgetting by0.72pp. Crucially, Part A also tests locking uj while allowingv j to be re-initialized at task boundaries (“Locku j only, re-initv j”); this breaks functional invariance ofu jv⊤
+j and drops ImageNet-A FAA by0.89pp, validating our joint pair-locking rule. In Part B, the geometric consolidation indexω j = p ̃jc ̃jσ outperforms traceonly ( ̃jc), norm-only ( ̃jσ), and additive ( 1
+2 ( ̃jc +  ̃jσ)) scoring across all metrics, corroborating Proposition2and Figure3(c,d).
+Table 5. Stage-2 consolidation ablations on ImageNet-A and ImageNet-R. Part A ablates Cauchy step attenuation and boundary locking; Part B compares candidate consolidation indices.
+ImageNet-A ImageNet-R
+Consolidation Variant FAA Forget↓FAA Forget↓
+Part A: Protection mechanisms
+Stage-1 Read-All/Sparse-Bwd only 57.24 5.68 78.42 2.94 +Boundary anchor lockingL t 57.62 5.47 78.91 2.72 +Cauchy step attenuation 58.02 5.18 79.26 2.58 +Locku j only (re-initv j ) 57.63 5.44 78.84 2.76 +Joint pair lock & attenuation (Full)58.52 4.96 79.68 2.43
+Part B: Consolidation signal formulation
+Routing trace only ( ̃jc) 57.94 5.21 79.24 2.64 Spectral norm only ( ̃jσ) 56.88 5.52 77.58 2.88 Arithmetic mean 1
+2 ( ̃jc +  ̃jσ)58.11 5.14 79.35 2.56
+Geometric indexω j = p ̃jc ̃jσ (Ours)58.52 4.96 79.68 2.43
+Table 6. Computational and memory efficiency on CIFAR-100 (single NVIDIA A100 GPU, batch size 64). Adapter parameter counts for RASP include the shared LoRA (153K) and fixed scene gate (98K).
+Method Time (s/ep)↓VRAM↓Params@T 1 Params@T10
+InfLoRA [6] 241.8 13.24 GB 0.15M 1.53M LoRA-P&M [10] 156.4 8.15 GB 0.15M 1.53M SplitLoRA [11] 140.6 7.52 GB 0.15M 1.53M RASP (Ours) 121.9 3.41 GB 0.25M 0.25M
+6.4. Session Trajectories, Atom Pruning & Cost
+Figure4(a,b) tracks session-by-session accuracy on CIFAR100 and CUB-200, while Figure4(c) performs a posttraining atomic knockout test: silencing the top-10atoms most active on a given session reduces RASP’s accuracy on that session by only0.79%on CIFAR-100 and0.92% on ImageNet-R, versus23.84%when pruning top components of an isolated InfLoRA branch. Finally, Table6 and Figure4(d) show that maintaining a single stationary LoRA without per-task branch allocation or post-session SVD makes RASP both the fastest (121.9s/epoch) and most memory-frugal (3.41GB peak VRAM) method.
+7. Conclusion
+We presented RASP, a continual learning framework that adapts a single stationary-size LoRA across sequential sessions by decoupling forward representation reading from backward credit assignment. Keeping allrrank-1 atoms active during the forward pass preserves full inference capacity and enables cross-session feature reuse, while routing backward gradients to the top-qunlocked channels and penalizing cross-partition Gram coherence prevents destructive overwriting. Combining the router’s empirical trace with exact rank-1 spectral norms into the geometric index ωj = p ̃jc ̃jσ unifies Cauchy step attenuation and boundary anchor locking at zero extra overhead.
+8
+
+
+References
+[1]Da-Wei Zhou, Qi-Wei Wang, Zhi-Hong Qi, Han-Jia Ye, DeChuan Zhan, and Ziwei Liu. Class-incremental learning: A survey.IEEE Transactions on Pattern Analysis and Machine Intelligence, 46(8):5368–5389, 2024.1,2 [2]James Kirkpatrick, Razvan Pascanu, Neil Rabinowitz, Joel Veness, Guillaume Desjardins, Andrei A. Rusu, Kieran Milan, John Quan, Tiago Ramalho, Agnieszka GrabskaBarwinska, Demis Hassabis, Claudia Clopath, Dharshan Kumaran, and Raia Hadsell. Overcoming catastrophic forgetting in neural networks.Proceedings of the National Academy of Sciences, 114(13):3521–3526, 2017.1,2,4 [3]Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov, Dirk Weissenborn, Xiaohua Zhai, Thomas Unterthiner, Mostafa Dehghani, Matthias Minderer, Georg Heigold, Sylvain Gelly, Jakob Uszkoreit, and Neil Houlsby. An image is worth 16x16 words: Transformers for image recognition at scale. InInternational Conference on Learning Representations (ICLR), 2021.1,6
+[4]Edward J. Hu, Yelong Shen, Phillip Wallis, Zeyuan AllenZhu, Yuanzhi Li, Shean Wang, Lu Wang, and Weizhu Chen. LoRA: Low-rank adaptation of large language models. InInternational Conference on Learning Representations (ICLR), 2022.1 [5]Shih-Yang Liu, Chien-Yi Wang, Hongxu Yin, Pavlo Molchanov, Yu-Chiang Frank Wang, Kwang-Ting Cheng, and Min-Hung Chen. DoRA: Weight-decomposed low-rank adaptation. InProceedings of the 41st International Conference on Machine Learning (ICML), pages 32100–32121, 2024.1 [6]Yan-Shuo Liang and Wu-Jun Li. InfLoRA: Interference-free low-rank adaptation for continual learning. InProceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), pages 23638–23647, 2024.1,2,5,6, 7,8,13,15,17 [7]Yichen Wu, Hongming Piao, Long-Kai Huang, Renzhen Wang, Wanhua Li, Hanspeter Pfister, Deyu Meng, Kede Ma, and Ying Wei. SD-LoRA: Scalable decoupled low-rank adaptation for class incremental learning. InInternational Conference on Learning Representations (ICLR), 2025.1,6, 17 [8]Hao Zhu, Yifei Zhang, Junhao Dong, and Piotr Koniusz. BiLoRA: Almost-orthogonal parameter spaces for continual learning. InProceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), pages 25613–25622, 2025.1,6,14 [9]Xiequn Wang, Zhan Zhuang, and Yu Zhang. PLAN: Proactive low-rank allocation for continual learning. InProceedings of the IEEE/CVF International Conference on Computer Vision (ICCV), 2025.1,6,7,14
+[10]Haomiao Qiu, Miao Zhang, Ziyue Qiao, and Liqiang Nie. Train with perturbation, infer after merging: A two-stage framework for continual learning. InAdvances in Neural Information Processing Systems (NeurIPS), 2025.1,6,7,8, 17 [11]Haomiao Qiu, Miao Zhang, Ziyue Qiao, Weili Guan, Min Zhang, and Liqiang Nie. SplitLoRA: Balancing stability and
+plasticity in continual learning through gradient space splitting. InInternational Conference on Learning Representations (ICLR), 2026.1,2,6,7,8,15,17 [12]Heming Zou, Yunliang Zang, Wutong Xu, Yao Zhu, and Xiangyang Ji. FlyLoRA: Boosting task decoupling and parameter efficiency via implicit rank-wise mixture-of-experts. InAdvances in Neural Information Processing Systems (NeurIPS), pages 10386–10419, 2025.1,3,4,5,7,13 [13]Yuxin Yang, Haoran Zhang, Mingxuan Li, Jiachen Xu, Ruoxi Shen, Zhenyu Wang, Tianhao Liu, Siqi Chen, and Weilin Huang. NeuroLoRA: Context-aware neuromodulation for parameter-efficient multi-task adaptation.arXiv preprint arXiv:2603.12378, 2026.1,3
+[14]Zhan Fa, Yue Duan, Jian Zhang, Lei Qi, Wanqi Yang, and Yinghuan Shi. Decomposing and composing: Towards efficient vision-language continual learning via rank-1 expert pool in a single LoRA.arXiv preprint arXiv:2601.22828, 2026.1,3 [15]Zifeng Wang, Zizhao Zhang, Chen-Yu Lee, Han Zhang, Ruoxi Sun, Xiaoqi Ren, Guolong Su, Vincent Perot, Jennifer Dy, and Tomas Pfister. Learning to prompt for continual learning. InProceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), pages 139–149, 2022.2,6,17 [16]Zifeng Wang, Zizhao Zhang, Sayna Ebrahimi, Ruoxi Sun, Han Zhang, Chen-Yu Lee, Xiaoqi Ren, Guolong Su, Vincent Perot, Jennifer Dy, and Tomas Pfister. DualPrompt: Complementary prompting for rehearsal-free continual learning. InEuropean Conference on Computer Vision (ECCV), pages 631–648, 2022.6 [17]James Seale Smith, Leonid Karlinsky, Vyshnavi Gutta, Paola Cascante-Bonilla, Donghyun Kim, Assaf Arbelle, Rameswar Panda, Rogerio Feris, and Zsolt Kira. CODA-Prompt: COntinual decomposed attention-based prompting for rehearsalfree continual learning. InProceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), pages 11909–11919, 2023.2,6,17 [18]Qiankun Gao, Chen Zhao, Yifan Sun, Teng Xi, Gang Zhang, Bernard Ghanem, and Jian Zhang. A unified continual learning framework with general parameter-efficient tuning. In Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV), pages 11483–11493, 2023.2,6 [19]Da-Wei Zhou, Hai-Long Sun, Han-Jia Ye, and De-Chuan Zhan. Expandable subspace ensemble for pre-trained modelbased class-incremental learning. InProceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), pages 23554–23564, 2024.2,6 [20]Hai-Long Sun, Da-Wei Zhou, Hanbin Zhao, Le Gan, DeChuan Zhan, and Han-Jia Ye. MOS: Model surgery for pretrained model-based class-incremental learning. InProceedings of the AAAI Conference on Artificial Intelligence, pages 20699–20707, 2025.2,5,6 [21]Heming Zou, Yunliang Zang, Wutong Xu, and Xiangyang Ji. Fly-CL: A fly-inspired framework for enhancing efficient decorrelation and reduced training time in pre-trained model-based continual representation learning. InInternational Conference on Learning Representations (ICLR), pages 35240–35266, 2026.2,13
+9
+
+
+[22]Ruilin Li, Heming Zou, Xiufeng Yan, Zheming Liang, Jie Yang, Chenliang Li, and Xue Yang. Enhancing pretrained model-based continual representation learning via guided random projection. InEuropean Conference on Computer Vision (ECCV), pages 246–264, 2026.2 [23]Xiao Wang, Tianze Chen, Qiming Ge, Han Xia, Rong Bao, Rui Zheng, Qi Zhang, Tao Gui, and Xuanjing Huang. Orthogonal subspace learning for language model continual learning. InFindings of the Association for Computational Linguistics: EMNLP 2023, pages 10658–10671, 2023.2 [24]Pratik Rakesh Singh, Mohammadi Zaki, Akash Saha, Aneesh Mukkamala, and Pankaj Wasnik. Making LoRA identifiable: Orthogonal alignment for continual learning. InAdvances in Neural Information Processing Systems (NeurIPS), 2026.13
+[25]Maoqi Liu, Quan Fang, and Yufei He. CoDe-LoRA: Mitigating the orthogonality dilemma in continual learning of LLMs via knowledge consolidation and decoupling. InProceedings of the 2026 Conference on Empirical Methods in Natural Language Processing (EMNLP), 2026.2
+[26]Xin Zhang, Liang Bai, and Xian Yang. C-LoRA: Continual low-rank adaptation for pre-trained visual models.arXiv preprint arXiv:2502.17920, 2025.2,6
+[27]Xiaobing Yu, Jin Yang, Xiao Wu, Peijie Qiu, and Xiaofeng Liu. FM-LoRA: Factorized low-rank meta-prompting for continual learning. InProceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW), 2025.2,6,7,14,15,17 [28]Yuxuan Li, Fanhu Zeng, and Hao Tang. PaLoRA: Paced low-rank adaptation for continual learning. InAdvances in Neural Information Processing Systems (NeurIPS), 2026.2 [29]Seunghyun Yoo, Kiseok Kim, Hyeontae Joo, Junyeop Bang, and Hwangnam Kim. SPACE-LoRA: Allocating activationsubspace protection for continual learning.arXiv preprint arXiv:2609.34453, 2026.2
+[30]Yibo Feng. Geo-LoRA: Geometry-aware subspace evolution for low-rank adaptation in continual learning.arXiv preprint arXiv:2608.26960, 2026.2
+[31]Junkang Liu. MuLoRA: Spectrally balanced lowrank adaptation for continual learning.arXiv preprint arXiv:2610.02283, 2026.2
+[32]Shimou Ling, Liang Zhang, Jiangwei Zhao, Lili Pan, and Hongliang Li. LoRA-based continual learning with constraints on critical parameter changes.arXiv preprint arXiv:2504.13407, 2025.2
+[33]Yunxiang Fu, Meng Lou, and Yizhou Yu. One adapter, many tasks: Task-conditioned feature transformations for continual learning.arXiv preprint arXiv:2608.31096, 2026.2
+[34]Longhua Li, Lei Qi, Qi Tian, and Xin Geng. Energystructured low-rank adaptation for continual learning. In Proceedings of the 43rd International Conference on Machine Learning (ICML), 2026.2,4,13
+[35]Xun Wu, Shaohan Huang, and Furu Wei. Mixture of LoRA experts. InInternational Conference on Learning Representations (ICLR), 2024.3
+[36]Zihuan Qiu, Yi Xu, Chiyuan He, Fanman Meng, Linfeng Xu, Qingbo Wu, and Hongliang Li. MINGLE: Mixture of nullspace gated low-rank experts for test-time continual model
+merging. InAdvances in Neural Information Processing Systems (NeurIPS), 2025.
+[37]Haodong Lu, Chongyang Zhao, Minhui Xue, Lina Yao, Kristen Moore, and Dong Gong. Little by little: Continual learning via incremental mixture of rank-1 associative memory experts. InProceedings of the 43rd International Conference on Machine Learning (ICML), 2026.3
+[38]Mei Okonkwo, Owen Castellanos, Ingrid Solberg, and Yusuf Demirel. How many ranks does a token need? a noisefloor squelch for rank-one LoRA experts.arXiv preprint arXiv:2610.19033, 2026.3
+[39]Mehreen Hossain Chowdhury, Nowshin Mahjabin, Ahmed Shafin Ruhan, Md Azam Hossain, Abu Raihan Mostofa Kamal, and Md Tahmid Rahman Laskar. Routing is not enough: Diagnosing intra-adapter subspace contention in MoE+LoRA fine-tuning.arXiv preprint arXiv:2609.03150, 2026.3
+[40]Alex Krizhevsky. Learning multiple layers of features from tiny images.Technical Report, University of Toronto, 2009. 5,14 [41]Catherine Wah, Steve Branson, Peter Welinder, Pietro Perona, and Serge Belongie. The Caltech-UCSD Birds-2002011 dataset.Technical Report CNS-TR-2011-001, California Institute of Technology, 2011.5,14
+[42]Dan Hendrycks, Steven Basart, Norman Mu, Saurav Kadavath, Frank Wang, Evan Dorundo, Rahul Desai, Tyler Zhu, Samyak Parajuli, Mike Guo, Dawn Song, Jacob Steinhardt, and Justin Gilmer. The many faces of robustness: A critical analysis of out-of-distribution generalization. InProceedings of the IEEE/CVF International Conference on Computer Vision (ICCV), pages 8340–8349, 2021.5,14 [43]Dan Hendrycks, Kevin Zhao, Steven Basart, Jacob Steinhardt, and Dawn Song. Natural adversarial examples. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), pages 15262–15271, 2021.5,14 [44]Tal Ridnik, Emanuel Ben-Baruch, Asaf Noy, and Lihi Zelnik-Manor. ImageNet-21K pretraining for the masses. arXiv preprint arXiv:2104.10972, 2021.6
+[45]YongShun Wang, JianLin Su, and Yong Ma. Bilinear optimization divergence: Diagnosing factor-constrained LoRA continual learning.arXiv preprint arXiv:2609.23594, 2026. 13 [46]Th  ́eo Marchetta, Filippo Alessandroni, Alessandro Breccia, Alessandro Ingrosso, and Federica Gerace. A dynamical theory of LoRA in continual learning.arXiv preprint arXiv:2609.39367, 2026.13
+[47]Peng Xie and Amr Alanwar. The intruder threshold: A spectral law for LoRA fine-tuning.arXiv preprint arXiv:2607.23711, 2026.13
+[48]Heming Zou, Yunliang Zang, and Xiangyang Ji. Structural features of the fly olfactory circuit mitigate the stabilityplasticity dilemma in continual learning.arXiv preprint arXiv:2502.01427, 2025.13
+10
+
+
+A. Mathematical Proofs and Theoretical Extensions
+This appendix provides complete proofs for Proposition1, Theorem1, and Proposition2in the main paper, along with two additional results: a Gram-coherence spectral conditioning bound (Lemma1) and an explicit worked two-channel analytical example (SectionA.5). Throughout sessiont, the consolidation indicesω (t−1)
+j used inside the Cauchy step attenuator (Equation (10)) are fixed to the values consolidated at the end of sessiont−1, while the running tracec j accumulates online and
+refreshesω (t)
+j at the boundary of sessiont.
+A.1. Proof of Proposition1(Read-Write Capacity–Interference Decoupling)
+Proof.By the atomic decomposition in Equation (1), the full low-rank adapter is∆W= 1
+r
+Pr
+j=1 uj v⊤
+j , whereas a symmetric
+top-qrouter evaluates∆W sym = 1
+r
+P
+j∈At uj v⊤
+j on the forward pass. For any input tokenx∈R d, the forward truncation residual is
+(∆W−∆W sym)x= 1
+r
+X
+j /∈ tA
+uj (v⊤
+j x).(14)
+Taking the Euclidean norm and applying the triangle inequality gives
+∥(∆W−∆W sym)x∥2 ≤ 1
+r
+X
+j /∈ tA
+∥uj ∥2 |v⊤
+j x|
+= ∥x∥2
+r
+X
+j /∈ tA
+∥uj ∥2 ∥vj ∥2
+| {z }
+σj
+· |v⊤
+j x|
+∥vj ∥2 ∥x∥2
+| {z }
+aj (x)
+,(15)
+which establishes Equation (12) in the limitε→0 +. Because RASP uses the unmasked operator∆Wduring the forward pass, its forward truncation residual is identically zero on every input. For the backward pass, letg= [g u1 , . . . , gur ]∈R d×r denote the unmasked gradient with respect toU, and assume
+isotropic per-channel second momentE[ guj
+2
+2] =ς 2. Under the sparse-plasticity mask in Equation (5), the masked gradient
+ ̃ugj =I[j∈ A t]g uj satisfies
+∥ ̃g2∥
+F=
+X
+j∈At
+guj
+2
+2 ,(16)
+so whenA t of cardinalityqis selected, the expected backward perturbation energy drops fromE[∥g∥ 2
+F ] =rς 2 toqς 2, removing a(1−q/r)fraction of per-step gradient energy while preserving100%of forward rank capacity.
+A.2. Proof of Theorem1(Three-Tier Session Drift Bound)
+Proof.Consider sessiontspanningM t minibatch stepss∈ {1, . . . , M t}. By construction of Algorithm1, (i) all locked pairs{(u j, vj) :j∈ L t−1}have both factors frozen across the boundary and throughout sessiont, and (ii) unlocked input probes{v j :j∈ P t−1}are aligned once prior to steps= 1and held constant during allM t steps of sessiont. Consequently, for any probe vectorx∈R d, the change in adapter output from the start to the end of sessiontis
+∆ht(x) = ∆W (t) −∆W (t−1) x= 1
+r
+X
+j∈Lt−1
+∆uj (v⊤
+j x) + 1
+r
+X
+j∈Pt−1
+∆uj (v⊤
+j x),(17)
+where∆u j =u (t,Mt)
+j −u (t,0)
+j.
+Tier 1 (Locked anchors,j∈ L t−1):SinceL t−1 ∩ Pt−1 =∅, no channelj∈ L t−1 ever entersA t, so∆u j = 0and the first sum vanishes identically. Tier 2 (Unrouted unlocked channels,j∈ P t−1 withS j =∅):If channeljis never selected intoA t during sessiont, its gradient is masked to zero at every steps∈ {1, . . . , M t}, yielding∆u j = 0. Tier 3 (Revisited unlocked channels,j∈ P t−1 withS j ̸=∅):At each steps∈S j, the Cauchy-attenuated update step
+satisfies
+u(t,s)
+j −u (t,s−1)
+j2
+= ηs
+1 +κ ω (t−1)
+j
+g(s)
+uj 2
+.(18)
+11
+
+
+Summing overs∈S j via the triangle inequality and noting that|v ⊤
+j x|=∥v j∥2 ∥x∥2 aj(x)yields
+∥∆ht(x)∥2 ≤ ∥x∥2
+r
+X
+j∈Pt−1 Sj ̸=∅
+∥vj∥2 aj(x)
+1 +κ ω (t−1)
+j
+X
+s∈Sj
+ηs g(s)
+uj 2
+,(19)
+which completes the proof of Equation (13).
+Corollary 1(Cross-session invariance of locked anchor subspace).For any session indext 0 < Tand any channelj∈ L t0
+locked at or before sessiont 0, the rank-1 functional mapx7→u (t)
+j (v(t)⊤
+j x)remains strictly invariant across all subsequent sessionst∈ {t 0 + 1, . . . , T}:
+u(T)
+j v(T)⊤
+j x =u (t0)
+j v(t0)⊤
+j x ,∀x∈R d.(20)
+Proof.Oncej∈ L t0 , monotonicityL t0 ⊆ Lt−1 ensuresj /∈ Pt−1 for allt > t 0. Algorithm1neither re-projectsv j at
+session boundaries nor routes gradients tou j during minibatch steps. Thus(u (t)
+j , v(t)
+j ) = (u(t0)
+j , v(t0)
+j )for allt > t 0.
+A.3. Proof of Proposition2(Spectral Identity and Conjunctive Outlier Filtering)
+Proof.For the rank-1 matrixM j =u jv⊤
+j ∈R d×d, the positive semi-definite matrixM ⊤
+j Mj =∥u j ∥2
+2 vj v⊤
+j has rank at
+most1with sole non-zero eigenvalueλ 1(M ⊤
+j Mj ) =∥u j ∥2
+2 ∥vj ∥2
+2. Therefore, its only non-zero singular value isσ 1(Mj) = ∥uj∥2 ∥vj∥2 =σ j, which equals both the spectral operator norm∥M j∥2 and the nuclear norm∥M j∥∗.
+Next, let ̃cj, ̃σj ∈[0,1]and supposeω j = p ̃jc ̃jσ > τforτ∈(0,1). Since ̃σ j ≤1, we have ̃cj ≥ ̃cj  ̃jσ =ω 2
+j > τ 2. By symmetry, ̃σj > τ 2, somin( ̃cj, ̃σj)> τ 2 >0. Conversely, under the arithmetic mean ruleω arith
+j =1
+2 ( ̃jc +  ̃jσ)> τ, setting  ̃jc = 1and ̃σ j = 0yieldsω arith
+j = 0.5> τfor anyτ∈(0,0.5), locking a zero-energy channel. The geometric indexω j
+assigns
+√
+1·0 = 0, rejecting the outlier for everyτ >0.
+A.4. Lemma: Cross-Partition Gram Conditioning
+Lemma 1(Output subspace conditioning underR dec).Suppose the cross-partition Gram penalty in Equation(6)satisfies Rdec ≤λ decδ2 at the end of a training step. Then for any unit vectorαsupported onA t and any unit vectorβsupported on Ac
+t , the synthesized output directionsz At = U ̃At αandz Ac
+t = U ̃Ac
+t βsatisfy
+⟨zAt , zAc
+t⟩ ≤
+p
+|At| |Ac
+t |δ.(21)
+Proof.By Cauchy–Schwarz and the definition of the Frobenius norm,
+α⊤U ̃ ⊤
+At
+U ̃Ac
+t β ≤ ∥α∥2 U ̃ ⊤
+At
+U ̃Ac
+t2
+∥β∥2 ≤ U ̃ ⊤
+At
+U ̃Ac
+tF
+=
+s
+|At| |Ac
+t|
+λdec
+Rdec ≤
+p
+|At| |Ac
+t |δ.(22)
+A.5. Worked Two-Channel Analytical Example
+Considerd= 2andr= 2with orthonormal input probesv 1 = (1,0) ⊤,v 2 = (0,1) ⊤ and synthesis columnsu 1 = (2,0) ⊤, u2 = (0,1) ⊤ after Session1, giving spectral normsσ 1 = 2,σ 2 = 1and adapter∆W= 1
+2 diag(2,1) = diag(1,0.5).
+Suppose Session2presents a tokenx= (0.6,0.8) ⊤ (∥x∥2 = 1) with active budgetq= 1. The cosine probes are
+a1(x) = 0.6anda 2(x) = 0.8, so the router selectsA t ={2}and leaves Channel1inA c
+t ={1}: •Symmetric routingdrops Channel1from the forward pass, predicting∆W symx= 1
+2 u2(v⊤
+2 x) = (0,0.4) ⊤ instead of the
+full feature∆W x= (0.6,0.4) ⊤—a forward truncation error of (0.6,0) ⊤
+2 = 0.6, matching the bound ∥x∥2
+r σ1a1(x) =
+1
+2 (2)(0.6) = 0.6in Proposition1.
+•RASP (Read-All, Sparse-Plasticity)outputs the exact vector∆W x= (0.6,0.4) ⊤ in the forward pass, while setting gu1 = 0in the backward pass so Session1’s dominant directionu 1 suffers zero gradient overwriting.
+12
+
+
+A.6. Computational and Memory Complexity
+LetLdenote the number of adapted transformer projections (eachd×d),Nthe token count per minibatch, andrthe stationary rank. •Forward complexity:ComputingV ⊤XandU(V ⊤X)costsO(LN dr)FLOPs. Evaluating the scene modulatorφ( ̄x) requiresO(Ldd g +Ld gr)FLOPs per image (independent of token lengthN). •Backward complexity:BecauseVis fixed inside a session andr−qcolumns ofUare masked to zero, forming active gradients∇ UAt Lce costsO(LN dq)instead ofO(2LN dr)for full(U, V)LoRA backpropagation. The Gram decoupling penaltyR dec operates ond×qandd×(r−q)matrices once per minibatch at costO(Ldq(r−q)), which is negligible sincer≤80≪N. •Boundary consolidation:Computingσ j =∥u j∥2 ∥vj∥2 andω j = p ̃jc ̃jσcostsO(Ldr)at the end of a session, avoiding
+theO(Ld 3)post-session SVD required by spectral-ordering expansion methods [34].
+B. Extended Mechanistic Discussion
+B.1. Why Read-All Forward Is Fundamentally Different from Dropout and MoE Top-k
+Standard Dropout and sparse Mixture-of-Experts (MoE) routers enforce asymmetriccomputational graph: any unit or expert masked during the backward pass is also removed from the forward pass. In pre-training, symmetric gating saves forward FLOPs across massive expert banks. In continual LoRA adaptation, however, the total rankr∈[50,80]is already tiny (<0.25M parameters), so forward FLOPs are not the bottleneck;representational rank and cross-session interference are. When symmetric gating, as used by FlyLoRA [12], silencesr−qchannels during forward propagation, it reduces the rank of∆W sym fromrtoq, discarding(1−q/r)of the subspace capacity on every inference sample. RASP decouples the two passes: the forward operator has rankr, whereas the backward tangent operator has rankq.
+B.2. Connection to Bilinear Optimization and Subspace Identifiability
+Recent theoretical analyses of continual LoRA training highlight two failure modes: (i)bilinear optimization divergence, where simultaneously updating both low-rank factors(U, V)causes coupled curvature instability across tasks [45,46], and (ii)intruder dimension emergence, where unconstrained rank updates overwrite leading singular directions of pre-trained weights [24,47]. RASP avoids bilinear divergence within each session by holding input probesVfixed during gradient descent and updating only the active synthesis columnsU At . Across sessions, keeping locked pairs{(u j, vj) :j∈ L t}jointly frozen while projecting only unlocked probes{v j :j∈ P t}into the empirical feature null-space ensures that consolidated rank-1 operators are strictly preserved (Corollary1).
+B.3. Why Joint Pair Locking(u j, vj)Is Essential
+A subtle implementation pitfall when combining null-space probe initialization [6] with rank freezing is re-initializing the entire probe matrixVat the start of sessiont+ 1while freezing only the output columnsu j. Because the contribution of
+channeljto∆W xis the outer productu j(v⊤
+j x), replacingv (t)
+j with a new null-space vectorv (t+1)
+j completely alters the functional map of the “frozen” channelu j, destroying old-task features. As shown in Table5(Part A, Row 4), lockingu j while re-initializingv j drops ImageNet-A accuracy from58.52%to57.63%. Partitioning the null-space projection so that it acts exclusively on unlocked probesP t = [r]\ L t is therefore mandatory for theoretical and empirical soundness.
+B.4. Biological Inspiration and Scope
+Sparse expansion and selective plasticity in neural circuits—such as theDrosophilamushroom body—separate broad sensory readout from localized synaptic updates [21,48]. While this principle motivates decoupling read capacity from write sparsity, RASP does not rely on wide random projections (m= 10 4) [21,48] or the frozen sparse masks of FlyLoRA [12]; instead, it operates inside standard low-rank transformer projections (r≤80) with learned scene-context modulation and exact spectral norm tracking.
+C. Detailed Experimental Settings
+Dataset specifications and session splits.Table7summarizes the four benchmarks used in our study. All images are resized to224×224and normalized using standard ImageNet-21K statistics. For every benchmark, we evaluate three random class-ordering seeds (seed∈ {2024,2025,2026}) shared across all compared methods.
+13
+
+
+Table 7. Summary of continual learning benchmarks and incremental session protocols.
+Benchmark Domain Characteristic Classes Train / Test Images SessionsTClasses / Sess. Rankr
+CIFAR-100 [40] Standard natural objects 100 50,000 / 10,000 10 10 50 CUB-200-2011 [41] Fine-grained bird species 200 5,994 / 5,794 10 20 50 ImageNet-R [42] Multi-style artistic renditions 200 24,000 / 6,000 10 / 20 20 / 10 64 ImageNet-A [43] Natural adversarial examples 200 5,981 / 1,499 10 20 80
+Baseline reproduction and unified protocol.To eliminate missing entries in prior comparison tables (where BiLoRA [8] and PLAN [9] omitted CUB-200 and ImageNet-A, and FM-LoRA [27] omitted ImageNet-A), we evaluated all baselines under the same ViT-B/16-IN21K checkpoint (vit base patch16 224 in21k) and identical 3-seed class orders using their official open-source implementations and recommended hyperparameters. For per-session branch-expansion methods (InfLoRA, SD-LoRA, BiLoRA, PLAN, LoRA-P&M, SplitLoRA), each session allocates a rank-10(or matched0.15M parameter) LoRA branch on key and value projections, totaling1.53M adapter parameters afterT= 10sessions.
+Formal metric definitions.Leta t,j ∈[0,100]denote the test accuracy on sessionj’s test setD test
+j immediately after
+training sessiont(j≤t), and letA t denote the overall accuracy across the combined test set St
+j=1 Dtest
+j . We report:
+FAA =A T ,CAA = 1
+T
+T
+X
+t=1
+At, FT = 1
+T−1
+T−1
+X
+j=1
+max
+t∈{j,...,T−1}
+at,j −a T,j .(23)
+In addition, to quantify cross-session positive transfer on fine-grained streams (SectionD.2), we measureRelative Forward Transfer (∆Plasticity)on sessiont≥2as the gain in immediate diagonal accuracya t,t of a shared-subspace learner relative to an isolated single-session LoRA branch trained solely onD t:
+FWTrel = 1
+T−1
+T
+X
+t=2
+ashared
+t,t −a isolated
+t,t .(24)
+D. Comprehensive Additional Experiments
+D.1. Full Plasticity Ratio (q/r) Sensitivity Grids
+Table8provides the complete numerical values corresponding to Figure3(a,b) across all four benchmarks. Every cell is filled with both FAA and Forgetting (F10). On CIFAR-100, CUB-200, and ImageNet-R, forgetting rises monotonically asq/r→100%, demonstrating that opening excessive backward channels injects cross-session gradient interference. On ImageNet-A, small quotas (q/r≤25%) underfit the severe adversarial domain shift, causing both low FAA (56.04%) and elevated apparent forgetting (5.81%); both metrics reach their optimum simultaneously atq/r= 62.5%(q= 50).
+Table 8. Full plasticity-quota sweep across all four benchmarks (FAA % / ForgettingF 10 %). Bold entries mark the default operating configurations from Table2.
+Plasticity Ratio Band (q/r) CIFAR-100 (r= 50) CUB-200 (r= 50) ImageNet-R (r= 64) ImageNet-A (r= 80)
+Ultra-sparse (∼8–12.5%)90.41 / 4.71(q= 6) 79.62 / 5.31 (q= 5) 77.96 / 2.29 (q= 8) 54.82 / 6.14 (q= 10) Low-moderate (∼20–25%) 90.09 / 5.01 (q= 12) 80.68 / 5.46 (q= 10) 79.08 / 2.36 (q= 14) 56.04 / 5.81 (q= 20) Mid-range (∼28–38%) 89.92 / 5.19 (q= 18)81.36 / 5.62(q= 15)79.68 / 2.43(q= 18) 56.98 / 5.39 (q= 30) High-moderate (∼50–63%) 89.76 / 5.38 (q= 25) 80.44 / 6.21 (q= 25) 78.73 / 3.06 (q= 32)58.52 / 4.96(q= 50) Near-dense (∼70–75%) 89.61 / 5.54 (q= 38) 79.79 / 6.52 (q= 35) 78.15 / 3.52 (q= 48) 58.09 / 5.24 (q= 60) Unmasked (100%, q=r) 89.48 / 5.68 (q= 50) 79.06 / 6.81 (q= 50) 77.62 / 3.91 (q= 64) 56.84 / 5.91 (q= 80)
+D.2. Disentangling Forward Feature Reuse from Backward Retention
+Why does RASP outperform branch-expanding SplitLoRA by+8.48pp on CUB-200? Table9decomposes final performance into immediate session plasticity ( ̄daiag = 1
+T
+PT
+t=1 at,t), relative forward transfer (FWTrel), and backward forgetting (F10). Because InfLoRA and SplitLoRA isolate each session in a separate subspace, their forward transfer across sessions is near zero (FWTrel ≤+0.18%). In contrast, RASP’s Read-All forward pass lets later sessions compose visual primitives learned in earlier sessions, boostingFWT rel to+2.64%on CUB-200 and+1.42%on ImageNet-A while simultaneously maintaining lower forgetting than SplitLoRA.
+14
+
+
+Table 9. Decomposition of immediate session plasticity ( ̄daiag), relative forward transfer (FWTrel), and forgetting (F10) on CUB-200 and ImageNet-A.
+CUB-200 (Fine-Grained) ImageNet-A (Adversarial)
+Method ̄a diag ↑FWT rel ↑F 10 ↓FAA↑ ̄a diag ↑FWT rel ↑F 10 ↓FAA↑
+InfLoRA [6] 85.12+0.145.84 79.92 55.42+0.086.85 49.26 SplitLoRA [11] 81.46−0.329.54 72.88 62.84+0.185.42 57.98 FM-LoRA [27] 83.95+1.126.79 77.84 59.68+0.645.81 54.45 Symmetric Top-q(Fwd+Bwd) 84.62+1.286.24 79.52 61.95+0.725.21 57.26
+RASP (Ours) 86.42+2.64 5.62 81.36 62.98+1.42 4.96 58.52
+1 3 6 9 12 ViT-B/16 Transformer block index l
+0.2
+0.4
+0.6
+0.8
+1.0
+Normalized routing entropy H/ln r
+(a) Depth-wise routing entropy
+RASP Session 1 (equalized) RASP Session 10 (specialized) w/o usage prior (μeq=0)
+Blocks 1–4 (Shallow)
+Blocks 5–8 (Middle)
+Blocks 9–12 (Deep)
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Normalized score magnitude
+(b) Trace vs. spectral norm across depth
+Mean trace c̃j Mean norm σ̃j
+Index ωj = √ c̃jσ̃j
+0 0.25 0.5 0.75 1 Consolidation index ωj ∈ [0, 1]
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Plasticity step multiplier
+(c) Attenuation schedule profiles
+Cauchy (1 + κωj)−1 (58.52%) Linear 1 − κωj (57.88%)
+Gaussian e−κω2
+j (57.49%)
+Figure 5. Depth-wise routing diagnostics and attenuation profiles. (a) Usage-equalized routing prevents early entropy collapse across ViTB/16 blocks while permitting semantic specialization in late sessions. (b) Routing trace ̃cj dominates in shallow blocks and spectral norm  ̃jσ dominates in deep blocks; their geometric meanω j equalizes layer-wise consolidation pressure. (c) Comparison of Cauchy, Linear, and Gaussian step-attenuation profiles (parentheses show ImageNet-A FAA).
+D.3. Depth-Wise Routing Entropy and Attenuation Schedules
+Figure5(a) plots the normalized routing entropyH(ˆp (l))/lnr=− 1
+lnr
+Pr
+j=1 ˆ(pl)
+j ln ˆ(pl)
+j across ViT-B/16 blocksl∈ {1, . . . ,12}on CIFAR-100. Without the usage-equalizing prior (μ eq = 0), routing collapses immediately in deeper semantic blocks (H/lnr= 0.34in Block12), starving most channels of updates. Withμ eq = 0.1, Session1maintains near-uniform exploration (≥0.90across all blocks), while by Session10shallow blocks remain broadly shared (0.89) and deep semantic blocks specialize naturally (0.71). Figure5(b) reveals why the geometric consolidation indexω j = p ̃jc ̃jσ enables a uniform locking quota across layers: mean routing trace ̃cj decreases with depth (0.79→0.59) because shallow texture filters are reused across more classes, whereas spectral norm ̃σj increases with depth (0.51→0.87) because deeper blocks require stronger task corrections. Their geometric product remains balanced across depth (0.63,0.71,0.72). Figure5(c) and Table10compare our Cauchy step attenuator(1 +κ ω j)−1 against linear (1−κω j) and Gaussian (exp(−κω2
+j )) schedules across all four benchmarks, showing consistent superiority for the Cauchy profile.
+Table 10. Comparison of step-attenuation functional forms and gainκacross all four benchmarks (FAA %).
+Attenuation Scheduleg uj ←ψ(ω j )g uj CIFAR-100 CUB-200 ImageNet-R ImageNet-A
+No attenuation (κ= 0, boundary lock only) 90.08 80.79 78.91 57.62 Linear decayψ(ω j ) = max(0,1−κ ω j )90.19 80.96 79.31 57.88 Gaussian decayψ(ω j ) = exp(−κ ω2
+j )90.04 80.72 79.12 57.49
+Cauchy attenuationψ(ω j ) = (1 +κ ω j )−1 (κ= 0.02) 90.26 81.14 79.44 58.19 Cauchy attenuationψ(ω j ) = (1 +κ ω j )−1 (κ∈ {0.05,0.08},Default)90.41 81.36 79.68 58.52
+Cauchy attenuationψ(ω j ) = (1 +κ ω j )−1 (κ= 0.25) 89.95 80.81 79.18 57.94
+15
+
+
+1 5 10 15 20 Incremental session t (ImageNet-R, T=20)
+70
+75
+80
+85
+90
+Cumulative accuracy At (%)
+(a) ImageNet-R 20-session horizon
+InfLoRA (+3.06M, 71.08%) PLAN (+3.06M, 71.15%) SplitLoRA (+3.06M, 78.79%) RASP (0.30M fixed, 78.16%)
+1 5 10 Evaluated task j
+1
+5
+10
+Training session t
+(b) SplitLoRA (Branch-isolated)
+1 5 10 Evaluated task j
+1
+5
+10
+Training session t
+(c) RASP (Read-All shared)
+70
+75
+80
+85
+Accuracy at, j (%)
+Figure 6. Long-horizon scaling and session-by-task accuracy matrices. (a) On the 20-session ImageNet-R stream, RASP maintains a constant0.30M footprint while tracking SplitLoRA (3.06M) within0.63pp. (b, c) Lower-triangular accuracy matricesa t,j on CUB200 (T= 10): RASP preserves old-session columns (vertical stability) and improves late-session diagonal learning (horizontal transfer) compared to branch-isolated SplitLoRA.
+D.4. Boundary Locking Quota, Starvation Guard, and Warm-Up Delay
+Table11evaluates the boundary locking capm lock, the|P t−1| ≥q+ 2starvation guard, and warm-up delay across all four datasets. Locking up to3channels per session with the starvation guard achieves the best balance. Raising the cap to8 channels/session rapidly exhausts the unlocked pool, degrading FAA by0.51–0.88pp. Delaying the first boundary lock until Session2produces virtually identical accuracy (within±0.09pp across all benchmarks), confirming that them lock ≤3cap already insulates early sessions against premature locking.
+Table 11. Ablation of boundary anchor locking quotam lock, starvation guard (|Pt−1| ≥q+ 2), and warm-up delay (FAA %).
+Boundary Locking Rule CIFAR-100 CUB-200 ImageNet-R ImageNet-A
+mlock = 0(Cauchy attenuation only, no hard lock) 90.12 80.94 79.26 58.02 mlock = clip(⌊0.05|P|⌋,1,1)with guard 90.28 81.18 79.49 58.24 mlock = clip(⌊0.05|P|⌋,1,3)with guard (Default)90.41 81.3679.6858.52
+mlock = clip(⌊0.05|P|⌋,1,3)+ 1-session warm-up delay 90.34 81.3179.7258.46 mlock = clip(⌊0.10|P|⌋,1,8)with guard 89.90 80.64 79.05 57.74 Uncapped5%locking without starvation guard 90.02 80.85 79.21 58.12
+D.5. Long-Horizon Trajectory and Session-by-Task Matrices
+Figure6(a) plots the 20-session trajectory on ImageNet-R corresponding to Table3, showing that RASP tracks SplitLoRA closely across all 20 sessions while using10.2×fewer parameters. Figure6(b,c) visualizes the complete10×10lowertriangular session-by-task accuracy matrices on CUB-200 for SplitLoRA and RASP. SplitLoRA exhibits both weaker diagonal plasticity in later sessions and pronounced off-diagonal darkening (forgetting), whereas RASP maintains bright, highaccuracy columns across all previously learned bird families.
+D.6. Complete Session-by-Session Trajectories and Multi-Seed Breakdown
+Table12and Table13report the exact session-by-session cumulative accuracyA 1, . . . , A10 on CIFAR-100 and CUB-200 across representative methods. Table14provides the individual 3-seed results (seed∈ {2024,2025,2026}) for RASP across all four benchmarks, matching the mean±std values in Table1. Finally, Table15reports sensitivity to the scene-gate bottleneck dimensiond g, Gram decoupling weightλ dec, and usage-equalizing prior weightμ eq.
+E. Limitations, Failure Modes, and Future Directions
+Our analysis identifies two boundary regimes where a fixed-size low-rank adapter faces structural pressure:
+16
+
+
+Table 12. Session-by-session cumulative accuracyA t (%) acrosst= 1, . . . ,10on CIFAR-100 (ViT-B/16-IN21K).
+MethodA 1 A2 A3 A4 A5 A6 A7 A8 A9 A10 (FAA) CAA
+L2P [15] 94.12 91.40 89.52 88.14 87.02 86.01 85.12 84.21 83.40 82.79 88.45 CODA-Prompt [17] 95.84 93.92 92.65 91.74 90.98 90.24 89.42 88.54 87.61 86.65 91.12 InfLoRA [6] 95.72 93.54 92.04 90.92 90.01 89.12 88.14 87.15 86.18 85.24 90.61 SD-LoRA [7] 96.14 94.72 93.71 92.94 92.21 91.52 90.74 89.85 88.94 88.05 92.58 LoRA-P&M [10] 96.32 94.96 94.02 93.28 92.58 91.91 91.14 90.28 89.39 88.49 92.92 SplitLoRA [11]96.72 95.5494.74 94.04 93.42 92.84 92.24 91.54 90.92 90.24 93.66 FM-LoRA [27] 96.24 94.84 93.82 93.05 92.34 91.64 90.88 90.08 89.24 88.41 92.69 RASP (Ours)96.62 95.51 94.78 94.10 93.49 92.91 92.32 91.69 91.06 90.4193.36
+Table 13. Session-by-session cumulative accuracyA t (%) acrosst= 1, . . . ,10on CUB-200-2011 (ViT-B/16-IN21K).
+MethodA 1 A2 A3 A4 A5 A6 A7 A8 A9 A10 (FAA) CAA
+CODA-Prompt [17] 91.12 87.72 85.32 83.52 81.82 80.22 78.82 77.42 76.02 74.83 83.06 InfLoRA [6]93.42 91.12 89.42 88.02 86.72 85.32 83.9282.52 81.12 79.92 88.21 SD-LoRA [7] 92.18 89.34 87.48 85.94 84.48 83.04 81.64 80.28 78.91 77.54 85.63 SplitLoRA [11] 90.42 87.12 85.02 83.32 81.72 80.02 78.32 76.52 74.62 72.88 83.18 FM-LoRA [27] 92.32 89.52 87.72 86.22 84.82 83.42 82.02 80.62 79.12 77.84 85.96 RASP (Ours)92.92 90.52 88.82 87.32 86.02 84.82 83.82 82.92 82.12 81.3685.68
+Table 14. Three-seed breakdown (seed∈ {2024,2025,2026}) for RASP across all four benchmarks.
+Benchmark & Metric Seed 2024 Seed 2025 Seed 2026 Mean Std
+CIFAR-100 FAA (%) 90.45 90.37 90.41 90.41 0.04 CIFAR-100 CAA (%) 93.44 93.28 93.36 93.36 0.08 CUB-200 FAA (%) 81.58 81.14 81.36 81.36 0.22 CUB-200 CAA (%) 86.02 85.34 85.68 85.68 0.34 ImageNet-R FAA (%) 79.54 79.82 79.68 79.68 0.14 ImageNet-R CAA (%) 83.37 83.67 83.52 83.52 0.15 ImageNet-A FAA (%) 58.43 58.61 58.52 58.52 0.09 ImageNet-A CAA (%) 70.13 70.39 70.26 70.26 0.13
+Table 15. Sensitivity to scene-gate bottleneck widthd g, Gram decoupling weightλ dec, and usage-prior weightμ eq (FAA %).
+Scene Gate Widthd g CIFAR CUB IN-R IN-A Hyperparameter Setting CIFAR CUB IN-R IN-A
+dg = 16(0.03M) 90.16 80.92 79.34 58.14 λdec = 0.0(no Gram penalty) 89.82 80.61 79.04 57.86 dg = 32(0.05M) 90.31 81.19 79.52 58.36 λdec = 0.190.24 81.12 79.46 58.29
+dg = 64(0.10M,Default)90.41 81.36 79.68 58.52 λdec = 0.3(Default)90.41 81.36 79.68 58.52 dg = 128(0.20M) 90.36 81.28 79.61 58.45 λdec = 1.090.08 80.84 79.22 58.04
+Usage Priorμ eq = 0.089.94 80.74 79.12 57.91 Usage Priorμ eq = 0.1(Default)90.41 81.36 79.68 58.52
+1.High-plasticity domain shifts over unbounded streams:When severe distribution shifts (such as ImageNet-A or multistyle renditions) demand a large active write ratioq/r, fewer channels remain unrouted per step. Although our|P t−1| ≥ q+ 2guard prevents pool starvation across 20 sessions, an unbounded stream (T≫50) would eventually saturate the locked anchor setL t. Triggering aconditional rank expansion(allocating∆rfresh channels only whenmin j∈Pt ωj exceeds a saturation threshold) offers a principled bridge between stationary and growing adapters. 2.Intra-session near-duplicate class collisions:Becauseω (t−1)
+j is refreshed at session boundaries, two visually similar classes arriving within thesamesession that route to overlapping active setsA t are separated only by the cross-entropy objective. Incorporating lightweight intra-session EMA consolidation is a promising avenue for task-free online streams.
+17
