@@ -22,7 +22,7 @@ Mahmoud Assran1,∗, Adrien Bardes1,∗, David Fan1,∗, Quentin Garrido1,∗, R
 1
 
 
-Internet Video & Images
+ Internet Video & Images
 1M hours & 1M images
 Video Pretraining
 Language Alignment
@@ -67,7 +67,7 @@ V-JEPA 2
 2
 
 
-the V-JEPA 2 encoder with up to 1 billion parameters and with more than 1 million hours of video. Our experiments confirm that scaling self-supervised video pretraining enhances the encoder’s ability to achieve visual understanding, including broad motion and appearance recognition capabilities, through probe-based evaluations and by aligning the encoder with a language model for video question-answering (Krojer et al., 2024;Pătrăucean et al.,2023;Liu et al.,2024c;Cai et al.,2024;Shangguan et al.,2024).
+ the V-JEPA 2 encoder with up to 1 billion parameters and with more than 1 million hours of video. Our experiments confirm that scaling self-supervised video pretraining enhances the encoder’s ability to achieve visual understanding, including broad motion and appearance recognition capabilities, through probe-based evaluations and by aligning the encoder with a language model for video question-answering (Krojer et al., 2024;Pătrăucean et al.,2023;Liu et al.,2024c;Cai et al.,2024;Shangguan et al.,2024).
 Following pretraining on internet-scale video, we train an action-conditioned world model, V-JEPA 2-AC, on a small set of interaction data using the representations learned in the first stage. Our action-conditioned world model is a 300M-parameter transformer network employing a block-causal attention mechanism, which autoregressively predicts the representation of the next video frame conditioned on an action and previous states. With as little as 62 hours of unlabeled interaction data from the Droid dataset (Khazatsky et al., 2024), we demonstrate the feasibility of training a latent world model that, given sub-goals, can be leveraged to plan actions on a Franka robot arm and perform prehensile manipulation tasks from a monocular RGB camera zero-shot in a new environment.
 To summarize, we show that joint-embedding predictive architectures learning from videos can be used to build a world model that enables understanding the physical world, predicting future states, and effectively planning in new situations; this is achieved by leveraging internet-scale video and a small amount of interaction data. Specifically:
 • Understanding — Probe-based Classification: Scaling self-supervised video pretraining results in video representations applicable to many tasks. V-JEPA 2 excels at encoding fine-grained motion information, achieving strong performance on tasks requiring motion understanding, such as Something-Something v2, with 77.3 top-1 accuracy using an attentive probe.
@@ -87,7 +87,7 @@ V‐JEPA 2 编码器,参数量高达 10 亿,并使用超过 100 万小时的视�
 3
 
 
-Masked video frames
+ Masked video frames
 encoder
 predictor
 z Mask
@@ -171,7 +171,7 @@ minimizeθ,φ,∆y ∥Pφ(∆y, Eθ(x)) − sg(Eθ(y))∥1, (1)
 4
 
 
-(2024). We use a 3D extension of traditional 1D-RoPE (Su et al.,2024) by partitioning the feature dimension into three approximately equal segments (for the temporal, height, and width axes) and applying the 1D rotations separately to the segment for each axis. We found that using 3D-RoPE instead of absolute sincos position embeddings (Vaswani et al.,2017) helps stabilize training for the largest models. To process a video with our transformer encoder, we first patchify it as a sequence of tubelets of size 2 × 16 × 16 (T × H × W ) and employ the same multiblock masking strategy as inBardes et al.(2024).
+ (2024). We use a 3D extension of traditional 1D-RoPE (Su et al.,2024) by partitioning the feature dimension into three approximately equal segments (for the temporal, height, and width axes) and applying the 1D rotations separately to the segment for each axis. We found that using 3D-RoPE instead of absolute sincos position embeddings (Vaswani et al.,2017) helps stabilize training for the largest models. To process a video with our transformer encoder, we first patchify it as a sequence of tubelets of size 2 × 16 × 16 (T × H × W ) and employ the same multiblock masking strategy as inBardes et al.(2024).
 Key Scaling Ingredients. In this section we introduce and study four additional key ingredients which enable scaling the V-JEPA pre-training principle to obtain our V-JEPA 2 model.
 1. Data scaling: We increase the dataset size from 2 million to 22 million videos by leveraging and curating additional data sources.
 2. Model scaling: We scale the encoder architecture from 300 million to over 1 billion parameters, going from a ViT-L to a ViT-g (Zhai et al.,2022).
@@ -227,7 +227,7 @@ VJEPA 2 预训练配方
 5
 
 
-Table 1 VideoMix22M (VM22M) Pretraining Dataset. To build our observation pretraining dataset, we combined four different video sources and one image dataset. We use a source-specific sampling probability during training and apply retrieval-based curation on YT1B to reduce noisy content (e.g., cartoon- or clipart-style).
+ Table 1 VideoMix22M (VM22M) Pretraining Dataset. To build our observation pretraining dataset, we combined four different video sources and one image dataset. We use a source-specific sampling probability during training and apply retrieval-based curation on YT1B to reduce noisy content (e.g., cartoon- or clipart-style).
 Source Samples Type Total Hours Apply Curation Weight
 SSv2 (Goyal et al.,2017) 168K EgoVideo 168 No 0.056 Kinetics (Carreira et al.,2019) 733K ExoVideo 614 No 0.188 Howto100M (Miech et al.,2019) 1.1M ExoVideo 134K No 0.318 YT-Temporal-1B (Zellers et al.,2022) 19M ExoVideo 1.6M Yes 0.188 ImageNet (Deng et al.,2009) 1M Images n/a No 0.250
 cumulative 4.0-point improvement over the ViT-L/16 baseline. Each individual change provides a positive impact, confirming the potential of scaling in video self-supervised learning (SSL).
@@ -252,7 +252,7 @@ ViT‐L/16 基线累计 4.0 个百分点的提升。每一项单独的改动都�
 6
 
 
-Avg. SSv2 Diving Jester K400 COIN IN1K
+ Avg. SSv2 Diving Jester K400 COIN IN1K
 70
 75
 80
@@ -310,7 +310,7 @@ YT1B - 未筛选 YT1B - 已筛选
 7
 
 
-300 400 500 600 700 800 900 1,000
+ 300 400 500 600 700 800 900 1,000
 85.5
 86
 86.5
@@ -400,7 +400,7 @@ Average Accuracy
 8
 
 
-3.1Action-Conditioned World Model Training
+ 3.1Action-Conditioned World Model Training
 Our goal is to take the V-JEPA 2 model after pre-training and obtain a latent world model that can be used for control of an embodied agentic system via closed-loop model-predictive control. To achieve this, we train V-JEPA 2-AC, an autoregressive model that predicts representations of future video observations conditioned on control actions and proprioceptive observations.
 In this section we describe a concrete instantiation of this framework for a tabletop arm with a fixed exocentric camera, and where control actions correspond to end-effector commands. The model is trained using approximately 62 hours of unlabeled video from the raw Droid dataset, which consists of short videos, typically 3–4 seconds long, of a 7-DoF Franka Emika Panda arm equipped with a two-finger gripper. Here, unlabeled video refers to the fact that we do not use additional meta-data indicating any reward, what type of task was being performed in each demonstration, or whether the demonstration was successful or not in completing the task being attempted. Rather, we only use the raw video and end-effector state signals from the dataset (each video in the dataset is accompanied by meta-data indicating the end-effector state in each frame — three dimensions for position, three for orientation, and one for the gripper state).
 Model inputs. In each iteration of training we randomly sample a mini-batch of 4 second video clips from the Droid dataset, and, for simplicity, discard any videos shorter than 4 seconds, leaving us with a smaller subset of the dataset comprising under 62 hours of video. The video clips are sampled with resolution 256 × 256 and a frame-rate of 4 frames-per-second (fps), yielding 16 frame clips denoted by (xk)k∈[16], where each xk represents a single video frame. The robot’s end-effector state in each observation is denoted by the sequence (sk)k∈[16], where sk is a real-valued 7D vector defined relative to the base of the robot. The first three dimensions of sk encode the cartesian position of the end-effector, the next three dimensions encode its orientation in the form of extrinsic Euler angles, and the last dimension encodes the gripper state. We construct a sequence of actions (ak)k∈[15] by computing the change in end-effector state between adjacent frames. Specifically, each action ak is a real-valued 7-dimensional vector representing the change in end-effector state between frames k and k + 1. We apply random-resize-crop augmentations to the sampled video clips with the aspect-ratio sampled in the range (0.75, 1.35).
@@ -450,7 +450,7 @@ L(φ) := Lteacher-forcing(φ) + Lrollout(φ), (4)
 9
 
 
-frame encoder (frozen)
+ frame encoder (frozen)
 predictor (time-causal attention)
 L1
 VJEPA 2-AC Teacher Forcing Loss
@@ -506,7 +506,7 @@ i )i∈[T ] ,
 10
 
 
-Current Observation
+ Current Observation
 Eθ Pφ Pφ
 a1 at
 L1 Eθ
@@ -539,7 +539,7 @@ VJEPA 2-AC 模型预测控制
 11
 
 
-Start Frame Goal Frame
+ Start Frame Goal Frame
 01234
 0.05
 0.1
@@ -615,7 +615,7 @@ Position Error (m)
 12
 
 
-function of a single cartesian-control action, sweeping ∆x and ∆y while holding ∆z = 0 fixed. The energy function achieves its minimum near the ground-truth action, providing further evidence that the model has learned to reasonably infer the effect of actions without requiring precision sensing. It is also interesting to observe that the energy landscape induced by V-JEPA 2-AC is relatively smooth and locally convex, which should facilitate planning.
+ function of a single cartesian-control action, sweeping ∆x and ∆y while holding ∆z = 0 fixed. The energy function achieves its minimum near the ground-truth action, providing further evidence that the model has learned to reasonably infer the effect of actions without requiring precision sensing. It is also interesting to observe that the energy landscape induced by V-JEPA 2-AC is relatively smooth and locally convex, which should facilitate planning.
 –5
 0 5
 ·10–2
@@ -661,7 +661,7 @@ Energy
 13
 
 
-Figure 10 Pick-&-Place. Closed-loop robot execution of V-JEPA 2-AC for multi-goal pick-&-place tasks. Highlighted frames indicate when the model achieves a sub-goal and switches to the next goal. The first goal image shows the object being grasped, the second goal image shows the object in the vicinity of the desired location, and the third goal image shows the object placed in the desired position. The model first optimizes actions with respect to the first sub-goal for 4 time-steps before automatically switching to the second sub-goal for the next 10 time-steps, and finally the third goal for the last 4 time-steps. Robot actions are inferred through goal-conditioned planning. The V-JEPA 2-AC model is able to perform zero-shot pick-&-place tasks on two Franka arms in different labs, with various object configurations and cluttered environments.
+ Figure 10 Pick-&-Place. Closed-loop robot execution of V-JEPA 2-AC for multi-goal pick-&-place tasks. Highlighted frames indicate when the model achieves a sub-goal and switches to the next goal. The first goal image shows the object being grasped, the second goal image shows the object in the vicinity of the desired location, and the third goal image shows the object placed in the desired position. The model first optimizes actions with respect to the first sub-goal for 4 time-steps before automatically switching to the second sub-goal for the next 10 time-steps, and finally the third goal for the last 4 time-steps. Robot actions are inferred through goal-conditioned planning. The V-JEPA 2-AC model is able to perform zero-shot pick-&-place tasks on two Franka arms in different labs, with various object configurations and cluttered environments.
 Table 2 Zero-Shot Robot Manipulation. All models are deployed zero-shot on two Franka arms with RobotiQ grippers located in different labs. Given image-goals for each considered task, all models run closed loop to infer a sequence of actions to achieve the goal. Success rates are reported out of 10 trials with various permutations to the task across trials (e.g., object location, starting pose, etc.).
 Grasp Reach w/ Obj. Pick-&-Place
 Method Reach Cup Box Cup Box Cup Box
@@ -689,7 +689,7 @@ V‐JEPA 2‐AC(我们的方法)
 14
 
 
-Table 3 Planning Performance. Comparing closed-loop robot manipulation using MPC with V-JEPA 2-AC world model and Cosmos world model. In both cases we leverage the cross-entropy method (Rubinstein,1997) for optimizing the sequence of actions using a single NVIDIA RTX 4090 GPU. For each robot skill, we evaluate each model across 10 tasks and average the results. With 80 samples, 10 refinement steps, and a planning horizon of 1, it takes 4 minutes to compute a single action in each planning step with Cosmos, which is an action-conditioned video generation model based on latent diffusion. Note that under a planning time of 4 minutes per action, a full pick & place trajectory takes over one hour. By contrast, with 10× more samples in each refinement step, the V-JEPA 2-AC world model requires only 16 seconds per action and leads to higher performance across all considered robot skills.
+ Table 3 Planning Performance. Comparing closed-loop robot manipulation using MPC with V-JEPA 2-AC world model and Cosmos world model. In both cases we leverage the cross-entropy method (Rubinstein,1997) for optimizing the sequence of actions using a single NVIDIA RTX 4090 GPU. For each robot skill, we evaluate each model across 10 tasks and average the results. With 80 samples, 10 refinement steps, and a planning horizon of 1, it takes 4 minutes to compute a single action in each planning step with Cosmos, which is an action-conditioned video generation model based on latent diffusion. Note that under a planning time of 4 minutes per action, a full pick & place trajectory takes over one hour. By contrast, with 10× more samples in each refinement step, the V-JEPA 2-AC world model requires only 16 seconds per action and leads to higher performance across all considered robot skills.
 Lab 2 Planning Details Grasp Pick-&-Place
 Method #Samples Iter. Horizon Time Reach Cup Box Cup Box
 Cosmos (Agarwal et al.,2025) 80 10 1 4 min. 80% 0% 20% 0% 0% V-JEPA 2-AC (ours) 800 10 1 16 sec. 100% 60% 20% 80% 50%
@@ -714,7 +714,7 @@ V‐JEPA 2‐AC( ours) 800 10 1 16秒。 100% 60% 20% 80% 50%
 15
 
 
-Table 4 Action and Object Classification. We report the classification performance of V-JEPA 2 models pretrained on 64 frames at resolution 256 × 256 for all models, except V-JEPA 2 ViT-g384 which was pretrained at resolution 384 × 384, on action and object classification, and compare their performance with state-of-art image and video encoders. All models follow the same evaluation protocol except for V-JEPA 2 ViT-g384. We use 256 × 256 resolution with 16 × 2 × 3 inputs for SSv2 (16 frames clip, 2 temporal crops, 3 spatial crops), 16 × 8 × 3 for K400, 32 × 8 × 3 for COIN and 32 × 4 × 3 for Diving-48 and Jester. V-JEPA 2 ViT-g384 uses a higher resolution of 384 × 384 for all six tasks, and additionally uses 64 × 2 × 3 inputs for SSv2 and 32x8x3 inputs for COIN. Our V-JEPA 2 ViT-g significantly outperforms other vision encoders on motion understanding tasks and is competitive on appearance tasks. It achieves the best average performance of 87.5 across all image and videos encoders. V-JEPA 2 ViT-g384 further improves results consistently across tasks, reaching 88.2 average performance. ∗: PEcoreG achieves an accuracy 89.8% on ImageNet using an attentive probe and input resoluton of 448px (Bolya et al.,2025). We use an input resolution of 256px and a different probe architecture in our case.
+ Table 4 Action and Object Classification. We report the classification performance of V-JEPA 2 models pretrained on 64 frames at resolution 256 × 256 for all models, except V-JEPA 2 ViT-g384 which was pretrained at resolution 384 × 384, on action and object classification, and compare their performance with state-of-art image and video encoders. All models follow the same evaluation protocol except for V-JEPA 2 ViT-g384. We use 256 × 256 resolution with 16 × 2 × 3 inputs for SSv2 (16 frames clip, 2 temporal crops, 3 spatial crops), 16 × 8 × 3 for K400, 32 × 8 × 3 for COIN and 32 × 4 × 3 for Diving-48 and Jester. V-JEPA 2 ViT-g384 uses a higher resolution of 384 × 384 for all six tasks, and additionally uses 64 × 2 × 3 inputs for SSv2 and 32x8x3 inputs for COIN. Our V-JEPA 2 ViT-g significantly outperforms other vision encoders on motion understanding tasks and is competitive on appearance tasks. It achieves the best average performance of 87.5 across all image and videos encoders. V-JEPA 2 ViT-g384 further improves results consistently across tasks, reaching 88.2 average performance. ∗: PEcoreG achieves an accuracy 89.8% on ImageNet using an attentive probe and input resoluton of 448px (Bolya et al.,2025). We use an input resolution of 256px and a different probe architecture in our case.
 Motion Understanding Appearance Understanding Method Param. Avg. SSv2 Diving-48 Jester K400 COIN IN1K
 Results Reported in the Literature
 VideoMAEv2 (Wang et al.,2023) 1B – 56.1 – – 82.8 – 71.4 InternVideo2-1B (Wang et al.,2024b) 1B – 67.3 – – 87.9 – – InternVideo2-6B (Wang et al.,2024b) 6B – 67.7 – – 88.8 – – VideoPrism (Zhao et al.,2024) 1B – 68.5 71.3 – 87.6 – –
@@ -744,7 +744,7 @@ V-JEPA 2 ViT-L 300M 86.0 73.7 89.0 97.6 85.1 86.8 83.5 V-JEPA 2 ViT-H 600M 86.4 
 16
 
 
-Table 5 Prediction: Human Action Anticipation. Comparison with the state-of-the-art on the EK100 Action Anticipation benchmark. We report mean-class recall-at-5 for verb, noun and action on the validation set of EK100. V-JEPA 2 performance scales linearly with model size and outperforms previous state-of-the-art across all model sizes.
+ Table 5 Prediction: Human Action Anticipation. Comparison with the state-of-the-art on the EK100 Action Anticipation benchmark. We report mean-class recall-at-5 for verb, noun and action on the validation set of EK100. V-JEPA 2 performance scales linearly with model size and outperforms previous state-of-the-art across all model sizes.
 Method Param. Action Anticipation Verb Noun Action
 InAViT (Roy et al.,2024) 160M 51.9 52.0 25.8 Video-LLaMA (Zhang et al.,2023) 7B 52.9 52.0 26.0 PlausiVL (Mittal et al.,2024) 8B 55.6 54.2 27.6
 Frozen Backbone
@@ -770,7 +770,7 @@ InternVideo为69.7,PECoreG为55.4。V‐JEPA 2在外观任务上也具有竞争�
 17
 
 
-Top 1: wash sink Top 2: wash sides surfaces Top 3: turn on water Top 4: rinse sponge Top 5: clean wall
+ Top 1: wash sink Top 2: wash sides surfaces Top 3: turn on water Top 4: rinse sponge Top 5: clean wall
 Top 1: put plate Top 2: put plate in dying rack Top 3: pick up plate Top 4: open door Top 5: dry plate
 1 second
 Context frames Model predictions Following frame
@@ -804,7 +804,7 @@ V‐JEPA 2 显著超越了先前的最先进模型 PlausiVL,即便其参数量�
 18
 
 
-7Understanding : Video Question Answering
+ 7Understanding : Video Question Answering
 In this section, we explore V-JEPA 2’s ability to perform open-language video question answering (VidQA). To enable language capabilities, we train a Multimodal Large Language Model (MLLM) using V-JEPA 2 as the visual encoder in the non-tokenized early fusion (Wadekar et al.,2024) setup popularized by the LLaVA family of models (Li et al.,2024b). In this family of MLLMs, a visual encoder is aligned with a large language model by projecting the output patch embeddings of the vision encoder to the input embedding space of the LLM. The MLLM is then trained either end-to-end, or with a frozen vision encoder. The majority of the encoders used in MLLMs for VidQA are typically image encoders, which are applied independently per-frame for video inputs (Qwen Team et al.,2025;Zhang et al.,2024b). Popular instances of such encoders are CLIP (Radford et al.,2021), SigLIP (Tschannen et al.,2025), and Perception Encoder (Bolya et al.,2025), which are chosen primarily due to their semantic alignment with language, obtained by pretraining with image-caption pairs. To the best of our knowledge, our work is the first to use a video encoder that is pretrained without any language supervision, to train an MLLM for VidQA.
 MLLM performance on downstream tasks is also highly dependent on the alignment data. In these experiments we use a dataset of 88.5 million image- and video-text pairs, similar to what was used to train PerceptionLM (Cho et al.,2025). To demonstrate the effectiveness of the V-JEPA 2 encoder, first we compare V-JEPA 2 with other state-of-the-art vision encoders in a controlled data setup inSection 7.2, using a subset of 18 million samples. Then, in the same controlled setup, we show that scaling the vision encoder and input resolution size both consistently improve VidQA performance inSection 7.3. Finally, we scale the alignment data, using the full 88.5 million samples to test the limits of language alignment with V-JEPA 2 inSection 7.4. Our results demonstrate that in a controlled data setup, V-JEPA 2 obtains competitive performance on open-ended VidQA tasks compared to other vision encoders. Upon scaling the alignment data, V-JEPA 2 achieves state-of-the-art performance on several VidQA benchmarks.
 7.1Experiment Setup
@@ -824,7 +824,7 @@ MLLM 在下游任务上的性能也高度依赖于对齐数据。在这些实验
 19
 
 
-Table 6 Comparison between off-the-shelf image encoders and V-JEPA 2 in frozen encoder setting. All experiments use the same LLM backbone (Qwen2-7B-Instruct), data, and training setup with a frozen vision encoder. PerceptionTest accuracy is reported on the validation set post SFT.
+ Table 6 Comparison between off-the-shelf image encoders and V-JEPA 2 in frozen encoder setting. All experiments use the same LLM backbone (Qwen2-7B-Instruct), data, and training setup with a frozen vision encoder. PerceptionTest accuracy is reported on the validation set post SFT.
 Method Params
 Enc / LLM Avg.
 PerceptionTest
@@ -918,7 +918,7 @@ V-JEPA 2 ViT-g512 1B/7B 54.4 77.7 33.7 71.6 32.3 57.5 38.5 69.5
 20
 
 
-Table 8 Comparison with state-of-the-art. We use the full 88.5M-sample alignment dataset and train using the same methodology as PLM 8BCho et al.(2025), using a Llama 3.1 backbone. We observe significant improvements in downstream evaluations, obtaining state-of-the-art results in the 8B model class. PerceptionTest accuracy is reported on the test set with SFT for V-JEPA 2; all other results are zero-shot.
+ Table 8 Comparison with state-of-the-art. We use the full 88.5M-sample alignment dataset and train using the same methodology as PLM 8BCho et al.(2025), using a Llama 3.1 backbone. We observe significant improvements in downstream evaluations, obtaining state-of-the-art results in the 8B model class. PerceptionTest accuracy is reported on the test set with SFT for V-JEPA 2; all other results are zero-shot.
 Method Params
 Enc / LLM Avg.
 PerceptionTest
@@ -974,7 +974,7 @@ V-JEPA 2 ViT-g384 LLama 3.1 8B 1B/8B 59.5 84.0 44.5 76.9 36.7 40.3 60.6 73.5
 21
 
 
-et al.,2020). Previous approaches that have demonstrated real world performance on robotics tasks have trained task-specific world models, and they rely on interaction data from the environment in which the robot is deployed. Evaluation is focused on demonstrating performance of world modeling approaches within the explored task space, instead of generalization to new environments or unseen objects. In this work we train a task-agnostic world model, and demonstrate generalization to new environments and objects.
+ et al.,2020). Previous approaches that have demonstrated real world performance on robotics tasks have trained task-specific world models, and they rely on interaction data from the environment in which the robot is deployed. Evaluation is focused on demonstrating performance of world modeling approaches within the explored task space, instead of generalization to new environments or unseen objects. In this work we train a task-agnostic world model, and demonstrate generalization to new environments and objects.
 Some recent works leverage both internet-scale video and interaction data towards training general purpose (task-agnostic) action-conditioned video generation models for autonomous robots (Bruce et al.,2024;Agarwal et al.,2025;Russell et al.,2025). However, thus far these approaches only demonstrate the ability to generate visually valid-looking plans given actions of the robot, but they have not demonstrated the ability to use those models to actually control the robot.
 Other works have explored the integration of generative modeling into policy learning (Du et al.,2024;Wu et al.,2023a;Zhao et al.,2025;Zhu et al.,2025;Du et al.,2023;Zheng et al.,2025;Rajasegaran et al., 2025). Differently from this line of work, our goal is to leverage a world model through model-predictive control instead of policy learning to avoid the imitation learning phase that requires expert trajectories. Both approaches are orthogonal and could be combined in future works. Closest to our work,Zhou et al.(2024); Sobal et al.(2025) show that you can learn a world model stage-wise or end-to-end and use it to solve planning tasks zero-shot. While those previous works focus on small-scale planning evaluation, we show that similar principles can be scaled and used to solve real-world robotic tasks.
 Vision-Language-Action models for Robotic Control. Recent imitation learning approaches in realworld robotic control have made significant progress towards learning policies that show increasingly good generalization capabilities. This is achieved by leveraging video-languange models that have been pre-trained on internet scale video and text data, which are then fine-tuned (or adapted) to also predict actions by using behavior cloning from expert demonstrations (Driess et al.,2023;Brohan et al.,2023;Black et al.,2024;Kim et al.,2024;Bjorck et al.,2025;Black et al.,2025). Although these approaches show promising generalization results, it is unclear whether they will be able to learn to predict behaviors that were not demonstrated in the training data since they lack an explicit predictive model of the world and do leverage inference-time computation for planning. They require high-quality large scale teleoperation data, and can only utilize successful trajectories. In contrast, we focus on leveraging any interaction data whether it comes from a successful or failed interaction with the environment.
@@ -988,7 +988,7 @@ Vision Foundation Models. Video foundation models in computer vision have shown 
 22
 
 
-9Conclusion
+ 9Conclusion
 This study demonstrates how joint-embedding predictive architectures, learning in a self-supervised manner from web-scale data and a small amount of robot interaction data, can yield a world model capable of understanding, predicting, and planning in the physical world. V-JEPA 2 achieves state-of-art performances on action classification requiring motion understanding and human action anticipation. V-JEPA 2 also outperforms previous vision encoders on video questions-answering tasks when aligned with a large-language model. Additionally, post-training an action-conditioned world model, V-JEPA 2-AC, using V-JEPA 2’s representation, enables successful zero-shot prehensile manipulation tasks, such as Pick-and-Place, with real-world robots. These findings indicate V-JEPA 2 is a step towards developing advanced AI systems that can effectively perceive and act in their environment.
 Future work. There are several important avenues for future work to address limitations of V-JEPA 2. First, in this work we have focused on tasks requiring predictions up to roughly 16 seconds into the future. This enables planning for simpler manipulation tasks, like grasp and reach-with-object, from a single goal image. However, to extend this to longer-horizon tasks such as pick-and-place or even more complex tasks, without requiring sub-goals will require further innovations in modeling. Developing approaches for hierarchical models capable of making predictions across multiple spatial and temporal scales, at different levels of abstraction, is a promising direction.
 Second, as mentioned inSection 4, V-JEPA 2-AC currently relies upon tasks specified as image goals. Although this may be natural for some tasks, there are other situations where language-based goal specification may be preferable. Extending the V-JEPA 2-AC to accept language-based goals, e.g., by having a model that can embed language-based goals into the V-JEPA 2-AC representation space, is another important direction for future work. The results described inSection 7, aligning V-JEPA 2 with a language model, may serve as a starting point.
@@ -1006,7 +1006,7 @@ We thank Rob Fergus, Joelle Pineau, Stephane Kasriel, Naila Murray, Mrinal Kalak
 23
 
 
-References
+ References
 Niket Agarwal, Arslan Ali, Maciej Bala, Yogesh Balaji, Erik Barker, Tiffany Cai, Prithvijit Chattopadhyay, Yongxin Chen, Yin Cui, Yifan Ding, Daniel Dworakowski, Jiaojiao Fan, Michele Fenzi, Francesco Ferroni, Sanja Fidler, Dieter Fox, Songwei Ge, Yunhao Ge, Jinwei Gu, Siddharth Gururani, Ethan He, Jiahui Huang, Jacob Huffman, Pooya Jannaty, Jingyi Jin, Seung Wook Kim, Gergely Klár, Grace Lam, Shiyi Lan, Laura Leal-Taixe, Anqi Li, Zhaoshuo Li, Chen-Hsuan Lin, Tsung-Yi Lin, Huan Ling, Ming-Yu Liu, Xian Liu, Alice Luo, Qianli Ma, Hanzi Mao, Kaichun Mo, Arsalan Mousavian, Seungjun Nah, Sriharsha Niverty, David Page, Despoina Paschalidou, Zeeshan Patel, Lindsey Pavao, Morteza Ramezanali, Fitsum Reda, Xiaowei Ren, Vasanth Rao Naik Sabavat, Ed Schmerling, Stella Shi, Bartosz Stefaniak, Shitao Tang, Lyne Tchapmi, Przemek Tredak, Wei-Cheng Tseng, Jibin Varghese, Hao Wang, Haoxiang Wang, Heng Wang, Ting-Chun Wang, Fangyin Wei, Xinyue Wei, Jay Zhangjie Wu, Jiashu Xu, Wei Yang, Lin Yen-Chen, Xiaohui Zeng, Yu Zeng, Jing Zhang, Qinsheng Zhang, Yuxuan Zhang, Qingqing Zhao, and Artur Zolkowski. Cosmos world foundation model platform for physical AI. arXiv preprint arXiv:2501.03575, 2025.
 Pulkit Agrawal, Ashvin V Nair, Pieter Abbeel, Jitendra Malik, and Sergey Levine. Learning to poke by poking: Experiential learning of intuitive physics. Advances in Neural Information Processing Systems, 29, 2016.
 Marcin Andrychowicz, Filip Wolski, Alex Ray, Jonas Schneider, Rachel Fong, Peter Welinder, Bob McGrew, Josh Tobin, OpenAI Pieter Abbeel, and Wojciech Zaremba. Hindsight experience replay. Advances in Neural Information Processing Systems, 30, 2017.
@@ -1034,7 +1034,7 @@ Anthony Brohan, Noah Brown, Justice Carbajal, Yevgen Chebotar, Xi Chen, Krzyszto
 24
 
 
-Vanhoucke, Quan Vuong, Ayzaan Wahid, Stefan Welker, Paul Wohlhart, Jialin Wu, Fei Xia, Ted Xiao, Peng Xu, Sichun Xu, Tianhe Yu, and Brianna Zitkovich. Rt-2: Vision-language-action models transfer web knowledge to robotic control. arXiv preprint arXiv:2307.15818, 2023.
+ Vanhoucke, Quan Vuong, Ayzaan Wahid, Stefan Welker, Paul Wohlhart, Jialin Wu, Fei Xia, Ted Xiao, Peng Xu, Sichun Xu, Tianhe Yu, and Brianna Zitkovich. Rt-2: Vision-language-action models transfer web knowledge to robotic control. arXiv preprint arXiv:2307.15818, 2023.
 Jake Bruce, Michael Dennis, Ashley Edwards, Jack Parker-Holder, Yuge Shi, Edward Hughes, Matthew Lai, Aditi Mavalankar, Richie Steigerwald, Chris Apps, Yusuf Aytar, Sarah Bechtle, Feryal Behbahani, Stephanie Chan, Nicolas Heess, Lucy Gonzalez, Simon Osindero, Sherjil Ozair, Scott Reed, Jingwei Zhang, Konrad Zolna, Jeff Clune, Nando de Freitas, Satinder Singh, and Tim Rocktäschel. Genie: Generative interactive environments. In International Conference on Machine Learning, 2024.
 Mu Cai, Reuben Tan, Jianrui Zhang, Bocheng Zou, Kai Zhang, Feng Yao, Fangrui Zhu, Jing Gu, Yiwu Zhong, Yuzhang Shang, Yao Dou, Jaden Park, Jianfeng Gao, Yong Jae Lee, and Jianwei Yang. Temporalbench: Benchmarking fine-grained temporal understanding for multimodal video models. arXiv preprint arXiv:2410.10818, 2024.
 Joao Carreira, Eric Noland, Andras Banki-Horvath, Chloe Hillier, and Andrew Zisserman. A short note about kinetics-600. arXiv preprint arXiv:1808.01340, 2018.
@@ -1070,7 +1070,7 @@ Neha Das、Sarah Bechtle、Todor Davchev、Dinesh Jayaraman、Akshara Rai 和 Fr
 25
 
 
-Jia Deng, Wei Dong, Richard Socher, Li-Jia Li, Kai Li, and Li Fei-Fei. Imagenet: A large-scale hierarchical image database. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition, pages 248–255, 2009.
+ Jia Deng, Wei Dong, Richard Socher, Li-Jia Li, Kai Li, and Li Fei-Fei. Imagenet: A large-scale hierarchical image database. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition, pages 248–255, 2009.
 Alexey Dosovitskiy, Lucas Beyer, Alexander Kolesnikov, Dirk Weissenborn, Xiaohua Zhai, Thomas Unterthiner, Mostafa Dehghani, Matthias Minderer, Georg Heigold, Sylvain Gelly, Jakob Uszkoreit, and Neil Houlsby. An image is worth 16x16 words: Transformers for image recognition at scale. arXiv preprint arXiv:2010.11929, 2020.
 Danny Driess, Fei Xia, Mehdi S. M. Sajjadi, Corey Lynch, Aakanksha Chowdhery, Brian Ichter, Ayzaan Wahid, Jonathan Tompson, Quan Vuong, Tianhe Yu, Wenlong Huang, Yevgen Chebotar, Pierre Sermanet, Daniel Duckworth, Sergey Levine, Vincent Vanhoucke, Karol Hausman, Marc Toussaint, Klaus Greff, Andy Zeng, Igor Mordatch, and Pete Florence. PaLM-E: An embodied multimodal language model. arXiv preprint arXiv:2023.03378, 2023.
 Yilun Du, Sherry Yang, Bo Dai, Hanjun Dai, Ofir Nachum, Josh Tenenbaum, Dale Schuurmans, and Pieter Abbeel. Learning universal policies via text-guided video generation. Advances in Neural Information Processing Systems, 36:9156–9172, 2023.
@@ -1094,7 +1094,7 @@ Jia Deng、Wei Dong、Richard Socher、Li‐Jia Li、Kai Li 和 Li Fei‐Fei。I
 26
 
 
-Rémi Munos, and Michal Valko. Bootstrap your own latent-a new approach to self-supervised learning. Advances in Neural Information Processing Systems, 33:21271–21284, 2020.
+ Rémi Munos, and Michal Valko. Bootstrap your own latent-a new approach to self-supervised learning. Advances in Neural Information Processing Systems, 33:21271–21284, 2020.
 Agrim Gupta, Stephen Tian, Yunzhi Zhang, Jiajun Wu, Roberto Martín-Martín, and Li Fei-Fei. Maskvit: Masked visual pre-training for video prediction. arXiv preprint arXiv:2206.11894, 2022.
 David Ha and Jürgen Schmidhuber. World models. arXiv preprint arXiv:1803.10122, 2018.
 Danijar Hafner, Timothy Lillicrap, Jimmy Ba, and Mohammad Norouzi. Dream to control: Learning behaviors by latent imagination. arXiv preprint arXiv:1912.01603, 2019a.
@@ -1115,7 +1115,7 @@ Rémi Munos 和 Michal Valko。Bootstrap your own latent‐a‐new approach to s
 27
 
 
-Moo Jin Kim, Karl Pertsch, Siddharth Karamcheti, Ted Xiao, Ashwin Balakrishna, Suraj Nair, Rafael Rafailov, Ethan Foster, Grace Lam, Pannag Sanketi, Quan Vuong, Thomas Kollar, Benjamin Burchfiel, Russ Tedrake, Dorsa Sadigh, Sergey Levine, Percy Liang, and Chelsea Finn. Openvla: An open-source vision-language-action model. arXiv preprint arXiv:2406.09246, 2024.
+ Moo Jin Kim, Karl Pertsch, Siddharth Karamcheti, Ted Xiao, Ashwin Balakrishna, Suraj Nair, Rafael Rafailov, Ethan Foster, Grace Lam, Pannag Sanketi, Quan Vuong, Thomas Kollar, Benjamin Burchfiel, Russ Tedrake, Dorsa Sadigh, Sergey Levine, Percy Liang, and Chelsea Finn. Openvla: An open-source vision-language-action model. arXiv preprint arXiv:2406.09246, 2024.
 Benno Krojer, Mojtaba Komeili, Candace Ross, Quentin Garrido, Koustuv Sinha, Nicolas Ballas, and Mido Assran. A shortcut-aware video-qa benchmark for physical understanding via minimal video pairs. preprint, 2024.
 Patrick Lancaster, Nicklas Hansen, Aravind Rajeswaran, and Vikash Kumar. Modem-v2: Visuo-motor world models for real-world robot manipulation. In IEEE International Conference on Robotics and Automation (ICRA), pages 7530–7537, 2024.
 Yann LeCun. A path towards autonomous machine intelligence version 0.9.2, 2022-06-27. Open Review, 62(1):1–62, 2022.
@@ -1140,7 +1140,7 @@ Moo Jin Kim、Karl Pertsch、Siddharth Karamcheti、Ted Xiao、Ashwin Balakrishn
 28
 
 
-Antoine Miech, Dimitri Zhukov, Jean-Baptiste Alayrac, Makarand Tapaswi, Ivan Laptev, and Josef Sivic. HowTo100m: Learning a text-video embedding by watching hundred million narrated video clips. In Proceedings of the IEEE/CVF International Conference on Computer Vision, pages 2630–2640, 2019.
+ Antoine Miech, Dimitri Zhukov, Jean-Baptiste Alayrac, Makarand Tapaswi, Ivan Laptev, and Josef Sivic. HowTo100m: Learning a text-video embedding by watching hundred million narrated video clips. In Proceedings of the IEEE/CVF International Conference on Computer Vision, pages 2630–2640, 2019.
 Himangi Mittal, Nakul Agarwal, Shao-Yuan Lo, and Kwonjoon Lee. Can’t make an omelette without breaking some eggs: Plausible action anticipation using large video-language models. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pages 18580–18590, 2024.
 Anusha Nagabandi, Kurt Konolige, Sergey Levine, and Vikash Kumar. Deep dynamics models for learning dexterous manipulation. In Conference on robot learning, pages 1101–1112. PMLR, 2020.
 Suraj Nair, Aravind Rajeswaran, Vikash Kumar, Chelsea Finn, and Abhinav Gupta. R3m: A universal visual representation for robot manipulation. In Conference on Robot Learning (CoRL), 2022.
@@ -1163,7 +1163,7 @@ Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya Ramesh, Gabriel Goh, Sandhini
 29
 
 
-Mohammad Reza Samsami, Artem Zholus, Janarthanan Rajendran, and Sarath Chandar. Mastering memory tasks with world models. In International Conference on Learning Representations, 2024.
+ Mohammad Reza Samsami, Artem Zholus, Janarthanan Rajendran, and Sarath Chandar. Mastering memory tasks with world models. In International Conference on Learning Representations, 2024.
 Julian Schrittwieser, Ioannis Antonoglou, Thomas Hubert, Karen Simonyan, Laurent Sifre, Simon Schmitt, Arthur Guez, Edward Lockhart, Demis Hassabis, Thore Graepel, Timothy Lillicrap, and David Silver. Mastering atari, go, chess and shogi by planning with a learned model. Nature, 588(7839):604–609, 2020.
 Ziyao Shangguan, Chuhan Li, Yuxuan Ding, Yanan Zheng, Yilun Zhao, Tesca Fitzgerald, and Arman Cohan. Tomato: Assessing visual temporal reasoning capabilities in multimodal foundation models. arXiv preprint arXiv:2410.23266, 2024.
 Vlad Sobal, Wancong Zhang, Kynghyun Cho, Randall Balestriero, Tim GJ Rudner, and Yann LeCun. Learning from reward-free offline data: A case for planning with latent dynamics models. arXiv preprint arXiv:2502.14819, 2025.
@@ -1187,7 +1187,7 @@ Mohammad Reza Samsami, Artem Zholus, Janarthanan Rajendran, and Sarath Chandar. 
 30
 
 
-Daniel M Wolpert and Zoubin Ghahramani. Computational principles of movement neuroscience. Nature neuroscience, 3(11):1212–1217, 2000.
+ Daniel M Wolpert and Zoubin Ghahramani. Computational principles of movement neuroscience. Nature neuroscience, 3(11):1212–1217, 2000.
 Hongtao Wu, Ya Jing, Chilam Cheang, Guangzeng Chen, Jiafeng Xu, Xinghang Li, Minghuan Liu, Hang Li, and Tao Kong. Unleashing large-scale video generative pre-training for visual robot manipulation. arXiv preprint arXiv:2312.13139, 2023a.
 Philipp Wu, Alejandro Escontrela, Danijar Hafner, Pieter Abbeel, and Ken Goldberg. Daydreamer: World models for physical robot learning. In Conference on robot learning, pages 2226–2240. PMLR, 2023b.
 An Yang, Baosong Yang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Zhou, Chengpeng Li, Chengyuan Li, Dayiheng Liu, Fei Huang, Guanting Dong, Haoran Wei, Huan Lin, Jialong Tang, Jialin Wang, Jian Yang, Jianhong Tu, Jianwei Zhang, Jianxin Ma, Jianxin Yang, Jin Xu, Jingren Zhou, Jinze Bai, Jinzheng He, Junyang Lin, Kai Dang, Keming Lu, Keqin Chen, Kexin Yang, Mei Li, Mingfeng Xue, Na Ni, Pei Zhang, Peng Wang, Ru Peng, Rui Men, Ruize Gao, Runji Lin, Shijie Wang, Shuai Bai, Sinan Tan, Tianhang Zhu, Tianhao Li, Tianyu Liu, Wenbin Ge, Xiaodong Deng, Xiaohuan Zhou, Xingzhang Ren, Xinyu Zhang, Xipin Wei, Xuancheng Ren, Xuejing Liu, Yang Fan, Yang Yao, Yichang Zhang, Yu Wan, Yunfei Chu, Yuqiong Liu, Zeyu Cui, Zhenru Zhang, Zhifang Guo, and Zhihao Fan. Qwen2 technical report. arXiv preprint arXiv:2407.10671, 2024a.
@@ -1225,13 +1225,13 @@ Ruijie Zheng, Jing Wang, Scott Reed, Johan Bjorck, Yu Fang, Fengyuan Hu, Joel Ja
 31
 
 
-Chuning Zhu, Raymond Yu, Siyuan Feng, Benjamin Burchfiel, Paarth Shah, and Abhishek Gupta. Unified world models: Coupling video and action diffusion for pretraining on large robotic datasets. arXiv preprint arXiv:2504.02792, 2025.
+ Chuning Zhu, Raymond Yu, Siyuan Feng, Benjamin Burchfiel, Paarth Shah, and Abhishek Gupta. Unified world models: Coupling video and action diffusion for pretraining on large robotic datasets. arXiv preprint arXiv:2504.02792, 2025.
 32
 朱初宁、Raymond Yu、冯思远、Benjamin Burchfiel、Paarth Shah 和 Abhishek Gupta。统一世界模型:耦合视频与动作 扩散以在大型机器人数据集上进行预训练。arXiv 预印本 arXiv:2504.02792,2025。
 32
 
 
-Appendix
+ Appendix
 AV-JEPA 2 Pretraining
 A.1Pretraining Hyperparameters
 As detailed inSection 2.4, our training pipeline consisted of two phases: 1) a constant learning rate phase and 2) a cooldown phase. For all models, we trained in the first phase until we observed plateauing or diminishing performance on the IN1K, COIN, and SSv2 tasks. At this point, we initiated the cooldown phase.
@@ -1265,7 +1265,7 @@ A.2 预训练数据
 33
 
 
-Table 10 Abbreviated Pretraining Hyperparameters. Common parameters for pretraining large computer vision models, targeting our abbreviated recipe.
+ Table 10 Abbreviated Pretraining Hyperparameters. Common parameters for pretraining large computer vision models, targeting our abbreviated recipe.
 Parameter Abbreviated Recipe
 Number of frames 16 Frames per Second 4.0 Crop Size 256 Random Resize Aspect Ratio [0.75 1.35] Random Resize Scale [0.3, 1.0] Steps 90000 Warmup Steps 12000 Batch Size (global) 3072 Starting Learning Rate 2e-4 Larning Rate 6.25e-4 Final Learning Rate 1e-6 Starting Weight Decay 0.04 Final Weight Decay 0.4 Starting EMA 0.999 Final EMA 1.0 Spatial Mask Scale [0.15, 0.7] Temporal Mask Scale [1.0, 1.0] Mask Aspect Ratio [0.75 1.5] Tubelet Size 2 Patch Size 16
 DINOv2 ViT-L model is then applied on the middle frame of each clip to extract scene embeddings. YT1B embeddings are then clustered into 1.5 million clusters, using the same clustering strategy asOquab et al. (2023). Embeddings are also extracted in the same manner for all videos in the target distribution, then assigned to the closest YT1B cluster. We only keep those clusters to which at least one target video was assigned—about 210k clusters out of the original 1.5 million. The retained clusters contain 115 million scenes.
@@ -1301,7 +1301,7 @@ K710 170k 100M 0.7 SSv2 41k 19M 0.125 COIN 37k 21M 0.125 EpicKitchen 4k 13k 0.05
 34
 
 
-K400 performance for our ablation experiments (seeAppendix A.4.1). As shown inTable 1in the main body, we combined this Curated YT1B with SSv2, Kinetics, HowTo100M, and ImageNet to create our final VM22M dataset.
+ K400 performance for our ablation experiments (seeAppendix A.4.1). As shown inTable 1in the main body, we combined this Curated YT1B with SSv2, Kinetics, HowTo100M, and ImageNet to create our final VM22M dataset.
 A.3Scaling Model Size
 Details of the model architecture are shown inTable 12. All models are parameterized as vision transformersDosovitskiy et al.(2020), using the standard 16 × 16 patch size. When scaling model size, we increase the encoder from a ViT-L (300M parameters) to a ViT-g (1B parameters), while the predictor size is kept fixed across all pre-training experiments.
 Table 12 Model architecture details. Family of encoders and predictor architectures used during V-JEPA 2 pretraining, with some of the major parameters.
@@ -1344,7 +1344,7 @@ ViT‐g
 35
 
 
-100 200 300 400 500 600 700 800 900
+ 100 200 300 400 500 600 700 800 900
 81
 81.5
 82
@@ -1392,7 +1392,7 @@ A.4.3 评估时视频长度的影响。
 36
 
 
-8 16 32 64
+ 8 16 32 64
 74
 76
 78
@@ -1435,7 +1435,7 @@ B.3 可视化世界模型预测
 37
 
 
-(a) Grasp Cup
+ (a) Grasp Cup
 (b) Reach with Cup
 (c) Pick and Place Cup
 Figure 14 Prehensile Manipulation Task Definition. Start and goal frames for prehensile manipulation tasks with a cup in Lab 1. For the grasp and reach with object tasks the model is shown a single goal image. For the pick-and-place tasks we present two sub-goal images to the model in addition to the final goal. The first goal image shows the object being grasped, the second goal image shows the object in the vicinity of the goal position. The model first optimizes actions with respect to the first sub-goal for 4 time-steps before automatically switching to the second sub-goal for the next 10 time-steps, and finally the third goal for the last 4 time-steps.
@@ -1449,7 +1449,7 @@ weight decay of 0.1, gradient clipping of 1.0, and a batch size of 1024 frames. 
 38
 
 
-Robot observations
+ Robot observations
 Reconstructions from V-JEPA 2
 Reconstructions from V-JEPA 2-AC
 (a) Comparing accuracy of predictions to ground truth trajectory. (Top Row) Video frames of a ground-truth trajectory from a robot in our lab. (Middle row) Each frame is encoded by V-JEPA 2 encoder, and then decoded using the feedforward frame decoder. Reconstructions of the V-JEPA 2 representations show that the encoder captures the salient parts of the scene necessary for vision-based control; blurry background generation can be partially attributed to the low-capacity of our feedforward frame decoder. (Bottom Row) Autoregressive rollout produced by V-JEPA 2-AC world model using the ground-truth action sequence given first frame as context, and then decoded using feedforward frame decoder. Reconstructions of the V-JEPA 2-AC rollout show that the action-conditioned world model successfully animates the robot while keeping the background and non-interactated objects (e.g., the shelf) unaffected. However, we do observe error accumulation as the world model predicts the location of the cup to be slightly lower than that of the real trajectory in the final frame.
@@ -1472,7 +1472,7 @@ V‐JEPA 2‐AC 想象:
 39
 
 
-34 36 38 40 42 44 46 48 50 52 54 56 58 60 62 64 66 68 70 72 74 76 78 80
+ 34 36 38 40 42 44 46 48 50 52 54 56 58 60 62 64 66 68 70 72 74 76 78 80
 10
 20
 30
@@ -1501,7 +1501,7 @@ B.4 评估对相机位置的敏感性
 40
 
 
-each camera position consisting of real action versus inferred action pairs. We only focus on the ∆x and ∆y cartesian control actions (first two dimensions of the action vector) for our analysis. Let A ∈ R200×2 denote the inferred actions and B ∈ R200×2 denote the ground truth actions. Based on this, we can solve a linear least squares problem to identify the linear transformation W ⋆ ∈ R2×2 that maps inferred actions A to real actions B, W ⋆ = argmin
+ each camera position consisting of real action versus inferred action pairs. We only focus on the ∆x and ∆y cartesian control actions (first two dimensions of the action vector) for our analysis. Let A ∈ R200×2 denote the inferred actions and B ∈ R200×2 denote the ground truth actions. Based on this, we can solve a linear least squares problem to identify the linear transformation W ⋆ ∈ R2×2 that maps inferred actions A to real actions B, W ⋆ = argmin
 W ∈R2×2
 ∥AW − B∥2.
 The mean absolute prediction error for all camera position is roughly 1.6cm (compared to a ground truth delta pose of roughly 5cm), suggesting that the error is systematic. In addition, we observe that for each camera position, the matrix W ⋆ has condition number ≈ 1.5, i.e., modulo a fixed scalar coefficient, W ⋆ is approximately a rotation matrix, and thus we can compute the rotation error in the inferred coordinate axis by using
@@ -1534,7 +1534,7 @@ C.1 超参数
 41
 
 
-Table 15 Visual Classification eval params. Default parameters used for the visual classification evaluations, with non-default values for each eval (* denotes default). All attentive probes use 4 transformer blocks with 16 heads.
+ Table 15 Visual Classification eval params. Default parameters used for the visual classification evaluations, with non-default values for each eval (* denotes default). All attentive probes use 4 transformer blocks with 16 heads.
 Parameter Default (K400) ImageNet SSv2 COIN Jester/Diving-48
 Number of frames 16 16 16 32 32 Segments / Clip 8 1 2 8 4 Views / Segment 3 1 * * * Frame Step 4 n/a * * 2 Epochs 20 * * * 100 Batch Size (global) 256 1024 * 128 128 Resolution 256 × 256 * * * * Classifier Heads 20 (4x5) * * * 3 (3x1) Classifier Learning Rates [5e-3 3e-3 1e-3 3e-4 1e-4] * * * [1e-3 3e-4 1e-4] Classifier Weight Decay [.8 .4 .1 .01] * * * [.8]
 Table 16 Input layers for Jester/Diving-48. For each encoder size, indices of the four encoder layers whose tokens are used as input to the linear classifier in the Jester and Diving-48 evaluations.
@@ -1570,7 +1570,7 @@ C.2 附加结果
 42
 
 
-Table 17 Encoder Multilayer Ablation. We vary the number of encoder layers fed to the attentive probe. We report the classification performances of attentive probes trained on top of V-JEPA 2 with 16 frames at 256 × 256 resolution.
+ Table 17 Encoder Multilayer Ablation. We vary the number of encoder layers fed to the attentive probe. We report the classification performances of attentive probes trained on top of V-JEPA 2 with 16 frames at 256 × 256 resolution.
 Model Encoder Layers Diving-48 Jester
 ViT-g 1 82.9 96.1 ViT-g 4 86.7 97.6
 Table 18 Probe Size Ablation. We vary the number of layers in the attentive probe. We report the classification performances of attentive probes trained on top of V-JEPA 2 with 16 frames at 256 × 256 resolution.
@@ -1606,7 +1606,7 @@ D.2 补充结果
 43
 
 
-Table 19 Action Anticipation Evaluation params. Default parameters used for the EK100 Action Anticipation evaluation.
+ Table 19 Action Anticipation Evaluation params. Default parameters used for the EK100 Action Anticipation evaluation.
 Parameter EK100
 Train Anticipation time 0.25s – 1.75s Train Anticipation point 0.0 – 0.25 Val Anticipation time 1s Val Anticipation point 0.0 Number of frames 32 Frames per second 8 Epochs 20 Warmup epochs 0 Batch Size (global) 128 Classifier Heads 20 (4x5) Classifier Learning Rates [5e-3 3e-3 1e-3 3e-4 1e-4] Classifier Weight Decay [1e-4 1e-3 1e-2 1e-1]
 Table 20 EK100: Impact of Anticipation Probe Inputs. We investigate the impact of providing the outputs of the V-JEPA 2 encoder, predictor, or both, to the action anticipation probe. Using encoder outputs already leads to competitive performance on the EK100 task. Adding the predictor provides a small but consistent improvement across action, verb and object categories.
@@ -1690,7 +1690,7 @@ Analysis of Failure Cases. We report inFigure 18(Right), the distribution of fai
 44
 
 
-1s 2s 4s 10s
+ 1s 2s 4s 10s
 0
 10
 20
@@ -1755,7 +1755,7 @@ E.1 将图像和视频作为输入进行处理
 45
 
 
-benchmarks. In order to train with images, a simple approach is to repeat the given image for k frames, where k is the maximum amount of frames supported by V-JEPA 2. However, during our initial experiments we find this strategy is ineffective at improving downstream performance, as it does not allow the model to extract fine-grained information. Therefore, we employ a modified Dynamic S2 strategy introduced byLiu et al.(2024d) to provide V-JEPA 2 higher resolution granularity during training. This method adaptively processes an image at native resolution with different aspect ratios to preserve their original resolution, by creating a sequence of tiles of maximum size supported by V-JEPA 2. In case of videos, we choose to train with a fixed number of frames fn, by balancing the number of visual tokens with compute budget.
+ benchmarks. In order to train with images, a simple approach is to repeat the given image for k frames, where k is the maximum amount of frames supported by V-JEPA 2. However, during our initial experiments we find this strategy is ineffective at improving downstream performance, as it does not allow the model to extract fine-grained information. Therefore, we employ a modified Dynamic S2 strategy introduced byLiu et al.(2024d) to provide V-JEPA 2 higher resolution granularity during training. This method adaptively processes an image at native resolution with different aspect ratios to preserve their original resolution, by creating a sequence of tiles of maximum size supported by V-JEPA 2. In case of videos, we choose to train with a fixed number of frames fn, by balancing the number of visual tokens with compute budget.
 E.2Controlled Setup
 Training details For the controlled setup, we follow the LLaVA-NEXT framework (Liu et al.,2024a;Zhang et al.,2024b), where we use Qwen2-7B-Instruct (Yang et al.,2024a) as the base LLM for all encoders. To reduce the number of visual tokens, we employ an attentive pooler with a factor of 4-16, depending on the compute budget and the number of visual patches. SeeTable 21for more details.
 Our training setup follows the LLaVA-NeXT pipeline (Li et al.,2024b), which consists of multiple staged training phases. Concretely, the stages consist of: a) aligning the attentive pooler with image captioning data (Stage 1), b) training the full model on high quality image captioning (Stage 1.5), and c) training the full model on large scale image question answering (Stage 2). We add an extra stage to train on large scale video captioning and question answering (Stage 3). We use 18 million image and video-text aligned data. The LLM progressively improves its understanding of the visual tokens after multiple staged training, with the biggest improvement in video question answering tasks after Stage 3.
@@ -1777,7 +1777,7 @@ E.2 受控设置
 46
 
 
-Table 21 Hyperparameters for controlled comparison of vision encoders. We use each vision encoder with its native pretrained input resolution.
+ Table 21 Hyperparameters for controlled comparison of vision encoders. We use each vision encoder with its native pretrained input resolution.
 Model Pooling Ratio Vision Tokens BS Stage 1/1.5 LR Stage 2/3 LR WD Frames
 V-JEPA 2 ViT-L256 4 4096 256
 1e-5 5e-6 0.0 128
@@ -1832,7 +1832,7 @@ E.3 数据扩展设置
 47
 
 
-Table 22 Data scaling training parameters.
+ Table 22 Data scaling training parameters.
 Parameter Values
 Common parameters
 Crop Size 384 Video Frames per Second 1 Sampling method Uniform Seed 777 Stage 1

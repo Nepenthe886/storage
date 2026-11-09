@@ -30,7 +30,7 @@ parameter n-gram embedding table is addressed by the last three token ids, so it
 they are needed. Table 1 is the byte census of the 2-bit file.
 
 
-Part of the model Stored (Q2_0 file) Read per token
+ Part of the model Stored (Q2_0 file) Read per token
 Where Strata keeps it
 Routed experts (48 layers × 512) 34.0 GB 0.66 GB (2%) RAM (all) + VRAM cache (the mostused ~4,500)
 Mixers, attention, shared experts, routers
@@ -71,7 +71,7 @@ i-quant files, 20% for Q2_0, whose CPU needs the RAM bandwidth itself), and the 
 CPU's cores next to the RAM. The CPU writes its results back into mapped memory, the GPU adds
 
 
-everything up, and the next layer starts. The whole 48-layer pass is one captured CUDA graph per window
+ everything up, and the next layer starts. The whole 48-layer pass is one captured CUDA graph per window
 size, so the host never waits on a synchronizing driver call.
 GPU
 PCIe
@@ -117,7 +117,7 @@ so the right place to compute is the GPU: for each layer, the experts that are n
 pinned arena over PCIe while the GPU computes the previous ones, dequantized to half precision and
 
 
-multiplied with cuBLAS[18]. The buffers are borrowed from the expert cache and refilled afterwards. Prompt
+ multiplied with cuBLAS[18]. The buffers are borrowed from the expert cache and refilled afterwards. Prompt
 speed stays flat from 4K to 262K tokens because the sparse attention reads a bounded set of positions.
 3.6 Three quantizations of the same model
 ISTA-DASLab publishes three GSQ-RCO quantizations[4]: Q2_0 (2.25 bits per expert weight, the fastest),
@@ -136,7 +136,7 @@ key/value cache of the 12 sparse attention layers, their indexer keys and the la
 4 GB, so the automatic sizing fits about 1,600 experts on the GPU instead of about 4,500.
 
 
-4 Results
+ 4 Results
 Machine: RTX 5070 12 GB (PCIe 4.0 x16, driving the display), AMD Ryzen 5 7600 (6 cores, AVX-512),
 64 GB DDR5-5200 (EXPO off), NVMe SSD, Windows 10. Method: one code-agent prompt per length (a
 real code-review task over long source files), 256 generated tokens, greedy decoding, MTP speculation on (up
@@ -171,7 +171,7 @@ IQ3_XXS: experts in VRAM 3,556 3,511 3,279 2,990 2,407 –
 Table 4. Time to first token, tokens produced per verify window (accepted drafts + 1) and the number of experts the automatic sizing fitted into VRAM.
 
 
-5 Where the time goes
+ 5 Where the time goes
 A decode round (one verify window of up to four tokens) breaks down as in Table 5. “GPU” is the time the
 CPU waits for the GPU's per-layer work (weights read once per window, attention, the cached experts); “CPU
 experts” is the time the GPU waits for the CPU to finish the experts that were not in VRAM.
@@ -213,7 +213,7 @@ divergence of the next-token distribution is 0.022, below the 0.058 that llama.c
 builds differ by[9].
 
 
-4. An adaptive expert cache beats a static one by a wide margin. A profile recorded on other
+ 4. An adaptive expert cache beats a static one by a wide margin. A profile recorded on other
 prompts serves 50% of the routed experts from 4,500 VRAM slots; swapping in the conversation's own
 hot experts raises that to about 72%.
 5. Overlapping the two halves inside a layer did not pay. Splitting each window into two token
@@ -259,7 +259,7 @@ Keep the conversation's state between requests. Today every request processes it
 again. Saving the recurrent state at the end of each turn (a few hundred MB) and the KV cache would
 
 
-turn a 30-second re-read of a long chat into a fraction of a second[5, 8]. For agents this is the largest
+ turn a 30-second re-read of a long chat into a fraction of a second[5, 8]. For agents this is the largest
 single improvement available.
 Overlap across layers, not within one. Splitting each window into two token groups so that one
 group's CPU experts overlap the other group's GPU work is exact but slower (Finding 5); moving part of
@@ -306,7 +306,7 @@ IQ3_XXS ~260 / ~106 ~374 / ~103 ~396 / ~89 ~390 / ~85 ~378 / ~71 –
 Table 6. Estimated tokens per second, same CPU (6-core AVX-512) and 64 GB DDR5. Not measured.
 
 
-9 Related work
+ 9 Related work
 Computing mixture-of-experts layers partly on the CPU was explored by Eliseev and Mazur[22], Fiddler[13]
 and KTransformers[14]; MoE-Infinity[15] and Pre-gated MoE[16] study expert caching and next-layer
 prediction, and PowerInfer[23] exploits hot and cold activations on consumer GPUs. The idea of one engine

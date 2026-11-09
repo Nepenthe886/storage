@@ -62,7 +62,7 @@ VLA VLN VL
 arXiv:2605.30280v2 [cs.RO] 1 Jun 2026
 
 
-1Introduction
+ 1Introduction
 Embodied intelligence (Zitkovich et al.,2023;O’Neill et al.,2024) aims to build agents that can perceive the physical world, understand natural-language instructions, reason over spatial and temporal context, and execute actions to accomplish goals. Recent progress in vision-language models (VLMs) (Wang et al.,2024;Bai et al.,2025b;Team et al.,2025;Bai et al.,2025a;Team,2026) has substantially improved open-world visual understanding and language grounding, while diffusion- or flow-based policies (Black et al.,2024;2025;Intelligence et al.,2026) have shown strong potential for modeling continuous, highdimensional robot actions. However, most existing embodied systems (NVIDIA et al.,2025;Luo et al., 2025;Yang et al.,2026) remain specialized to a narrow task family, robot embodiment, or evaluation setting. Manipulation models (Intelligence et al.,2026) are often trained for tabletop or dexterous control, and navigation models (Zhang et al.,2024;2025b;Cheng et al.,2025) are designed around waypoint or action prediction in indoor environments. This fragmentation limits transfer across tasks, environments, and embodiments, and makes it difficult to scale embodied learning in the same way as general-purpose vision-language pretraining.
 A central challenge is that embodied decision-making problems appear heterogeneous on the surface. Robot manipulation may require predicting end-effector poses (Black et al.,2024;Zheng et al.,2025; Zhang et al.,2026), joint positions (Fu et al.,2024;NVIDIA et al.,2025), gripper states, or dexterous-hand configurations (Luo et al.,2025); navigation may require predicting waypoints or discrete movement decisions (Zhang et al.,2025a;Wang et al.,2025a;Wei et al.,2025); egocentric human demonstrations may provide wrist and hand trajectories rather than robot control signals. These tasks also differ in observation format, control frequency, prediction horizon, action dimensionality, and evaluation protocol. Nevertheless, they share a common computational structure: an embodied agent must condition on visual observations, language instructions, and embodiment-specific constraints, then predict future actions or trajectories that are physically and semantically aligned with the task. This observation motivates a unified formulation for embodied modeling. We leverage this insight to design a joint pretraining framework that absorbs manipulation, navigation, egocentric human demonstrations, and vision-language reasoning into a single vision-language-action model. The resulting model generalizes across embodiments and task settings.
 In this work, we presentQwen-VLA, a unified vision-language-action model for heterogeneous embodied decision-making. Qwen-VLA is built upon Qwen3.5-4B, a natively multimodal backbone from Qwen families that has demonstrated state-of-the-art performance across a wide range of vision-language benchmarks. The backbone brings strong fine-grained visual perception, robust referential grounding, multilingual instruction following, and structured reasoning capabilities, which are critical for embodied tasks that require interpreting spatial relations, identifying referred objects, and following complex multi-step instructions. On top of the backbone, we attach a DiT-based flow-matching action decoder that specializes in fine-grained continuous action generation. Instead of designing separate output heads or task-specific architectures for different embodiments, Qwen-VLA represents manipulation actions, navigation waypoints, and human egocentric motions in a shared action-and-trajectory prediction space. This design allows a single model to absorb supervision from diverse embodied datasets while preserving a unified inference interface.
@@ -78,7 +78,7 @@ Qwen‐VLA 的一个关键组成部分是在多样化的具身数据与视觉语
 2
 
 
-Training such a model is non-trivial because the VLM backbone and action decoder enter optimization in asymmetric states: the backbone already possesses general-purpose vision-language representations from large-scale pretraining, while the DiT action decoder is randomly initialized. Naively launching multimodal joint training from this point can waste computation on vision-independent decoder learning and destabilize the pretrained representations. We therefore adopt a staged training recipe grounded in a compression view of action learning. A language instruction such as “pick up the red cup” together with an embodiment prompt compactly encodes the task intent in a handful of tokens, yet the corresponding action trajectory may span hundreds of high-dimensional joint-position values. Bridging this dimensionality gap is a structured decompression problem, and our first training stage, i.e.,text-to-action DiT pretraining (T2A), teaches the decoder to serve as a language-conditioned action decompressor before any visual input is introduced. Once this compressed action prior is in place, continued pretraining grounds it in visual observations, supervised fine-tuning specializes it for downstream tasks, and reinforcement learning optimizes closed-loop task success. This recipe separates action-prior compression, visual grounding, task specialization, and success-driven refinement into distinct stages.
+ Training such a model is non-trivial because the VLM backbone and action decoder enter optimization in asymmetric states: the backbone already possesses general-purpose vision-language representations from large-scale pretraining, while the DiT action decoder is randomly initialized. Naively launching multimodal joint training from this point can waste computation on vision-independent decoder learning and destabilize the pretrained representations. We therefore adopt a staged training recipe grounded in a compression view of action learning. A language instruction such as “pick up the red cup” together with an embodiment prompt compactly encodes the task intent in a handful of tokens, yet the corresponding action trajectory may span hundreds of high-dimensional joint-position values. Bridging this dimensionality gap is a structured decompression problem, and our first training stage, i.e.,text-to-action DiT pretraining (T2A), teaches the decoder to serve as a language-conditioned action decompressor before any visual input is introduced. Once this compressed action prior is in place, continued pretraining grounds it in visual observations, supervised fine-tuning specializes it for downstream tasks, and reinforcement learning optimizes closed-loop task success. This recipe separates action-prior compression, visual grounding, task specialization, and success-driven refinement into distinct stages.
 We evaluate Qwen-VLA across multiple embodied settings, including robot manipulation, vision-andlanguage navigation, out-of-distribution generalization, and cross-embodiment transfer. The evaluation is designed not only to measure in-domain task success, but also to test whether a unified model can generalize under changes in object layout, lighting, background, language instruction, sensor noise, and robot embodiment. Empirically, our results show that large-scale joint pretraining over heterogeneous embodied data yields strong multi-task performance and improves robustness beyond narrow specialist training. These findings support the view that manipulation, navigation, and trajectory-centric embodied tasks can be treated as different manifestations of a shared action-and-trajectory prediction problem.
 Our contributions are summarized as follows:
 • We introduceQwen-VLA, a unified vision-language-action model that formulates manipulation, navigation, and egocentric action modeling within a shared action-and-trajectory space. Built on the Qwen3.5-4B vision-language backbone with a DiT-based flow-matching policy head, Qwen-VLA supports embodied control across multiple robot platforms and task families.
@@ -107,7 +107,7 @@ pθ(yt:t+H−1 | ot, x, e, z).
 3
 
 
-For manipulation tasks, it corresponds to future robot actions like end-effector positions; for navigation tasks, it represents navigation decisions or waypoints; for trajectory-centric tasks such as autonomous driving or motion forecasting, it denotes the precise future spatial trajectory of the agent or surrounding entities in continuous coordinate space; and for egocentric embodied data, it captures human body or hand motion trajectories represented in structured pose spaces such as MANO (Romero et al.,2017) or skeletal joint sequences. This unified formulation enables joint optimization across heterogeneous embodied datasets within a single model, facilitating transferable visual grounding, spatial reasoning, and action generation across task families. The formulation is also extensible along both the input and output axes: on the input side, augmenting the conditioning context ot with episodic memory or persistent state would enable long-horizon planning and failure recovery; on the output side, co-predicting future visual states alongside actions would unify action generation with world modeling, allowing the agent to anticipate the consequences of its actions.
+ For manipulation tasks, it corresponds to future robot actions like end-effector positions; for navigation tasks, it represents navigation decisions or waypoints; for trajectory-centric tasks such as autonomous driving or motion forecasting, it denotes the precise future spatial trajectory of the agent or surrounding entities in continuous coordinate space; and for egocentric embodied data, it captures human body or hand motion trajectories represented in structured pose spaces such as MANO (Romero et al.,2017) or skeletal joint sequences. This unified formulation enables joint optimization across heterogeneous embodied datasets within a single model, facilitating transferable visual grounding, spatial reasoning, and action generation across task families. The formulation is also extensible along both the input and output axes: on the input side, augmenting the conditioning context ot with episodic memory or persistent state would enable long-horizon planning and failure recovery; on the output side, co-predicting future visual states alongside actions would unify action generation with world modeling, allowing the agent to anticipate the consequences of its actions.
 2.2Model Architecture
 Our model comprises a vision-language backbone for high-level understanding and reasoning and a flow-matching action expert for fine-grained action generation.
 Vision-language backbone.We adopt Qwen3.5 (Team,2026) as the backbone. Qwen3.5 is a natively multimodal model trained with early vision-language fusion: visual tokens produced by a ViT with spatial merging are interleaved directly into the text token stream, enabling unified processing of images, videos, and language within a single transformer. Its hybrid attention design combines gated linear attention in the majority of layers with grouped-query softmax attention at regular intervals, allowing efficient encoding of long multimodal sequences while retaining full-precision global reasoning where needed.
@@ -133,7 +133,7 @@ T 该机器人是 {robot_tag},带有 {single arm / dual arms}[, 腰部][, 和移
 4
 
 
-a target tensor Y∈R H×K , where H is a fixed prediction horizon and K is a fixed channel dimension shared across all control modes.
+ a target tensor Y∈R H×K , where H is a fixed prediction horizon and K is a fixed channel dimension shared across all control modes.
 Control signal types.We cover two families of continuous control signals.Manipulationsignals include delta end-effector position (∆x, ∆y, ∆z), end-effector rotation expressed as Euler angles or quaternions, absolute joint positions, gripper aperture, and dexterous-hand joint angles.Navigation trajectorysignals follow the VLN convention and are represented as (∆x, ∆y, ∆θ) per waypoint, encoding relative displacement and heading change in the ground plane. Despite their different physical semantics, both families are sequences of real-valued vectors predicted over a horizon, and are therefore treated identically by the action expert.
 Channel layout.A given control mode uses c≤K channels. These c task-relevant values are placed in theleading c dimensions of Y, and the remaining K−c dimensions are zero-padded. A per-channel binary mask M∈ { 0, 1}H×K records which channels carry valid signals: Mh,k = 1if and only if channel k<c
 and time step h falls within the task’s chunk length Htask ≤H . This scheme requires no embodiment
@@ -214,7 +214,7 @@ log pθ (wi | w<i, o1:t), (3)
 5
 
 
-Timestep
+ Timestep
 AdaLN
 VLM
 ❄
@@ -322,7 +322,7 @@ L = λactLact + λvlLvl, (4)
 6
 
 
-fine-tuning (SFT)in two parallel branches, and (IV)reinforcement learning (RL). Each stage is defined by the gap it closes in the one before it.
+ fine-tuning (SFT)in two parallel branches, and (IV)reinforcement learning (RL). Each stage is defined by the gap it closes in the one before it.
 Stage I: Text-to-action DiT pretraining (T2A).We freeze the VLM and train only the DiT, conditioning it on text and the embodiment prompt e (Section2.3), but deliberately withholding images. The decoder thus operates as a pure language-to-action decompressor: it must reconstruct high-dimensional action distributions from the compact linguistic encoding alone, without any visual shortcut. In doing so, T2A installs a structured action prior in which language selects the region of action space, the embodiment prompt specifies the platform-specific motor parameterisation, and the flow-matching dynamics govern the generative process before any image is introduced.
 Stage II: Continued pretraining (CPT).With the decoder warm-started, CPT focuses its multimodal capacity on exactly the problem that T2A could not address: grounding actions in visual observations and adapting the backbone to embodied perception. We unfreeze both modules and train on the heterogeneous mixture of Section3.2, which deliberately combines simulation and real-robot trajectories so that the resulting checkpoint has seen both domains. This property is important for the post-training stages described below: SFT and RL can specialise toward either domain.
 Stage III: Supervised fine-tuning (SFT).While CPT provides broad cross-embodiment and cross-task coverage, downstream deployment benefits from aligning the model with curated, high-quality demonstrations drawn from the target task distribution. We branch SFT into two parallel tracks from the CPT checkpoint. The first track performs multi-task SFT that jointly fine-tunes the model on heterogeneous tasks, including visual question answering, spatial grounding, manipulation, and navigation, under embodiment-balanced and task-balanced sampling. The second track fine-tunes from the CPT checkpoint on in-house teleoperation data for real-world robot deployment, testing whether CPT’s cross-domain priors transfer to physical hardware.
@@ -353,7 +353,7 @@ Total 100.0
 7
 
 
-3.2.1Robotics Manipulation Trajectories
+ 3.2.1Robotics Manipulation Trajectories
 Real and simulated robot manipulation trajectories form the core of our pretraining corpus, accounting for approximately 74.2% of the total pretraining mixture. The data spans tabletop manipulation, mobile manipulation, bimanual tasks, and dexterous hand control across a diverse set of robot embodiments.
 Public datasets.To improve data scale, diversity, and cross-embodiment generalization, we train on a broad mixture of publicly available real-robot datasets, including RobotSet (Bharadhwaj et al.,2023), Galaxea (Jiang et al.,2025), AgiBot World (AgiBot-World-Contributors et al.,2025), RoboCOIN (Wu et al., 2025b), RoboMIND V1/V2 (Wu et al.,2025a;Hou et al.,2025), RDT-1B (Liu et al.,2025a), DROID (Khazatsky et al.,2024), BridgeData V2 (Walke et al.,2024), RH20T (Fang et al.,2023), RT-1 (Brohan et al., 2022), and BC-Z (Jang et al.,2022). These datasets cover diverse robotic settings, including tabletop manipulation, mobile manipulation, bimanual manipulation, dexterous hand control, and in-the-wild task execution, amounting to over 10,000 hours of interaction data across heterogeneous embodiments and task scenarios. This large-scale mixture provides complementary supervision over robot morphologies, camera viewpoints, object categories, backgrounds, language instructions, and action distributions, thereby reducing overfitting to any single embodiment or environment and improving robustness under distribution shifts.
 In addition to real-robot data, we include simulation-based manipulation trajectories from InternDataA1 (Tian et al.,2025) and GR00T-X-Embodiment-Sim (NVIDIA et al.,2025), which are generated through motion planning in diverse virtual environments. These simulated trajectories augment scene and object diversity, especially for long-tail object configurations and task layouts. Before training, all real and simulated datasets are curated and converted into a unified observation-action format while preserving their original task semantics, enabling scalable training over heterogeneous robot experience.
@@ -384,7 +384,7 @@ TienKung Dual 绝对关节 + G;绝对关节 +DH
 8
 
 
-in dataset k, we compute the 1st and 99th percentiles qk
+ in dataset k, we compute the 1st and 99th percentiles qk
 01 and qk
 99 over all trajectories and apply a linear
 mapping:
@@ -425,7 +425,7 @@ a ̃d = 2 · ad − qk
 9
 
 
-articulation over a fixed prediction horizon. For each hand, the wrist motion is represented as the SE(3) transformation of the wrist coordinate frame at a future time step relative to the initial frame. During training, this relative action is represented with a translation vector and an axis-angle rotation, yielding 6 wrist action dimensions per hand. To represent hand articulation compactly, we perform principal component analysis (PCA) on the 45-dimensional axis-angle joint pose of the hand across all human datasets and retain the weights of the first 10 principal components. These low-dimensional coefficients, dubbedeigengrasps(Ciocarlie et al.,2007;Yuan et al.,2025), capture the dominant modes of human hand-pose variation while discarding per-joint redundancy. The model predicts relative wrist actions and 10 eigengrasp coefficients per hand, yielding a total of 32 action dimensions per time step for egocentric human data.
+ articulation over a fixed prediction horizon. For each hand, the wrist motion is represented as the SE(3) transformation of the wrist coordinate frame at a future time step relative to the initial frame. During training, this relative action is represented with a translation vector and an axis-angle rotation, yielding 6 wrist action dimensions per hand. To represent hand articulation compactly, we perform principal component analysis (PCA) on the 45-dimensional axis-angle joint pose of the hand across all human datasets and retain the weights of the first 10 principal components. These low-dimensional coefficients, dubbedeigengrasps(Ciocarlie et al.,2007;Yuan et al.,2025), capture the dominant modes of human hand-pose variation while discarding per-joint redundancy. The model predicts relative wrist actions and 10 eigengrasp coefficients per hand, yielding a total of 32 action dimensions per time step for egocentric human data.
 3.2.3Synthetic Simulation Data
 To improve the coverage, controllability, and robustness of embodied supervision, we construct a large-scale synthetic simulation data pipeline with two complementary components: (1)vision-languageaction data, where the model predicts actions from both task instructions and image observations, and (2)language-action data, where the model predicts actions from language alone. These two sources of supervision play different but synergistic roles. The text-only component encourages the model to acquire high-level task abstractions and language-action regularities without depending on visual appearance, while the vision-conditioned component grounds those abstractions in realistic perceptual observations, scene variations, and embodied interaction dynamics. We developed our pipeline based on IsaacLab (Mittal et al.,2025) for our simulation environment and cuRobo (Sundaralingam et al.,2023) for collision-avoidance motion planning.
 Vision-language-action data.For the vision-conditioned synthetic data, we use an internal early version ofROBOINF(XLANG Lab,2026) to generate standard VLA-style supervision, where the model receives a language instruction and image observations as input and predicts robot actions as output.ROBOINF constructs manipulation scenes, generates scene-conditioned tasks, synthesizes executable success checks, produces robot motion programs through simulator feedback, and rolls out successful trajectories under domain randomization. Since the full technical details of the pipeline are provided in ourROBOINFblog post, we only summarize the dataset composition and diversity here.
@@ -447,7 +447,7 @@ Overall, the vision-conditioned synthetic data contains 359,848 full successful 
 10
 
 
-SHORT-HORIZON "Place the two green staplers side by side."
+ SHORT-HORIZON "Place the two green staplers side by side."
 Initial State Reaching Grasping Placing Completed
 SHORT-HORIZON "Turn the cake server so that it points toward the left side of the table."
 Initial State Reaching Grasping Rotating Completed
@@ -477,7 +477,7 @@ To ensure broad coverage of embodiment-specific kinematics and workspace geometr
 11
 
 
-within the robot’s reachable workspace bounds, randomizing positions, orientations, and inter-pose distances, and compute collision-free joint-space paths using a GPU-accelerated batch motion planner. The generation pipeline is parallelized across multiple GPUs, with each worker independently sampling target configurations, planning motions, and writing successful trajectories. Only kinematically valid trajectories for which the planner produces feasible, collision-free solutions across all required motion segments are retained.
+ within the robot’s reachable workspace bounds, randomizing positions, orientations, and inter-pose distances, and compute collision-free joint-space paths using a GPU-accelerated batch motion planner. The generation pipeline is parallelized across multiple GPUs, with each worker independently sampling target configurations, planning motions, and writing successful trajectories. Only kinematically valid trajectories for which the planner produces feasible, collision-free solutions across all required motion segments are retained.
 Each trajectory records joint positions, joint velocities, end-effector poses (position and orientation), and gripper states at 50 Hz, providing a rich and flexible supervision signal that can support a variety of action representations and control modes during training.
 During training, this dataset serves as the primary corpus for Stage I T2A pretraining (Section3.1), where the DiT action decoder is initialized on language–action correspondences before visual grounding is introduced. By exposing the decoder to a large and diverse set of language–action pairs without visual conditioning, this component pre-empts visual shortcuts and establishes a strong action prior that transfers to and complements the downstream vision-conditioned training stages.
 3.2.4Navigation data.
@@ -503,7 +503,7 @@ Fine-grained embodied action caption.Most existing robot datasets provide only c
 12
 
 
-alternative perspectives. All generated captions are finally reviewed and corrected by human annotators. This pipeline yields approximately 48,000 fine-grained video–caption pairs (0.2% of the pretraining mixture). Table3contrasts a coarse label with our fine-grained caption for the same episode.
+ alternative perspectives. All generated captions are finally reviewed and corrected by human annotators. This pipeline yields approximately 48,000 fine-grained video–caption pairs (0.2% of the pretraining mixture). Table3contrasts a coarse label with our fine-grained caption for the same episode.
 Table 3: Coarse task label vs. fine-grained action caption for the same episode.
 Coarse label“Pick up, rotate, and place the ceramic bowl.”
 Fine-grainedStep 1:Pick up the ceramic bowl from the right far edge. Step 2:Rotate the bowl clockwise for two full circles. Step 3:Place the bowl at the center of the table.
@@ -528,7 +528,7 @@ T2A 与 CPT 的大规模预训练产生了 Qwen‐VLA‐Base,这是一个通用�
 13
 
 
-reliable closed-loop control on specific downstream tasks. To bridge this gap, we introduce a two-stage post-training procedure that specializes base model for accurate task execution:
+ reliable closed-loop control on specific downstream tasks. To bridge this gap, we introduce a two-stage post-training procedure that specializes base model for accurate task execution:
 (i) A multi-tasksupervised fine-tuning(SFT) stage that jointly fine-tunes both the VLM backbone and the action expert on heterogeneous tasks, including visual question answering, spatial grounding, manipulation, and navigation, under embodiment-balanced and task-balanced sampling. (ii) Areinforcement learning(RL) stage, initialized from the SFT checkpoint, that further refines the policy by optimizing directly against task-success-driven rewards obtained from on-policy rollouts in simulation, producing the final modelQwen-VLA-Instruct.
 Across both stages, we use cosine-decayed learning rates with separate group-wise schedules for the vision-language backbone and the action decoder, along with gradient clipping consistent with pretraining. The specific data and methods for each stage are detailed in the subsequent sections.
 4.1Multi-Task Supervised Fine-Tuning
@@ -569,7 +569,7 @@ L(θ) = Lactor(θ) + cv Lvalue(θ), (7)
 14
 
 
-states before they enter the value head, so that value-function gradients do not propagate back through the pretrained backbone. The value head is trained with a clipped MSE loss and a separate learning rate (10−4, approximately20 × the actor learning rate of5 ×10−6), allowing it to converge rapidly while the policy updates remain conservative.
+ states before they enter the value head, so that value-function gradients do not propagate back through the pretrained backbone. The value head is trained with a clipped MSE loss and a separate learning rate (10−4, approximately20 × the actor learning rate of5 ×10−6), allowing it to converge rapidly while the policy updates remain conservative.
 Log-probability estimation under flow matching.A key challenge in applying PPO to our flowmatching action decoder is computing the log-probability logπ θ(at |s t) required for the importance
 ratio rt(θ). Unlike autoregressive token-based policies where log-probabilities are directly available from the softmax output, flow-matching models define an implicit density through a learned velocity field and iterative denoising. We convert the deterministic probability-flow ODE into a corresponding SDE by injecting controlled noise at each Euler denoising step (Song et al.,2021), so that each transition becomes an explicit Gaussian whose log-probability can be computed analytically without numerical ODE integration. During rollout we store the intermediate denoising states; at the PPO update we re-evaluate the velocity field under the current parameters and recompute the Gaussian log-probability, yielding the importance ratio at negligible additional cost. By default we randomly select a single denoising step per rollout for the log-probability estimate, requiring only one extra DiT forward pass during recomputation. Both log-probabilities and advantages are computed at theaction-chunklevel: each chunk of H=16action steps receives a single scalar reward and a single advantage estimate, matching the temporal granularity of the flow-matching decoder’s output.
 Reward design.We use a sparse binary reward from the simulator: R=1if the task goal is achieved at episode end and R=0otherwise. Credit assignment across action chunks is handled by GAE (eq. (6)), which propagates the episode-level signal back through the value baseline. No learned reward model is used; all signals come from the simulator’s ground-truth task-completion semantics.
@@ -588,7 +588,7 @@ rollout 基础设施。On‐policy rollout 在模拟环境中采集,这些环境
 15
 
 
-5.1Main Results
+ 5.1Main Results
 5.1.1Manipulation Results in Simulation
 To comprehensively evaluate the manipulation capabilities of Qwen-VLA, we benchmark on four simulation environments covering single-arm and dual-arm settings: LIBERO (Liu et al.,2023), Simpler (Li et al.,2024), RoboCasa-GR1 Tabletop Tasks (Nasiriany et al.,2024), and RoboTwin 2.0 (Mu et al.,2024).
 • LIBEROis a single-arm tabletop benchmark comprising diverse tasks across four splits: Libero-Spatial, Libero-Object, Libero-Goal, and Libero-Long.
@@ -634,7 +634,7 @@ Qwen‐VLA‐Base 通用型
 16
 
 
-Task 1: Pick and Place Task 2: Table Cleaning Task 3: Bowl Stacking Task 4: Bowl and Object Placing Task 5: Towel Folding Task 6: Fine-grained
+ Task 1: Pick and Place Task 2: Table Cleaning Task 3: Bowl Stacking Task 4: Bowl and Object Placing Task 5: Towel Folding Task 6: Fine-grained
 Color Generalization blue (unseen) pen
 In-Domain Tasks
 (Task 4) Pick up the blue bowl, then place the melon into the bowl.
@@ -706,7 +706,7 @@ OOD 任务 s. OOD 评估包含五种设置,分别评估不同类型的泛化能�
 17
 
 
-or a red block (unseen) during object placement.
+ or a red block (unseen) during object placement.
 • Position Generalization.This setting evaluates position generalization on Task 3 and Task 4, where bowls and target objects appear at spatial configurations (unseen).
 • Background Generalization.This setting evaluates background and lighting generalization on Task 2 and Task 3, including lighting conditions (unseen) for bowl stacking and a green background (unseen) for table cleaning.
 • Instruction Generalization.This setting evaluates instruction generalization on Task 3 and Task 6, where the robot is required to execute different actions according to the given language instruction. Examples include stacking bowls in a specified order (unseen) or stacking blocks according to color relations, e.g., placing the green block (unseen) on the purple block (unseen).
@@ -738,7 +738,7 @@ OOD 任务结果。表 6 报告了 OOD 泛化性能。Qwen‐VLA‐alohaw/ pretr
 18
 
 
-Table 6:OOD performance across generalization categories. Qwen-VLA-alohaw/o pretrain and Qwen-VLA-alohaw/ pretrain share the same Qwen-VLA model architecture; the former is trained from scratch, and the latter is fine-tuned from pretrained Qwen-VLA-Base.
+ Table 6:OOD performance across generalization categories. Qwen-VLA-alohaw/o pretrain and Qwen-VLA-alohaw/ pretrain share the same Qwen-VLA model architecture; the former is trained from scratch, and the latter is fine-tuned from pretrained Qwen-VLA-Base.
 Model Color Instance Position Background Instruction Avg.
 GR00T N1.6 (NVIDIA et al.,2025) 46.2 38.5 3.8 19.2 19.2 25.4 π0.5 (Black et al.,2025) 57.7 61.5 19.2 26.9 42.3 41.5 Qwen-VLA-alohaw/o pretrain 42.3 30.8 34.6 30.8 42.3 36.2 Qwen-VLA-alohaw/ pretrain 88.5 76.9 53.8 80.8 84.6 76.9
 Table 7:Comparison with open-source baselines on VLN-CE.We compare the Qwen-VLA Base and Instruct versions with widely regarded open-source baselines on the Val-Unseen split of the R2R and RxR benchmarks.Bold: best; underline : second best.
@@ -784,7 +784,7 @@ Qwen‐VLA‐Instruct 5.1 69.0 57.5 51.2 5.8 59.6 47.8 57.1
 19
 
 
-Table 8:OOD generalization results on SimplerEnv-OOD. Bold: best; underline : second best.
+ Table 8:OOD generalization results on SimplerEnv-OOD. Bold: best; underline : second best.
 Method OOD Task Avg.
 MoveAway MoveRight PlaceNear PlaceRight PutFront StackYellow
 π0.5 (Black et al.,2025) 26.1 0.0 0.0 32.113.04.2 12.6
@@ -822,7 +822,7 @@ Qwen‐VLA‐Base 21.1 37.4 Qwen‐VLA‐Instruct 26.6 39.5
 20
 
 
-5.1.6Out-of-Distribution Generalization in Real World
+ 5.1.6Out-of-Distribution Generalization in Real World
 Figure 5:Qualitative out-of-distribution generalization of Qwen-VLA-Base on the ALOHA dual-arm robot. Top-left:color-conditioned grasping of green, blue, red, and yellow balls.Top-right:upper two panels show grasping of novel objects (green broccoli, toy duck); lower two panels show a compositional “clean up the table” task with sequential pick-and-place into a bin (blue umbrella, toy duck, bottled yogurt).Bottom-left:interaction with completely unseen objects (sunglasses, plush doll, toy duck). Bottom-right:atomic action transfer through uncapping a pen and placing the cap, robust to unseen yellow backgrounds.
 To qualitatively examine continual pre-training, we evaluateQwen-VLA-Baseon the ALOHA dual-arm robot under four out-of-distribution settings: color grounding, novel object manipulation, unseen object recognition, and background robustness. Representative rollouts are shown in Figure5.
 Color grounding (top-left).We test whether Qwen-VLA-Base can discriminate between visually similar objects that differ only in color. Across four trials the robot is prompted with “grasp {color} ball” for green, blue, red, and yellow, respectively. In all cases the model correctly identifies the target color and produces accurate reaching-and-grasping trajectories, indicating color-conditioned semantic grounding after continual pre-training.
@@ -838,7 +838,7 @@ Unseen object interaction (bottom-left).We further probe zero-shot generalizatio
 21
 
 
-0% (Real only)
+ 0% (Real only)
 10% 20% 30% 50% 75% 100% (Syn only) Synthetic Data Ratio in T2A Corpus
 45
 50
@@ -956,7 +956,7 @@ SFT 成功率
 22
 
 
-Sequence prediction mode: full-length vs. chunk.Full-sequence prediction supervises the entire trajectory in one forward pass, exposing the decoder to long-horizon temporal structure and natural start/termination patterns. Chunk prediction instead splits each trajectory into fixed-length windows and trains the decoder to produce only the next window from a task instruction, which truncates long-horizon dependencies and creates positional ambiguity at chunk boundaries.
+ Sequence prediction mode: full-length vs. chunk.Full-sequence prediction supervises the entire trajectory in one forward pass, exposing the decoder to long-horizon temporal structure and natural start/termination patterns. Chunk prediction instead splits each trajectory into fixed-length windows and trains the decoder to produce only the next window from a task instruction, which truncates long-horizon dependencies and creates positional ambiguity at chunk boundaries.
 Fig.6(a) shows that full-sequence prediction consistently outperforms chunk prediction across data mixes. At 10% synthetic data, the gap is +4.9 pp (65.4% vs. 60.4%); at 0% synthetic (real-only) the gap is +2.9 pp (51.0% vs. 48.2%). Full trajectories let the decoder learn how language maps to complete action sequences, including trajectory-level coherence and compositionality, whereas chunks provide only local fragments that leave this mapping incomplete. Importantly, the action representation is identical between T2A and downstream stages: actions are encoded as delta end-effector displacements relative to the first frame of each chunk, and the embodiment prompt specifies the robot platform, normalisation convention, and prediction horizon, allowing the decoder to handle heterogeneous embodiments within the same T2A objective.
 Visual input during T2A.T2A is deliberately avision-freestage. Including image observations would raise per-step cost by roughly an order of magnitude and, more importantly, would let the decoder shortcut through visual cues instead of learning to ground actions in language.
 Fig.6(a) confirms this: at 10% synthetic data, chunk prediction with images scores 57.6%, while the same setting without images reaches 60.4%—a −2.9 pp penalty for including vision. When images are present, the decoder can rely on visual correlations rather than building a reliable language–action mapping, diluting exactly the prior that T2A is designed to establish. Image tokens should be fully suppressed during T2A; visual grounding is deferred to CPT, by which time the decoder already possesses a well-formed action prior.
@@ -982,7 +982,7 @@ T2A 训练时长。更长的 T2A 训练能让解码器更充分地探索动作�
 23
 
 
-embodied fine-tuning helps or hurts action quality. We compare three configurations in Fig.7:(a)Actiononly: the backbone is fine-tuned exclusively on embodied trajectories with no VL supervision;(b)Action + VL data: a fraction of VL data (VQA, captioning, spatial grounding) is mixed into the training corpus.
+ embodied fine-tuning helps or hurts action quality. We compare three configurations in Fig.7:(a)Actiononly: the backbone is fine-tuned exclusively on embodied trajectories with no VL supervision;(b)Action + VL data: a fraction of VL data (VQA, captioning, spatial grounding) is mixed into the training corpus.
 Libero Simpler-WidowX RoboCasa-GR1 RoboTwin-2.0 Benchmark
 0
 20
@@ -1056,7 +1056,7 @@ di 个参数),每个具身从对应片段中取出其预测结果。
 24
 
 
-Table 10:Projection design ablation.Results are task-average success rates (%). All co-training variants share the same training recipe.
+ Table 10:Projection design ablation.Results are task-average success rates (%). All co-training variants share the same training recipe.
 Single-Embodiment Training Multi-Embodiment Co-training
 Bridge Only Robocasa Only Multi-MLP Concat. Zero-Pad
 Bridge 62.8 —63.363.0 63.0 Robocasa — 53.4 52.1 52.853.2
@@ -1093,7 +1093,7 @@ CPT 64.3 40.4 64.3 66.4 90.8 25.3 21.1 37.4 + SFT 70.8 56.0 86.3 87.1 97.8 31.6 
 25
 
 
-• State in VLM Prompt.Joint angles are discretized into 256 bins per dimension and serialized into the language prompt, e.g., "state: [34, 128, 67, 200, 55, 12, 88] pick up the bowl". The VLM processes state tokens together with images and the instruction; the DiT receives no additional state input.
+ • State in VLM Prompt.Joint angles are discretized into 256 bins per dimension and serialized into the language prompt, e.g., "state: [34, 128, 67, 200, 55, 12, 88] pick up the bowl". The VLM processes state tokens together with images and the instruction; the DiT receives no additional state input.
 • State in DiT.Joint angles are passed as continuous-valued vectors directly to the DiT action decoder as an additional conditioning input, bypassing the VLM entirely.
 Table 12: State conditioning ablation on RoboTwin-2.0 (success rates, %).
 Conditioning RoboTwin-Easy RoboTwin-Hard
@@ -1119,7 +1119,7 @@ These limitations motivate several future directions. Scaling real-world interac
 26
 
 
-and proprioceptive signals, combined with large-scale reinforcement learning in simulation and the real world, may further bridge the gap between language-grounded embodied understanding and reliable control.
+ and proprioceptive signals, combined with large-scale reinforcement learning in simulation and the real world, may further bridge the gap between language-grounded embodied understanding and reliable control.
 8Contributions and Acknowledgments
 Core Contributors
 Qiuyue Wang∗ Mingsheng Li∗ Jian Guan∗ Jinhui Ye Sicheng Xie Yitao Liu Junhao Chen Zhixuan Liang Jie Zhang Xintong Hu Xuhong Huang Pei Lin Junyang Lin Dayiheng Liu Shuai Bai† Jingren Zhou
@@ -1145,7 +1145,7 @@ Jiazhao Zhang Haoqi Yuan Gengze Zhou Hang Yin Ye Wang Yiyang Huang Zixing Lei Wu
 27
 
 
-References
+ References
 AgiBot-World-Contributors, Qingwen Bu, Jisong Cai, Li Chen, et al. Agibot world colosseo: A large-scale manipulation platform for scalable and intelligent embodied systems, 2025. URL https://arxiv.org/ abs/2503.06669.
 Shuai Bai, Yuxuan Cai, Ruizhe Chen, Keqin Chen, Xionghui Chen, Zesen Cheng, Lianghao Deng, Wei Ding, Chang Gao, Chunjiang Ge, et al. Qwen3-vl technical report.arXiv preprint arXiv:2511.21631, 2025a.
 Shuai Bai, Keqin Chen, Xuejing Liu, Jialin Wang, Wenbin Ge, Sibo Song, Kai Dang, Peng Wang, Shijie Wang, Jun Tang, Humen Zhong, Yuanzhi Zhu, Mingkun Yang, Zhaohai Li, Jianqiang Wan, Pengfei Wang, Wei Ding, Zheren Fu, Yiheng Xu, Jiabo Ye, Xi Zhang, Tianbao Xie, Zesen Cheng, Hang Zhang, Zhibo Yang, Haiyang Xu, and Junyang Lin. Qwen2.5-vl technical report, 2025b.
@@ -1181,7 +1181,7 @@ StarVLA 社区。Starvla:一个用于视觉‐语言‐动作模型开发的乐�
 28
 
 
-Charles Corbiere, Simon Roburin, Syrielle Montariol, Antoine Bosselut, and Alexandre Alahi. Retrieval-based interleaved visual chain-of-thought in real-world driving scenarios.arXiv preprint arXiv:2501.04671, 2025.
+ Charles Corbiere, Simon Roburin, Syrielle Montariol, Antoine Bosselut, and Alexandre Alahi. Retrieval-based interleaved visual chain-of-thought in real-world driving scenarios.arXiv preprint arXiv:2501.04671, 2025.
 Dima Damen, Hazel Doughty, Giovanni Maria Farinella, Sanja Fidler, Antonino Furnari, Evangelos Kazakos, Davide Moltisanti, Jonathan Munro, Toby Perrett, Will Price, and Michael Wray. Rescaling egocentric vision: Collection, pipeline and challenges for epic-kitchens-100.International Journal of Computer Vision, 130:33–55, 2022.
 Thierry Deruyttere, Simon Vandenhende, Dusan Grujicic, Luc Van Gool, and Marie Francine Moens. Talk2car: Taking control of your self-driving car. InProceedings of the conference on empirical methods in natural language processing, pp. 2088–2098, 2019.
 Karim Elmaaroufi, Liheng Lai, Justin Svegliato, Yutong Bai, Sanjit A Seshia, and Matei Zaharia. Graid: Enhancing spatial reasoning of vlms through high-fidelity data generation.arXiv preprint arXiv:2510.22118, 2025.
@@ -1217,7 +1217,7 @@ Physical Intelligence、Bo Ai、Ali Amin、Raichelle Aniceto、Ashwin Balakrishn
 29
 
 
-Eric Jang, Alex Irpan, Mohi Khansari, Daniel Kappler, Frederik Ebert, Corey Lynch, Sergey Levine, and Chelsea Finn. Bc-z: Zero-shot task generalization with robotic imitation learning, 2022. URL https://arxiv.org/abs/2202.02005.
+ Eric Jang, Alex Irpan, Mohi Khansari, Daniel Kappler, Frederik Ebert, Corey Lynch, Sergey Levine, and Chelsea Finn. Bc-z: Zero-shot task generalization with robotic imitation learning, 2022. URL https://arxiv.org/abs/2202.02005.
 Michael Janner, Yilun Du, Joshua Tenenbaum, and Sergey Levine. Planning with diffusion for flexible behavior synthesis. InInternational Conference on Machine Learning, pp. 9902–9915. PMLR, 2022.
 Xiaosong Jia, Yuqian Shao, Zhenjie Yang, Qifeng Li, Zhiyuan Zhang, and Junchi Yan. Bench2drivevl: Benchmarks for closed-loop autonomous driving with vision-language models.arXiv preprint arXiv:2604.01259, 2026.
 Bo Jiang, Shaoyu Chen, Bencheng Liao, Xingyu Zhang, Wei Yin, Qian Zhang, Chang Huang, Wenyu Liu, and Xinggang Wang. Senna: Bridging large vision-language models and end-to-end autonomous driving.arXiv preprint arXiv:2410.22313, 2024.
@@ -1256,7 +1256,7 @@ Yaron Lipman、Ricky T. Q. Chen、Heli Ben‐Hamu、Maximilian Nickel 和 Matt L
 30
 
 
-Bo Liu, Yifeng Zhu, Chongkai Gao, Yifeng Feng, Qiang Liu, Yuke Zhu, and Peter Stone. LIBERO: Benchmarking knowledge transfer for lifelong robot learning.Advances in Neural Information Processing Systems (NeurIPS), 2023.
+ Bo Liu, Yifeng Zhu, Chongkai Gao, Yifeng Feng, Qiang Liu, Yuke Zhu, and Peter Stone. LIBERO: Benchmarking knowledge transfer for lifelong robot learning.Advances in Neural Information Processing Systems (NeurIPS), 2023.
 Songming Liu, Lingxuan Wu, Bangguo Li, Hengkai Tan, Huayu Chen, Zhengyi Wang, Ke Xu, Hang Su, and Jun Zhu. Rdt-1b: a diffusion foundation model for bimanual manipulation, 2025a. URL https://arxiv.org/abs/2410.07864.
 Songming Liu, Lingxuan Wu, Bangguo Li, Hengkai Tan, Huayu Chen, Zhengyi Wang, Ke Xu, Hang Su, and Jun Zhu. Rdt-1b: a diffusion foundation model for bimanual manipulation. InInternational Conference on Learning Representations, 2025b.
 Hao Luo, Yicheng Feng, Wanpeng Zhang, Sipeng Zheng, Ye Wang, Haoqi Yuan, Jiazheng Liu, Chaoyi Xu, Qin Jin, and Zongqing Lu. Being-h0: Vision-language-action pretraining from large-scale human videos.arXiv preprint arXiv:2507.15597, 2025.
@@ -1284,7 +1284,7 @@ William P eebles 与 Saining Xie。使用 Transformer 的可扩展扩散模型�
 31
 
 
-Karl Pertsch, Kyle Stachowicz, Brian Ichter, Danny Driess, Suraj Nair, Quan Vuong, Oier Mees, Chelsea Finn, and Sergey Levine. Fast: Efficient action tokenization for vision-language-action models.arXiv preprint arXiv:2501.09747, 2025.
+ Karl Pertsch, Kyle Stachowicz, Brian Ichter, Danny Driess, Suraj Nair, Quan Vuong, Oier Mees, Chelsea Finn, and Sergey Levine. Fast: Efficient action tokenization for vision-language-action models.arXiv preprint arXiv:2501.09747, 2025.
 Ryan Punamiya, Simar Kareer, Zeyi Liu, Josh Citron, Ri-Zhao Qiu, Xiongyi Cai, Alexey Gavryushin, Jiaqi Chen, Davide Liconti, Lawrence Y. Zhu, et al. Egoverse: An egocentric human dataset for robot learning from around the world.arXiv preprint arXiv:2604.07607, 2026.
 Tianwen Qian, Jingjing Chen, Linhai Zhuo, Yang Jiao, and Yu-Gang Jiang. Nuscenes-qa: A multi-modal visual question answering benchmark for autonomous driving scenario. InProceedings of the AAAI Conference on Artificial Intelligence, volume 38, pp. 4542–4550, 2024.
 Javier Romero, Dimitrios Tzionas, and Michael J Black. Embodied hands: modeling and capturing hands and bodies together.ACM Transactions on Graphics (TOG), 36(6):1–17, 2017.
@@ -1322,7 +1322,7 @@ Shihao Wang、Zhiding Yu、Xiaohui Jiang、Shiyi Lan、Min Shi、Nadine Chang、
 32
 
 
-Yihao Wang, Pengxiang Ding, Lingxiao Li, Can Cui, Zirui Ge, Xinyang Tong, Wenxuan Song, Han Zhao, Wei Zhao, Pengxu Hou, et al. Vla-adapter: An effective paradigm for tiny-scale vision-language-action model. InProceedings of the AAAI conference on artificial intelligence, volume 40, pp. 18638–18646, 2026.
+ Yihao Wang, Pengxiang Ding, Lingxiao Li, Can Cui, Zirui Ge, Xinyang Tong, Wenxuan Song, Han Zhao, Wei Zhao, Pengxu Hou, et al. Vla-adapter: An effective paradigm for tiny-scale vision-language-action model. InProceedings of the AAAI conference on artificial intelligence, volume 40, pp. 18638–18646, 2026.
 Meng Wei, Chenyang Wan, Xiqian Yu, Tai Wang, Yuqiang Yang, Xiaohan Mao, Chenming Zhu, Wenzhe Cai, Hanqing Wang, Yilun Chen, et al. Streamvln: Streaming vision-and-language navigation via slowfast context modeling.arXiv preprint arXiv:2507.05240, 2025.
 Kun Wu, Chengkai Hou, Jiaming Liu, Zhengping Che, Xiaozhu Ju, Zhuqin Yang, Meng Li, Yinuo Zhao, Zhiyuan Xu, Guang Yang, Shichao Fan, Xinhua Wang, Fei Liao, Zhen Zhao, Guangyu Li, Zhao Jin, Lecheng Wang, Jilei Mao, Ning Liu, Pei Ren, Qiang Zhang, Yaoxu Lyu, Mengzhen Liu, He Jingyang, Yulin Luo, Zeyu Gao, Chenxuan Li, Chenyang Gu, Yankai Fu, Di Wu, Xingyu Wang, Sixiang Chen, Zhenyu Wang, Pengju An, Siyuan Qian, Shanghang Zhang, and Jian Tang. RoboMIND: Benchmark on multi-embodiment intelligence normative data for robot manipulation. InRobotics: Science and Systems XXI, RSS2025. Robotics: Science and Systems Foundation, June 2025a. doi: 10.15607/rss.2025.xxi.152. URLhttp://dx.doi.org/10.15607/RSS.2025.XXI.152.
 Shihan Wu, Xuecheng Liu, Shaoxuan Xie, Pengwei Wang, et al. RoboCOIN: An open-sourced bimanual robotic data collection for integrated manipulation, 2025b. URLhttps://arxiv.org/abs/2511.17441.
@@ -1358,7 +1358,7 @@ Jiazhao Zhang、Kunyu Wang、Shaoan Wang、Minghan Li、Haoran Liu、Songlin Wei
 33
 
 
-Jinliang Zheng, Jianxiong Li, Zhihao Wang, Dongxiu Liu, Xirui Kang, Yuchun Feng, Yinan Zheng, Jiayin Zou, Yilun Chen, Jia Zeng, et al. X-vla: Soft-prompted transformer as scalable cross-embodiment vision-language-action model.arXiv preprint arXiv:2510.10274, 2025.
+ Jinliang Zheng, Jianxiong Li, Zhihao Wang, Dongxiu Liu, Xirui Kang, Yuchun Feng, Yinan Zheng, Jiayin Zou, Yilun Chen, Jia Zeng, et al. X-vla: Soft-prompted transformer as scalable cross-embodiment vision-language-action model.arXiv preprint arXiv:2510.10274, 2025.
 Ruijie Zheng, Dantong Niu, Yuqi Xie, Jing Wang, Mengda Xu, Yunfan Jiang, Fernando Castañeda, Fengyuan Hu, You Liang Tan, Letian Fu, Trevor Darrell, Furong Huang, Yuke Zhu, Danfei Xu, and Linxi Fan. Egoscale: Scaling dexterous manipulation with diverse egocentric human data.arXiv preprint arXiv:2602.16710, 2026.
 Yuchen Zhou, Jiayu Tang, Xiaoyan Xiao, Yueyao Lin, Linkai Liu, Zipeng Guo, Hao Fei, Xiaobo Xia, and Chao Gou. Where, what, why: Towards explainable driver attention prediction. InProceedings of the IEEE/CVF International Conference on Computer Vision, pp. 2675–2685, 2025.
 Brianna Zitkovich, Tianhe Yu, Sichun Xu, Peng Xu, Ted Xiao, Fei Xia, Jialin Wu, Paul Wohlhart, Stefan Welker, Ayzaan Wahid, et al. Rt-2: Vision-language-action models transfer web knowledge to robotic control. InConference on Robot Learning, 2023.

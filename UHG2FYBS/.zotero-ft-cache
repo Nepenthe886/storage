@@ -46,7 +46,7 @@ Gemini Robotics 1.5 通过整合两项核心突破,拓展了视觉‐语言‐�
 arXiv:2510.03342v3 [cs.RO] 28 Nov 2025
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Actions that can be executed across three robots without explicit action space alignment
 Segmentation masks Object detection
 2D Pointing Trajectory prediction
@@ -139,7 +139,7 @@ Gemini 使用工具、通过视频和音频等模态进行交流以及编写代�
 2
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 2.Method Overview
 2.1.Model & Architecture
 Gemini Robotics 1.5 model family. Both Gemini Robotics 1.5 and Gemini Robotics-ER 1.5 inherit Gemini’s multimodal world knowledge. Gemini Robotics-ER 1.5 (GR-ER 1.5 for short), our VLM, fully retains Gemini’s capabilities including advanced reasoning, tool use, and more. It has additionally been optimized for complex embodied reasoning problems such as task planning, reasoning for spatial expertise, and task progress estimation. GR-ER 1.5 significantly extends and improves upon GR-ER’s embodied reasoning capabilities. Gemini Robotics 1.5 (GR 1.5 for short), our VLA model, translates mid- and short-horizon instructions into robot actions. It understands open-vocabulary natural language instructions, can perform reasoning steps before emitting an action, and it can natively control multiple robots with different embodiments. As such, GR 1.5 significantly extends the previous Gemini Robotics’ capabilities.
@@ -182,7 +182,7 @@ al., 2024; Smith et al., 2025),并在输出动作之前将其追加到上下文�
 3
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 the left” or “close the gripper”, thus leveraging an explicit understanding of the geometry of the scene to solve the task. Overall, our models’ ability to perform embodied thinking dramatically improves their ability to handle multi-step tasks by allowing the models to compose skills in a structured, deliberate manner, ultimately leading to more robust and reliable robot performance.
 Motion Transfer. In Gemini Robotics 1.5, we also introduce a new model architecture and training recipe for the VLA. These enable the model to learn from different robots and data sources, to form a unified understanding of motions and the effects of physical interactions, enabling skills to transfer across very different robot embodiments. We refer to the new training recipe as Motion Transfer (MT) in our results.
 2.2.Robot Data
@@ -228,7 +228,7 @@ Robotics On‐Device 进行比较。我们的实验旨在回答以下问题:
 4
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Figure 2 | GR 1.5 can control three different robots with the same checkpoint to accomplish a variety of tasks out-of-the-box.
 1.How does GR 1.5 perform and generalize on short-horizon tasks? 2.Does GR 1.5 effectively learn from and transfer knowledge across different embodiments? 3.How does the thinking process contribute to multi-step tasks?
 We develop a benchmark that follows the design philosophy that was used to evaluate Gemini Robotics (Gemini-Robotics-Team et al.,2025). We extend it to cover all our embodiments, adding more challenging and multi-step tasks, as well as tasks that test cross-embodiment transfer and thinking. The full benchmark includes 230 tasks in total.
@@ -261,7 +261,7 @@ Gemini Roboti cs 1.5:以先进的具身推理、思考与运动迁移推动通�
 5
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 In-Distribution Instruction
 Generalization
 Action
@@ -419,7 +419,7 @@ Apollo Humanoid
 6
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 In-Distribution Instruction
 Generalization
 Action
@@ -601,7 +601,7 @@ Robotics 之间显著的性能提升。
 7
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Close the pear organizer.
 Unhang the tape.
 Slide open the wardrobe door.
@@ -637,7 +637,7 @@ Gemini Robotics 1.5 能够跨不同机器人本体学习和迁移技能,从而�
 8
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 commonalities, thereby aiding the learning process. Conversely, for Bi-arm Franka with a moderate amount of data, adding cross-embodiment data is beneficial, and MT successfully facilitates this by aligning and extracting shared knowledge. For humanoid robots, where data is scarce, the addition of external embodiment data provides the greatest performance boost; yet, the effect of MT is less pronounced here, suggesting that the technique’s alignment capabilities may be less effective when the embodiment gap is substantially larger, such as between the highly dissimilar humanoid and other robot forms.
 In Fig.5we report success rate in addition to progress score in order to highlight that zero-shot transfer with Gemini Robotics 1.5 leads to successful task execution, not just partial progress towards completion of the task.
 3.3.Thinking Helps Acting
@@ -699,7 +699,7 @@ VLM主干强大的视觉‐语言能力,而第二步则涉及学习更简单的�
 9
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Figure 7 | From left to right, top to bottom: an example rollout of the Thinking VLA: the Apollo humanoid packing objects into a white bag. The thinking trace are overlaid on each snapshot. The Thinking VLA is able to think about its actions at different levels, allowing it to accomplish tasks requiring semantic reasoning and multiple steps of execution.
 Thinking VLA exhibits a degree of situational awareness regarding task completion. For instance, as shown in Fig.7, the robot automatically switches its objective from “pick up the yellow tennis ball” to “put the yellow tennis ball in the white bag” once the ball has been successfully grasped. This demonstrates that the model possesses an implicit awareness of the success of the prior subtask, removing the need for an explicit success detector. Thirdly, the Thinking VLA enables sophisticated recovery behaviors. For example, in Fig.7, when the water bottle slips from the right hand and lands near the left hand, the next thinking trace immediately becomes “pick up the water bottle with the left hand”, effectively initiating a self-correcting recovery behavior.
 4.Gemini Robotics-ER 1.5 is a generalist embodied reasoning model
@@ -720,7 +720,7 @@ Gemini Robotics‐ER 1.5(GR‐ER 1.5),这是基于 Gemini 构建的、用于实�
 10
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 40 50 60 70 80 90
 Generality
 46
@@ -797,7 +797,7 @@ Gemini Robotics‐ER 1.5 拓展了通用性与具身推理的帕累托前沿,在
 11
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Trajectory (to put into bin)
 Segmentation mask
 Trajectory (to close the laptop)
@@ -893,7 +893,7 @@ GPT‐5 GPT‐5‐mini
 12
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Figure 11 | Complex pointing examples from GR-ER 1.5. The model can follow complex pointing prompts that require reasoning about physical, spatial, and semantic constraints: It can localize precise parts of objects, such as the rim of a bowl and sockets of a power strip (Row 2, Columns 1 and 3) and predict points that respect physical, spatial, and semantic constraints, e.g., corresponding to objects that are lighter than 10 pounds (Row 1, Column 3), and matching similar items (Row 2, Column 2). GR-ER 1.5 can also sequence points into trajectories that respect physics (Row 1, Column 2) and avoid collisions (Row 1, Column 1).
 4.2.Frontier capabilities for Embodied Reasoning
 GR-ER 1.5 showcases advanced performance across a number of embodied reasoning capabilities which are highly relevant for understanding the physical world, particularly in robotic applications. We visualize some of these in Fig.9and analyze a few of these areas in detail.
@@ -917,7 +917,7 @@ GR‐ER 1.5 在复杂指向的学术基准上取得了新的最先进结果,如�
 13
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Did the robot successfully move the orange pack of biscuits from the basket onto the shelf next to the blue bowl? A: Yes
 Progress Understanding
 Multi-view Success Detection
@@ -1020,7 +1020,7 @@ GR‐ER、Gemini 2.5 和 GPT‐5。它尤其擅长需要推理物理、空间和
 14
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Real-world Robotics Use Cases
 0
 10
@@ -1086,7 +1086,7 @@ GPT-5 GPT-5-mini
 15
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Identify individual socks and their patterns:
 * Sock 3 (center-top): Light blue sock with small white dots. It's partially obscured. Pattern: small white dots. Let's look for a match. * Sock 4 (bottom-center): Light blue sock with small white dots. This matches Sock 3.
 Create pairs based on matching patterns:
@@ -1145,7 +1145,7 @@ GR‐ER 1.5 随思考增强的强劲性能扩展表明,有望利用推理时计�
 16
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Figure 16 | (Left) GR-ER 1.5 uses inference-time compute to improve performance. (Center) GR-ER 1.5 appropriately modulates how many thinking tokens it uses depending on the amount of reasoning needed by the task. Given the same thinking budget, GR-ER 1.5 uses fewest tokens for pointing tasks, and most for video QA. (Right) GR-ER 1.5 scales better with inference-time compute on embodied reasoning tasks compared to Gemini 2.5 Flash. All data points are the average of 3 evaluation runs over the same benchmark sets.
 5.Gemini Robotics 1.5: A Physical Agent
 In this section, we combine GR-ER 1.5, our embodied reasoning model, with GR 1.5, our VLA model, into a full agentic system, and demonstrate how the synergy between these two models enables the execution of complex, long-horizon tasks (Ahn et al.,2022;Huang et al.,2022;Shi et al.,2025) in out-of-distribution environments. The test scenarios require advanced real-world understanding, tool use, long-horizon task planning, execution, and error recovery. To understand the contribution of different components of the agentic system, we conduct the following ablation study:
@@ -1179,7 +1179,7 @@ Gemini Roboti cs 1.5:凭借先进的具身推理、思考与动作迁移,推动�
 17
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Blocks in Drawer Desk Organization Sort Trash Pack Suitecase
 0.0
 0.2
@@ -1261,7 +1261,7 @@ Progress Score
 18
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 We compare our GR 1.5 Agent with the baseline agent that uses the off-the-shelf Gemini 2.5 Flash model for orchestration. For more complex tasks, our system achieves nearly double the progress score.
 Subtask failure modes Agent Agent (Gemini 2.5 Flash as orchestrator) (GR-ER 1.5 as orchestrator) Planning 25.5% 9% Success detection 6% 4% Action 13% 9% Total failure rates 44.5% 22%
 Table 1 | Failure modes for long-horizon evaluations: A planning failure is when the orchestrator makes a wrong plan or issues a wrong instruction to the VLA. A success detection failure is when the agent ends a sub-task either too early or too late. An action failure is when the VLA does not successfully complete the sub-task.
@@ -1303,7 +1303,7 @@ al., 2025)保持一致;这些政策旨在防止生成仇恨言论、性露骨内
 19
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 policies. In turn, this implies that robots will foster safe human-robot interactions, engaging in socially appropriate behaviors through their speech, gestures, and actions.
 Semantic Action Safety: Broadly, semantic safety addresses the innumerable, “long-tail”, commonsense constraints of operating in human-centric environments, e.g. that a box may be too heavy to lift, or that spilled liquid on the floor is a slip hazard. We previously released the ASIMOVbenchmark (Sermanet et al.,2025) to evaluate and improve semantic action safety. We are now releasing an upgrade of this benchmark: ASIMOV-2.0 has improved quality, better tail coverage of real-world injury scenarios (NEISS,2024), new video modalities (generated by VEO 4), and new embodied reasoning tasks involving physical constraints. Fig.18shows instances of this eval suite across text, image and video modalities; for more details see (Jindal et al.,2025), released concurrently with this tech report. In Fig.19, we see that GR-ER 1.5 improves over GR-ER in recognizing risks, understanding safety consequences of actions, and knowing when to trigger interventions. When GR-ER 1.5 is fine-tuned for Thinking about Safety, we see state-of-the-art results in safety-constrained pointing tasks (Fig.19(b)).
 REAL REPORT 3YOM HAD A PILL IN HIS MOUTH FROM GRANDMOTHERS PILL CASE.. DIAGNOSTIC CODE POISONING
@@ -1344,7 +1344,7 @@ C:中度 , D:严重⋯⋯
 20
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 (a)GR-ER1.5improvesinjuryriskrecognition,action safetyandinterventionprediction.
 (b)GR-ER1.5Thinkingimprovesadherence toPhysicalSafetyConstraints.
 Figure 19 | ASIMOV-2.0 Safety Evaluations.
@@ -1376,7 +1376,7 @@ Gemini Robotics 部署所带来的社会影响必须与安全风险同步应对�
 21
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 strategy for mitigating risk, deploying responsibly, and ensuring transparent reporting. Please refer to AppendixAfor the Gemini Robotics model card.
 7.Discussion
 This work presents Gemini Robotics 1.5, a significant step towards general-purpose robots capable of operating intelligently in the physical world. By combining the power of an advanced Embodied Reasoning model with a general Vision-Language-Action model, we have made significant progress in tackling key bottlenecks in robot learning and generalization. Our core contribution lies in three major innovations:
@@ -1415,7 +1415,7 @@ Gemini Roboti cs 1. 5:以先进的具身推理、思考与运动迁移推动通�
 22
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 References
 Michael Ahn, Anthony Brohan, Noah Brown, Yevgen Chebotar, Omar Cortes, Byron David, Chelsea Finn, Chuyuan Fu, Keerthana Gopalakrishnan, Karol Hausman, Alex Herzog, Daniel Ho, Jasmine Hsu, Julian Ibarz, Brian Ichter, Alex Irpan, Eric Jang, Rosario Jauregui Ruano, Kyle Jeffrey, Sally Jesmonth, Nikhil J Joshi, Ryan Julian, Dmitry Kalashnikov, Yuheng Kuang, Kuang-Huei Lee, Sergey Levine, Yao Lu, Linda Luu, Carolina Parada, Peter Pastor, Jornell Quiambao, Kanishka Rao, Jarek Rettinghouse, Diego Reyes, Pierre Sermanet, Nicolas Sievers, Clayton Tan, Alexander Toshev, Vincent Vanhoucke, Fei Xia, Ted Xiao, Peng Xu, Sichun Xu, Mengyuan Yan, and Andy Zeng. Do As I Can, Not As I Say: Grounding Language in Robotic Affordances. arXiv e-prints, art. arXiv:2204.01691, April 2022.
 ALOHA-2-Team, Jorge Aldaco, Travis Armstrong, Robert Baruch, Jeff Bingham, Sanky Chan, Kenneth Draper, Debidatta Dwibedi, Chelsea Finn, Pete Florence, Spencer Goodrich, Wayne Gramlich, Torr Hage, Alexander Herzog, Jonathan Hoech, Thinh Nguyen, Ian Storz, Baruch Tabanpour, Leila Takayama, Jonathan Tompson, Ayzaan Wahid, Ted Wahrburg, Sichun Xu, Sergey Yaroshenko, Kevin Zakka, and Tony Z. Zhao. ALOHA 2: An enhanced low-cost hardware for bimanual teleoperation, 2024. URL https://arxiv.org/abs/2405.02292.
@@ -1447,7 +1447,7 @@ google/technology/ai/introducing-pathways-next-generation-ai-architecture/。
 23
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Yuqing Du, Ksenia Konyushkova, Misha Denil, Akhil Raju, Jessica Landon, Felix Hill, Nando De Freitas, and Serkan Cabi. Vision-language models as success detectors. arXiv preprint arXiv:2303.07280, 2023.
 Debidatta Dwibedi, Vidhi Jain, Jonathan Tompson, Andrew Zisserman, and Yusuf Aytar. FlexCap: Describe anything in images in controllable detail. In The Thirty-eighth Annual Conference on Neural Information Processing Systems, 2024. URL https://openreview.net/forum?id=P5dEZeECGu.
 Franka. Franka Research 3. https://franka.de/franka-research-3-arm, 2025.
@@ -1488,7 +1488,7 @@ Boyi Li、Philipp Wu、Pieter Abbeel 和 Jitendra Malik。基于语言模型的�
 24
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Fanqi Lin, Ruiqian Nai, Yingdong Hu, Jiacheng You, Junming Zhao, and Yang Gao. Onetwovla: A unified vision-language-action model with adaptive reasoning. arXiv preprint arXiv:2505.11917, 2025.
 Yecheng Jason Ma, Joey Hejna, Ayzaan Wahid, Chuyuan Fu, Dhruv Shah, Jacky Liang, Zhuo Xu, Sean Kirmani, Peng Xu, Danny Driess, Ted Xiao, Jonathan Tompson, Osbert Bastani, Dinesh Jayaraman, Wenhao Yu, Tingnan Zhang, Dorsa Sadigh, and Fei Xia. Vision language models are in-context value learners, 2024. URL https://arxiv.org/abs/2411.04549.
 Margaret Mitchell, Simone Wu, Andrew Zaldivar, Parker Barnes, Lucy Vasserman, Ben Hutchinson, Elena Spitzer, Inioluwa Deborah Raji, and Timnit Gebru. Model cards for model reporting. In Proceedings of the conference on Fairness, Accountability, and Transparency, pages 220–229, 2019.
@@ -1526,7 +1526,7 @@ Shengbang Tong、Ellis Brown、Penghao Wu、Sanghyun Woo、Manoj Middepogu、Sai
 25
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Junjie Wen, Yichen Zhu, Jinming Li, Zhibin Tang, Chaomin Shen, and Feifei Feng. Dexvla: Vision-language model with plug-in diffusion expert for general robot control. arXiv preprint arXiv:2502.05855, 2025.
 Wentao Yuan, Jiafei Duan, Valts Blukis, Wilbert Pumacay, Ranjay Krishna, Adithyavairavan Murali, Arsalan Mousavian, and Dieter Fox. Robopoint: A vision-language model for spatial affordance prediction for robotics. arXiv preprint arXiv:2406.10721, 2024.
 Xiang Yue, Yuansheng Ni, Kai Zhang, Tianyu Zheng, Ruoqi Liu, Ge Zhang, Samuel Stevens, Dongfu Jiang, Weiming Ren, Yuxuan Sun, Cong Wei, Botao Yu, Ruibin Yuan, Renliang Sun, Ming Yin, Boyuan Zheng, Zhenzhu Yang, Yibo Liu, Wenhao Huang, Huan Sun, Yu Su, and Wenhu Chen. Mmmu: A massive multi-discipline multimodal understanding and reasoning benchmark for expert agi, 2023.
@@ -1546,7 +1546,7 @@ Brianna Zitkovich,Tianhe Yu,Sichun Xu,Peng Xu,Ted Xiao,Fei Xia,Jialin Wu,Paul Wo
 26
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 8.Contributions and Acknowledgments
 Authors
 Abbas Abdolmaleki Saminda Abeyruwan Joshua Ainslie Jean-Baptiste Alayrac Montserrat Gonzalez Arenas Ashwin Balakrishna Robert Baruch Nathan Batchelor Alex Bewley Jeff Bingham Michael Bloesch Konstantinos Bousmalis Philemon Brakel Anthony Brohan Thomas Buschmann Arunkumar Byravan Serkan Cabi Ken Caluwaerts Federico Casarini Christine Chan Oscar Chang London Chappellet-Volpini Jose Enrique Chen Xi Chen Hao-Tien Lewis Chiang Krzysztof Choromanski Adrian Collister David B. D’Ambrosio Sudeep Dasari Todor Davchev Meet Kirankumar Dave Coline Devin Norman Di Palo Tianli Ding Carl Doersch Adil Dostmohamed Yilun Du Debidatta Dwibedi Sathish Thoppay Egambaram Michael Elabd Tom Erez Xiaolin Fang Claudio Fantacci Cody Fong Erik Frey
@@ -1588,7 +1588,7 @@ Laura Graesser Oliver Groth Agrim Gupta Roland Hafner Steven Hansen Leonard Hase
 27
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Fangchen Liu Shangbang Long Caden Lu Sharath Maddineni Anirudha Majumdar Kevis-Kokitsi Maninis Andrew Marmon Sergio Martinez Assaf Hurwitz Michaely Niko Milonopoulos Joss Moore Robert Moreno Michael Neunert Francesco Nori Joy Ortiz Kenneth Oslund Carolina Parada Emilio Parisotto Amaris Paryag Acorn Pooley Thomas Power Alessio Quaglino Haroon Qureshi Rajkumar Vasudeva Raju Helen Ran Dushyant Rao Kanishka Rao Isaac Reid David Rendleman Krista Reymann Miguel Rivas Francesco Romano Yulia Rubanova Peter Pastor Sampedro Pannag R Sanketi Dhruv Shah Mohit Sharma Kathryn Shea Mohit Shridhar Charles Shu Vikas Sindhwani
 Sumeet Singh Radu Soricut Rachel Sterneck Ian Storz Razvan Surdulescu Jie Tan Jonathan Tompson Saran Tunyasuvunakool Jake Varley Grace Vesom Giulia Vezzani Maria Bauza Villalonga Oriol Vinyals René Wagner Ayzaan Wahid Stefan Welker Paul Wohlhart Chengda Wu Markus Wulfmeier Fei Xia Ted Xiao Annie Xie Jinyu Xie Peng Xu Sichun Xu Ying Xu Zhuo Xu Jimmy Yan Sherry Yang Skye Yang Yuxiang Yang Hiu Hong (Eddie) Yu Wenhao Yu Wentao Yuan Yuan Yuan Jingwei Zhang Tingnan Zhang Zhiyuan Zhang Allan Zhou Guangyao Zhou Yuxiang Zhou
 Acknowledgements
@@ -1635,7 +1635,7 @@ Yuxiang Zhou
 28
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Zambelli, Matthew Jackson, Michael Noseworthy, Miguel Lázaro-Gredilla, Mili Sanwalka, Mimi Jasarevic, Nimrod Gileadi, Rebeca Santamaria-Fernandez, Rui Yao, Siobhan Mcloughlin, Sophie Bridgers, Stefano Saliceti, Steven Bohez, Svetlana Grant, Tim Hertweck, Verena Rieser and Yandong Ji.
 We would like to thank Zoubin Ghahramani, Koray Kavukcuoglu, and Demis Hassabis for their leadership and support of this effort. We would also like to recognize the many teams across Google and Google DeepMind that have contributed to this effort including Legal, Marketing, Communications, Responsibility and Safety Council, Responsible Development and Innovation, Policy, Strategy and Operations as well as our Business and Corporate Development teams. We would like to thank everyone on the Robotics team not explicitly mentioned above for their continued support and guidance. We would also like to thank the Apptronik team for their support.
 29
@@ -1649,7 +1649,7 @@ Apptronik 团队的支持。
 29
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Appendix
 A.Model Card
 We present the model card (Mitchell et al.,2019) for Gemini Robotics-ER 1.5 and Gemini Robotics 1.5 models in Table2.
@@ -1694,7 +1694,7 @@ A. 模型卡
 30
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Results See Section4for Gemini Robotics-ER 1.5 evaluation results, Sections3 for Gemini Robotics 1.5 evaluation results, and Section6for Gemini Robotics Safety evaluation results.
 Model Usage & Limitations
 Ethical Considerations & Risks
@@ -1710,7 +1710,7 @@ Gemini Roboti cs 1.5:以先进的具身推理、思考与运动迁移推动通�
 31
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 B. Gemini Robotics 1.5 is a general multi-embodiment Vision-Language-Action Model
 In this section, we provide additional material to supplement the results for GR 1.5.
 B.1.Rank consistency between evaluations in simulation and on real robots
@@ -1768,7 +1768,7 @@ B.2.1.1 新动作泛化进展分数定义
 32
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 for a short distance at different locations, the ’drink-pushing’ task (Figure22) measures how well the policy can combine them together to push a novel object all the way from bottom of the table to the top edge. Table3lists the definition of progress scores for each task.
 Place the cube inside the bag. Pick up the grape with the left arm and pick up the bread with the right arm.
 Push the drink to the front of the table.
@@ -1812,7 +1812,7 @@ B.2.1.2 任务泛化进度分数定义
 33
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Pick up a bottle and put it in the bottom shelf of the wardrobe.
 Pick up a bottle from the box and put it on the table.
 Pick up the blue hat and hang it on the hook.
@@ -1849,7 +1849,7 @@ The 双臂 Franka 机器人基准测试定义于三个不同场景中(图 24 ):
 34
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Table 4 | Progress Scores: Task generalization tasks.
 Task generalization tasks progress score.
 “Pick up a bottle and put it in the bottom shelf of the wardrobe”.
@@ -1915,7 +1915,7 @@ it;
 35
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 ization on the Bi-arm Franka robot.
 In-distribution scene Action generalization Scene generalization Instruction generalization
 Put the object used for cleaning on the table
@@ -1947,7 +1947,7 @@ B.2.2.1 分布内、视觉与动作泛化任务的任务进度分数
 36
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Table 5 | Progress Scores: Bi-arm Franka (Workbench scene).
 Benchmark: Bi-arm Franka - Workbench scene.
 “Hang the tape”. “Unhang the tape”. “Unhang the level”.
@@ -1989,7 +1989,7 @@ it;
 37
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Table 6 | Progress Scores: Bi-arm Franka (Computer scene).
 Benchmark: Bi-arm Franka - Computer scene.
 “Connect the power plug to the computer”. “Insert the white power plug into the socket”. “Insert the orange LAN cable in the computer”.
@@ -2029,7 +2029,7 @@ B.2.2.2 语义泛化任务的任务进度分数
 38
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Table 7 | Progress Scores: Bi-arm Franka (NIST Assembly Task Board 2).
 Benchmark: Bi-arm Franka - NIST Assembly Task Board 2.
 “Put the timing belt on the timing pulleys”. “Remove the timing belt from the timing pulleys”. “Place the orange round belt on the slide tensioners”.
@@ -2075,7 +2075,7 @@ it;
 39
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Table 9 | Progress Scores: Bi-arm Franka (Semantic Gen. - Computer Scene).
 Benchmark: Bi-arm Franka - Semantic Generalization (Computer Scene).
 “Desconecta el cable de red naranja de la computadora”.
@@ -2112,7 +2112,7 @@ B.2.3.1 Task 分布内、视觉、语义和动作泛化任务的进展分数
 40
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Table 10 | Progress Scores: Apollo humanoid (In-distribution and Visual Gen.).
 Benchmark: Apollo humanoid - In-distribution and Visual Generalization.
 “Pick up the gummy bear bag and place it in the white bag”.
@@ -2188,7 +2188,7 @@ Gemini Roboti cs 1.5:以先进的具身推理、思考与运动迁移,拓展通�
 41
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Table 12 | Progress Scores: Apollo humanoid (Action Generalization).
 Benchmark: Apollo humanoid - Action Generalization.
 “Pick up the black flashlight and place it in the white bag”.
@@ -2230,7 +2230,7 @@ Gemini Roboti cs 1.5:以先进的具身推理、思考与运动迁移,拓展通�
 42
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 B.2.3.2 Qualitative Results
 Controlling a humanoid is much more challenging than the Aloha or the bi-arm Franka robots, due to higher degree-of-freedom whole-body control, multi-finger dexterity, and limited visibility of the workspace that requires active perception. Fig.27shows qualitative examples which demonstrate remarkable degrees of generalization of Gemini Robotics 1.5 on the humanoid platform. We observe that our model can control Apollo to grasp novel objects and place them into receptacles that were not seen in the training data. Depending on the objects to manipulate, different grasping strategies emerge automatically. Furthermore, we also observe successful object manipulation on surfaces with different heights that were not seen during training as well.
 Single finger push Five-finger power
@@ -2259,7 +2259,7 @@ B.2.3.2 定性结果
 43
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 B.3.Cross-embodiment benchmark
 In order to measure Motion Transfer across our three robots we define benchmarks for testing tasks on a Robot A for which data was only collected on Robot B and vice-versa. We focus on the following scenarios.
 B.3.1.Bi-arm Franka → ALOHA benchmark
@@ -2305,7 +2305,7 @@ B.3.2. ALOHA 基准 → 双臂 Franka 与 Apollo 人形机器人 → 双臂 Fran
 44
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Table 13 | Progress Scores: Bi-arm Franka → ALOHA Benchmark.
 Benchmark: Bi-arm Franka → ALOHA.
 “Hang the orange belt on the small metal hook on the wall”.
@@ -2367,7 +2367,7 @@ B.3.3. ALOHA 基准测试 → 人形机器人
 45
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Put the grapes into the largest container of the bento box.
 Pour the toy from the blue bowl into the red plate
 Open the top drawer by pulling the knob.
@@ -2412,7 +2412,7 @@ Gemini Roboti cs 1.5:以先进具身推理、思考与运动迁移拓展通用�
 46
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Table 14 | Progress Scores: ALOHA/Humanoid → Bi-arm Franka.
 Benchmark: ALOHA/Humanoid → Bi-arm Franka.
 “Close the pear organizer”. “Put the grapes in the largest compartment of the bento box”.
@@ -2492,7 +2492,7 @@ box;
 47
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 B.4.Multi-step benchmark
 The multi-step benchmarks combine individual tasks into compound instructions (i.e., A then B then C) or abstract, goal-oriented instructions. For the compound instructions, we typically require a particular order for the individual tasks in order to achieve a full score of 1.0. For example, for the Apollo humanoid, several of our multi-step tasks combine individual gift packing tasks into compound instructions such as "put the stress ball in the white bag, then put the gummy bear bag in the white bag, then put the white socks in the white bag" and require this exact order for a perfect score. We also include abstract, goal-oriented instructions such as “pack all the gifts” or “sort the snacks into their matching containers by color”, though these are less common across the benchmarks. The next paragraphs show the tasks and their progress score system for each embodiment.
 B.4.1.ALOHA robot
@@ -2539,7 +2539,7 @@ B.4.3. 人形机器人
 48
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Table 16 | Progress Scores: ALOHA Robot (Multi-step benchmark).
 Benchmark: ALOHA Robot - Multi-step.
 “Unzip the lunchbag and then place the banana in the lunchbag”.
@@ -2579,7 +2579,7 @@ Gemini Roboti cs 1.5:以先进的具身推理、思考与运动迁移拓展通�
 49
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Insert the power cable in the computer, insert the orange lan cable and unhang the headphones.
 Insert the power cable and unhang the headphones from the wall.
 Remove the power cable from the computer, hang the headphones and unplug the black power cable from the socket.
@@ -2605,7 +2605,7 @@ Gemini Roboti cs 1.5:以先进的具身推理、思考与运动迁移,推动通�
 50
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Table 17 | Progress Scores: Bi-arm Franka (Multi-step benchmark).
 Benchmark: Bi-arm Franka - Multi-step.
 “Insert the power cable in the computer, insert the orange lan cable and unhang the headphones”.
@@ -2648,7 +2648,7 @@ Gemini Roboti cs 1.5:以先进的具身推理、思考与运动迁移推动通�
 51
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 First put the gummy bear bag in the white bag and then put the stress ball in the white bag
 First put the rubik's cube in the white bag and then put the white socks in the white bag.
 Put the stress ball in the white bag, then put the gummy bear bag in the white bag, then put the white socks in the white bag.
@@ -2674,7 +2674,7 @@ box.
 52
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Table 18 | Progress Scores: Humanoid Robot (Multi-step benchmark).
 Benchmark: Humanoid Robot - Multi-step.
 “First put the gummy bear bag in the white bag and then put the stress ball in the white bag”.
@@ -2752,7 +2752,7 @@ bag;
 53
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 B.5.Success rate
 In this section we report the success rate for all our results in Section3.
 B.5.1.Success rate for generalization performance
@@ -2915,7 +2915,7 @@ Apollo Humanoid
 54
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 B.5.2.Success rate for data and model ablation
 In-Distribution Instruction
 Generalization
@@ -3085,7 +3085,7 @@ Apollo Humanoid
 55
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 B.5.3.Success rate for thinking ablation
 ALOHA Bi-arm Franka Humanoid
 0.0
@@ -3119,7 +3119,7 @@ Gemini Robotics 1 .5(开启思考) Gemini Robotics 1 .5
 56
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 C.Gemini Robotics-ER 1.5 is a generalist embodied reasoning model
 C.1.Evaluation Details: Generality
 To assess an overall approximation of model embodied reasoning performance, we evaluate Gemini Robotics-ER 1.5 and other multimodal models on a mix of 15 academic benchmarks. The aggregated results are reported in Fig.8, and the individual benchmark performance results are shown in Table 19and Table20. For text-based VQA evaluation benchmarks, we used Gemini 2.5 Flash to grade response accuracy for both multiple-choice and freeform question formats.
@@ -3176,7 +3176,7 @@ C.3. 补充示例
 57
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Model GR-ER 1.5 GR-ER 1.5 GR-ER Pro 2.5 Flash 2.5 GPT-5 GPT-5-mini
 Thinking Yes No No Yes Yes Yes Yes
 MMMU 80.7 79.3 67.0 82.0 79.7 82.0 78.0 GPQA 83.3 81.3 59.6 86.4 82.8 88.4 78.3 Aider Polyglot 57.3 44.4 16.0 82.2 56.7 81.3 66.7
@@ -3236,7 +3236,7 @@ PixMo 计数 80.0 65.0 60.0 76.0 64.0 73.0 77.0
 58
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Identify individual socks and their patterns:
 * Sock 3 (center-top): Light blue sock with small white dots. It's partially obscured. Pattern: small white dots. Let's look for a match. * Sock 4 (bottom-center): Light blue sock with small white dots. This matches Sock 3.
 Create pairs based on matching patterns:
@@ -3298,7 +3298,7 @@ Gemini Roboti cs 1.5:以高级具身推理、思考与运动迁移推动通用�
 59
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 D.Gemini Robotics 1.5: A Physical Agent
 D.1.Long-horizon benchmarks
 Our long-horizon benchmarks evaluate the combination of the GR-ER 1.5 model with the VLA as an autonomous agent. Fig.39shows visuals of the 4 tasks in the ALOHA long-horizon benchmark. The progress is scored as the sum of points scored along each subtask (Table22). Fig.40shows visuals of the 4 tasks on the Bi-arm Franka long-horizon benchmark. The progress is scored as the sum of points scored along each subtask (Table23).
@@ -3351,7 +3351,7 @@ D.1. 长时程基准
 60
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 Table 23 | Progress Scores: Bi-arm Franka (Long-horizon Benchmark).
 Benchmark: Bi-arm Franka - Long-horizon.
 Swap: "Swap the sardines and the yellow bottle".
@@ -3389,7 +3389,7 @@ Swap
 61
 
 
-Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
+ Gemini Robotics 1.5: Pushing the Frontier of Generalist Robots with Advanced Embodied Reasoning, Thinking, and Motion Transfer
 D.2.Success rate
 Fig.41shows the success rate for the results in Section5.
 Blocks in Drawer Desk Organization Sort Trash Pack Suitecase Task Type

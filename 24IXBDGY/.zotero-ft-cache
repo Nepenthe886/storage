@@ -14,7 +14,7 @@ Figure 1We introduce RynnBrain 1.1, a model family comprising three variants—2
 arXiv:2607.17977v2 [cs.RO] 31 Jul 2026
 
 
-1Introduction
+ 1Introduction
 Embodied intelligence requires models to go beyond visual recognition and language understanding. A robot operating in the physical world must perceive objects [57,55], reason about spatial relations [60,80], identify actionable regions [27], and translate such understanding into executable behaviors [6,5]. Although recent multimodal large language models have achieved strong performance in image and video question answering tasks [4,76,29,17], real-world robotic systems impose additional requirements: they must understand 3D structure, reason across viewpoints, ground language instructions into physical locations, and support downstream manipulation policies. Therefore, the central challenge for embodied foundation models is not only whether they can understand visual content, but whether visual understanding is grounded in the physical world and, crucially, whether it can be transferred to real-robot action [64].
 Recent embodied foundation models [28,62,20,49,65] have advanced rapidly along different axes, including object and region localization, spatio-temporal understanding, and robot-oriented planning. Specifically, RynnBrain 1.0 [20] explored this direction by introducing a unified embodied multimodal model for egocentric understanding, spatial grounding, physically grounded reasoning, and planning [33,19,52], demonstrating the feasibility of combining general and robot-oriented multimodal understanding. Despite its strong performance, several key aspects were not fully explored in RynnBrain 1.0. First, how can the representations and outputs from RynnBrain be brought closer to robot manipulation? Second, how effectively can RynnBrain serve as an initialization for downstream VLA post-training?
 Motivated by these two questions, we develop RynnBrain 1.1, a new family of embodied foundation models upgraded from RynnBrain 1.0 [20]. Concretely, to learn representations that are more meaningful for robot manipulation, we add two new training tasks to the embodied pretraining of RynnBrain 1.1: (1)contact point predictionand (2)3D grounding. The contact point prediction task requires the model to locate the center point and the rotation angle of the gripper for grasping. Compared to the grasp rectangle detection task in [66,20], contact point prediction can guide the model to provide more precise (i.e., the contact point) and meaningful (i.e., the planar rotation angle of the gripper) features for the downstream robot policy. As for 3D grounding, it introduces explicit and massive 3D modeling during the training of RynnBrain 1.1. Since robots operate in three-dimensional environments [67,31], equipping embodied foundation models with explicit 3D modeling benefits manipulation through both richer representations and directly usable 3D outputs. In addition, to support the fine-tuning of RynnBrain 1.1 across heterogeneous robot embodiments and control interfaces, we introduce a unified action space that organizes embodiment-specific actions into semantically aligned body-part groups. Embodiment-specific masks are then applied to activate only the dimensions available on each robot. This design allows data from different embodiments to be trained jointly within a single policy without forcing explicit alignment between incompatible action spaces.
@@ -24,7 +24,7 @@ Overall, the contributions of this technical report are as follows:
 1https://www.unitree.com/g1 2https://www.astribot.com/en/product 3https://www.tianjizn.com/products/marvin-series/,https://www.wuji.tech/zh/hand
 
 
-Dense / MoE Decoder
+ Dense / MoE Decoder
 Vision Encoder Tokenizer
 Instructions
 Single-view Image
@@ -75,7 +75,7 @@ An overview of the RynnBrain architecture is shown inFigure 2.
 RynnBrain 1.1 adopts a decoder-only vision–language architecture following the design principles of Qwen3.5 [53]. It consists of a vision encoder, a vision–language projector, and a large language model (LLM) backbone initialized from Qwen3.5 variants. In this release, we build three model scales, namely RynnBrain 1.1-2B, RynnBrain 1.1-9B, and RynnBrain 1.1-122B-A10B. All models share the same overall architecture and training formulation, enabling a systematic study of embodied scaling across model sizes. We also adopt DeepStack [45] and Interleaved MRoPE [30] to better integrate multimodal information and support long-context spatio-temporal modeling over images, videos, and embodied observations.
 
 
-2.2Training Infrastructure
+ 2.2Training Infrastructure
 As described in RynnBrain [20], our training pipeline is designed for large-scale embodied multimodal data with highly heterogeneous sequence lengths. We follow the same infrastructure design, including online sequence-length-aware load balancing, per-sample loss reduction, memory-efficient training with ZeRO and gradient checkpointing, and optimized MoE execution with expert parallelism and efficient token dispatching. These components allow us to train on mixed image, video, text, and spatial-grounding data while mitigating straggler effects caused by long-tail sequence-length distributions.
 For RynnBrain 1.1, we extend this infrastructure to the new Qwen3.5-based model family, covering 2B, 9B, and 122B scales. The same training pipeline is used across model sizes to ensure that differences in downstream performance mainly reflect model scaling and data updates rather than changes in infrastructure. For the 122B-A10B model, we adopt sparse MoE training with expert parallelism and communication-efficient token dispatching, following the infrastructure principles established in RynnBrain [20].
 3Pretraining
@@ -88,7 +88,7 @@ Physically Grounded Output Space.Physical grounding is incorporated directly int
 In addition, we introduce explicit 3D modeling task into the pretraining of RynnBrain 1.1-2B and RynnBrain 1.1-9B to explore native 3D grounding. These models follow the same instruction-following and autoregressive
 
 
-training paradigm as the rest of the RynnBrain 1.1 family, while extending the supervision from image-plane grounding toward physical-space understanding.
+ training paradigm as the rest of the RynnBrain 1.1 family, while extending the supervision from image-plane grounding toward physical-space understanding.
 Specifically, the model takes as input a natural language instruction and camera intrinsics, and is trained to directly predict a 3D bounding box parameterized in the camera coordinate system—including center position(cx,cy,cz), box dimensions(w,l,h), and orientation(pitch,yaw,roll), all in physical units (meters and radians). This 9-dimensional output format follows the design of prior works such as Seed-VL [58] and Qwen3-VL [4], which also adopt a compact set of numerical parameters for spatially grounded predictions. To preserve the unified autoregressive framework, we discretize all continuous 3D quantities into integer tokens within a fixed range, analogous to our 2D spatial tokenization. This design enables the model to perform physically grounded reasoning from a single image, inferring not only what and where in the pixel plane, but also how objects are positioned and oriented in real-world 3D space, directly bridging visual perception and downstream robotic or navigation tasks.
 Optimization.All RynnBrain 1.1 variants are optimized end-to-end with a causal autoregressive objective over sequences containing both language and spatial tokens. Given a visual inputVand a target sequence y={y i}L
 i=1, the model minimizes the negative log-likelihood
@@ -106,7 +106,7 @@ RynnBrain 1.1 follows the capability-oriented data organization of RynnBrain [20
 General MLLM Data.To preserve broad multimodal understanding, we continue to use a general-purpose image–video–text corpus covering image understanding, video understanding, visual question answering, temporal reasoning, and instruction following. The mixture includes commonly used MLLM datasets such as LLaVA-OV-SI [37], LLaVA-Video [78], ShareGPT-4o-video [13], VideoGPT-plus [43], FineVideo [24], CinePile [56], ActivityNet [8], YouCook2 [81], and LLaVA-SFT [40]. In RynnBrain 1.1, we further incorporate self-collected RynnBrain-Thinking data. RynnBrain-Thinking is included as part of the general mixture to better align the model with the Qwen3.5-Thinking style. All data are converted into the unified instruction-following format before being mixed for pretraining.
 
 
-Table 2Pretraining data mixture for RynnBrain 1.1. New or substantially expanded data sources compared with RynnBrain 1.0 are highlighted inblue.
+ Table 2Pretraining data mixture for RynnBrain 1.1. New or substantially expanded data sources compared with RynnBrain 1.0 are highlighted inblue.
 Category Sub-Task Data Sources
 General MLLM General LLaVA-OV-SI [37], LLaVA-Video [78], ShareGPT-4o-video [13], VideoGPT-plus [43], FineVideo [24], CinePile [56], ActivityNet [8], YouCook2 [81], LLaVA-SFT [40],VL3 [76],RynnBrain-Thinking
 Cognition
@@ -125,14 +125,14 @@ Multi-dimensional Cognition Data.For embodied cognition, RynnBrain 1.1 follows t
 Spatio-temporal Localization Data.RynnBrain 1.1 inherits the localization formulation of RynnBrain 1.0, where spatial outputs are represented using normalized coordinate tokens. The localization mixture covers object localization, area localization, affordance localization, trajectory prediction, and grasp/contactrelated prediction. Object localization uses ADE20K [79], COCOStuff [9], Mapillary [46], PACO-LVIS [54], PASCAL-Part [14], VG [35], RoboAfford-Object [27], and RynnBrain-Grounding. Area localization uses RefSpatial [80], RoboAfford-Area [27], Molmo2 [15], RynnBrain-Area, and the newly added RoboRefer. Affordance localization uses RynnBrain-Affordance and RoboAfford-Affordance [27]. Trajectory prediction uses RynnBrain-Trajectory, FSD [73], and the newly added MolmoAct. For these data sources, we follow the RynnBrain processing protocol and convert different annotations into a shared output space consisting of boxes, points, and trajectories.
 
 
-3D-grounded Data.To explore native 3D grounding, we conduct a 3D-grounded preview training in the 2B and 9B setting by mixing explicit 3D annotations into the pretraining data. Given an image, a natural language instruction, and camera intrinsics, the model is trained to predict a 3D bounding box in the camera coordinate system. The box is parameterized by its center position(cx,cy,cz), dimensions(w,l,h), and orientation(pitch,yaw,roll), represented in physical units such as meters and radians.
+ 3D-grounded Data.To explore native 3D grounding, we conduct a 3D-grounded preview training in the 2B and 9B setting by mixing explicit 3D annotations into the pretraining data. Given an image, a natural language instruction, and camera intrinsics, the model is trained to predict a 3D bounding box in the camera coordinate system. The box is parameterized by its center position(cx,cy,cz), dimensions(w,l,h), and orientation(pitch,yaw,roll), represented in physical units such as meters and radians.
 To support this at scale, we construct a multi-source corpus combining large-scale automatically lifted annotations with high-fidelity synthetic data. For broad category and scene coverage, we adoptWildDet3D-Data[31], a recently proposed open-vocabulary 3D detection dataset that lifts 2D annotations from COCO, LVIS, Objects365, and V3Det into 3D via a multi-model candidate generation and selection pipeline. We use its two curated subsets after additional filtering:Essential(102,979 images, 374K manually verified annotations after filtering out geometrically implausible candidates and small objects, 12,064 categories) andSynthetic (896,004 images, 888K automatically selected annotations, 11,896 categories, filtered by a fine-tuned Molmo2 scoring six perceptual criteria with a retention threshold >10), offering unprecedented category diversity but inheriting residual noise from monocular lifting. For each 3D annotation, we leverage Qwen-VL to generate an open-ended referring query based on the corresponding 2D bounding box and category label, incorporating spatial descriptions (e.g., relative positions such as "left," "right," "front," or "behind") and attribute modifiers (e.g., color, size, or material cues) to make the referring expression more discriminative and precise for grounding. To complement this with physically exact supervision, we additionally incorporate FoundationPose[67], a synthetic dataset derived from the Google Scanned Objects subset under controlled camera trajectories, which provides 1,849K images with noise-free 3D bounding boxes computed directly from ground-truth object-to-camera transformations, with each asset assigned a natural-language category via Qwen-VL to bridge to real-world semantics. Though its category coverage is limited to 928 instances, its metric-scale accuracy and zero-depth-ambiguity geometry serve as a strong regularizer for depth and orientation prediction, teaching correct inductive biases for camera-to-world projection when mixed with the diverse but noisier WildDet3D annotations.
 Contact Point Data.RynnBrain 1.0 represented planar grasps using the four corners of an oriented rectangle. We found this detector-style representation poorly aligned with action grounding in a general embodied model. A target object typically admits a set of functionally valid grasps rather than a unique rectangle. Moreover, unlike an object bounding box, a grasp rectangle has no canonical image-space extent: its width, height, aspect ratio, and boundary placement depend on gripper geometry and dataset-specific annotation conventions. Consequently, IoU against a single reference rectangle may penalize functionally equivalent grasps and is not necessarily correlated with execution success. The four-corner representation also introduces redundant extent variables and geometric consistency constraints into autoregressive generation. RynnBrain 1.1 therefore adopts a compact contact-centered representation(a= (p, θ)), where(p= (x, y))denotes the center of the annotated grasp configuration and(θ)is the in-plane angle of the line connecting the gripper fingers. The coordinates are normalized to [0,1000], and each target is serialized as <grasp pose> (x, y),θ </grasp pose>. This representation factors out annotation- and embodiment-dependent rectangle extents while preserving an action-relevant spatial anchor and orientation cue.
 A substantial portion of our source data consists of simulation-native, multidimensional grasp annotations rather than directly usable image–text pairs. We therefore develop a view-conditioned rendering and projection pipeline to convert these annotations into reliable 2D supervision. For each object–grasp configuration, we select a camera pose subject to multiple observability constraints: the target object must remain fully inside the image, occupy an appropriate range of image scales, and avoid severe truncation or occlusion; meanwhile, the projected grasp center and orientation must both remain visible and spatially distinguishable. Views in which the object is excessively near, distant, truncated, or visually ambiguous, or in which the grasp configuration is not observable, are discarded. The retained views are rendered as RGB images, after which the multidimensional grasp annotations are projected into the common((p, θ))representation. This procedure is essential because unconstrained camera sampling can produce geometrically valid annotations that cannot be inferred from the rendered image.
 After rendering, projection, and filtering, the resulting corpus contains 2.6M training samples from GraspAnything [66], Jacquard V2 [38], GraspFactory [61], GraspNet-1B [23], and GraspClutter6D [3]. We treat ((p, θ))as an action-grounding interface rather than a complete executable grasp pose; depth, approach
 
 
-RynnBrain
+ RynnBrain
 ··· ··· Projection
 Projection
 Observation State Noisy Action
@@ -163,7 +163,7 @@ We use downstream VLA post-training as both a practical capability and a probe o
 As shown inFigure 3, the model architecture ofRynnBrain-VLAin RynnBrain-1.1 largely follows that in RynnBrain-1.0 [20], where the VLM backbone itself serves as a single-stream diffusion transformer and processes dense interaction among vision, language, and action in each layer. A flow matching framework is adopted to predict an action chunk [5] at each step. To preserve the VLM’s inherent instruction-following capabilities, we utilize its native conversation format for organizing the input:
 
 
-<|im_start|>user INSTRUCTION: Pour the wine from the bottle into the wine glass and place the glass on the table. OBSERVATION: <camera_1><camera_2><camera_3> STATE: <state> What action should the robot take ?<|im_end|> <|im_start|>assistant <action>
+ <|im_start|>user INSTRUCTION: Pour the wine from the bottle into the wine glass and place the glass on the table. OBSERVATION: <camera_1><camera_2><camera_3> STATE: <state> What action should the robot take ?<|im_end|> <|im_start|>assistant <action>
 Followingπ 0 [5], actions are positioned at the end of the sequence to enable the KV cache during inference.
 4.2Unified Cross-Embodiment Action Space
 As illustrated inFigure 3, RynnBrain-VLA represents actions of heterogeneous robot embodiments within a shared high-dimensional action space. Before training, inspired by [41], we partition the unified action vector into semantically aligned groups corresponding to different body parts and control modes, including left and right arms, parallel grippers, dexterous hands, torso, and head control. Each embodiment activates only the action groups that are physically available on that robot, while all remaining dimensions are suppressed by an embodiment-specific mask.
@@ -176,7 +176,7 @@ Real-world deployment requires a single policy interface to drive robots with ve
 •Embodiment layer.Dispatches standard-format actions (left/right arm, gripper, hand, torso) to the corresponding robot actuators and formats the robot’s current state back for the model layer. Multi
 
 
-camera images are packaged as a dictionary whose keys match the naming convention used during training.
+ camera images are packaged as a dictionary whose keys match the naming convention used during training.
 This design allows adding a new embodiment by only implementing the embodiment layer, without modifying the model or control layers. We instantiate this framework on three heterogeneous embodiments—the Unitree G1 humanoid, the Astribot-S1 bimanual manipulator, and the Tianji-Wuji dexterous-hand system—covering distinct action spaces, degrees of freedom, and end-effectors.
 4.4Real-Time Chunking (RTC)
 We adoptReal-Time Chunking (RTC)[7]. The model predicts a 32-step action chunk but does not wait for the entire chunk to be executed: a new inference is triggered every 5 steps while the current chunk is still running. The unexecuted portion of the previous chunk is then used to guide the denoising of the new chunk, following the action-guidance formulation of Black et al. [7] (Sec. 3.1) with strengthβ= 10.0. Each step in the previous chunk is assigned a guidance weight reflecting whether it will be consumed before the new chunk arrives: (i) the initial 5 steps and the steps consumed during inference (estimated as the sliding average of the past ten inference times) receive weight= 1, as they are guaranteed to be executed before the new chunk is ready; (ii) a transition region where the weight decreases smoothly from 1 to 0; and (iii) the tail of the chunk, which receives weight= 0with no consistency enforced. This ensures smooth chunk-boundary continuity while allowing the model to freely adapt later predictions to new observations.
@@ -189,7 +189,7 @@ We organize our evaluation into several parts. We first assess the base models o
 We evaluate RynnBrain 1.1 on a diverse suite of embodied cognition benchmarks covering video-based spatial intelligence, multi-view reasoning, embodied question answering, robot-oriented spatial understanding, and object-centric cognition. The evaluation includes VSI-Bench [68], MMSI [70], ERQA [64], RoboSpatialVQA [60], MindCube [71], EmbSpatial [21], RynnBrain-Object, and RynnBrain-Spatial. As shown inTables 3
 
 
-Table 3Comparison with lightweight (2B-scale) models on embodied cognition and localization benchmarks. * denotes results from our reproduction.
+ Table 3Comparison with lightweight (2B-scale) models on embodied cognition and localization benchmarks. * denotes results from our reproduction.
 Benchmark RynnBrain 1.1 RynnBrain Cosmos 3
 -Edge
 SenseNova-SI-1.1 InternVL3
@@ -202,7 +202,7 @@ and4, RynnBrain 1.1 improves substantially over the previous RynnBrain models on
 We evaluate embodied localization across six spatial grounding tasks: RefSpatial-Bench [80],RoboSpatialPointing [60], RynnBrain-Grounding, RynnBrain-Area, RynnBrain-Affordance, and RynnBrain-Trajectory. These benchmarks cover language-guided spatial reference, object and region localization, affordance grounding, and trajectory prediction. RynnBrain 1.1 improves over the previous RynnBrain models on location benchmarks at both the 2B and 9B scales. At 2B, RefSpatial-Bench increases from 52.7 to 58.5 and RynnBrain-Grounding from 79.1 to 84.1. At 9B, the gains become larger on relational and motion-oriented tasks: RefSpatial-Bench improves from 59.2 to 67.2, while RynnBrain-Trajectory increases from 64.5 to 70.0. The relatively small gain on RynnBrain-Affordance reflects its already high performance in RynnBrain 1.0. Both RynnBrain 1.1-2B and RynnBrain 1.1-9B achieve the best results among models in their respective scale groups on most of these location benchmarks. At the large scale, RynnBrain 1.1-122B-A10B achieves leading performance on RefSpatial-Bench, RynnBrain-Grounding, and RynnBrain-Affordance. The clearest scaling trend appears on RefSpatial-Bench, which improves from 58.5 at 2B to 67.2 at 9B and 79.1 at 122B-A10B, showing that relational spatial grounding benefits strongly from increased model capacity.
 
 
-Table 4Comparison with 4B–9B scale models on embodied cognition and localization benchmarks. * denotes results from our reproduction.
+ Table 4Comparison with 4B–9B scale models on embodied cognition and localization benchmarks. * denotes results from our reproduction.
 Benchmark
 RynnBrain 1.1 RynnBrain Cosmos 3
 -Nano RoboBrain-2.5 Thinker Molmo2-ER Pelican-VL MiMo
@@ -232,7 +232,7 @@ Embodied capabilities exhibit non-uniform scaling laws.Unlike standard vision–
 Embodied pretraining as a scaling enabler.The decomposition in Figure4(d) further illustrates this contrast. RynnBrain 1.1 consistently establishes a higher performance floor across all categories, reflecting the value of embodied data even at compact scales. More critically, on reasoning-intensive tasks, embodied pretraining determines whether scalinghelps or hurts—it transforms a capability that degrades under pure VLM scaling into one that benefits consistently. These findings indicate that for the embodied domain, data-driven spatial supervision and model scaling are complementary rather than substitutable: scaling amplifies the benefit of embodied pretraining on reasoning-heavy tasks, while embodied supervision ensures that scaling produces
 
 
-Table 5Comparison with large-scale open-source and proprietary models on embodied cognition and localization benchmarks. * denotes results from our reproduction.
+ Table 5Comparison with large-scale open-source and proprietary models on embodied cognition and localization benchmarks. * denotes results from our reproduction.
 Benchmark
 RynnBrain 1.1 Cosmos 3
 Super
@@ -339,7 +339,7 @@ A similar scaling trend is observed on WildDet3D-Bench. RynnBrain 1.1-2B obtains
 In addition to the quantitative evaluation, we visualize representative predictions inFigure 6. RynnBrain 1.1 can localize target objects and estimate their spatial extent and orientation from a single image, including large furniture such as beds, tables, and chairs. These examples illustrate the model’s ability to produce physically grounded 3D predictions across diverse viewpoints and scene layouts.
 
 
-Total3DU Implicit3D Gemini 2.0 Flash
+ Total3DU Implicit3D Gemini 2.0 Flash
 Gemini 2.0 Pro
 Seed1.5-VL mVoxelNet Gemini Robotics ER
 RynnBrain 1.1-2B
@@ -393,7 +393,7 @@ We evaluate RynnBrain-VLA on real robots to answer three questions: (i) can Rynn
 Evaluation Protocol.We deploy RynnBrain-VLA on three heterogeneous embodiments, as summarized in Table 6andFigure 8. For each task, we conduct 20 trials with randomized initial object placements and report the final task success rate under a fixed success criterion. Since some long-horizon tasks can be
 
 
-Figure 7Qualitative results of contact point prediction by RynnBrain 1.1. Given an image and a natural-language instruction, the model predicts an action-relevant contact point together with its in-plane grasp orientation. The examples cover diverse object geometries, object states, target parts, and cluttered scenes, demonstrating instructionconditioned contact grounding beyond object-level localization. Coordinates are normalized to[0,1000].
+ Figure 7Qualitative results of contact point prediction by RynnBrain 1.1. Given an image and a natural-language instruction, the model predicts an action-relevant contact point together with its in-plane grasp orientation. The examples cover diverse object geometries, object states, target parts, and cluttered scenes, demonstrating instructionconditioned contact grounding beyond object-level localization. Coordinates are normalized to[0,1000].
 naturally decomposed into multiple sub-tasks, final success alone does not fully reflect the execution progress of a policy. We therefore additionally report a process score that measures the fraction of completed sub-tasks. For a task withKsub-tasks, the process score is defined as
 ProcessScore = 1
 20K
@@ -410,7 +410,7 @@ Baselines and Training Settings.We select GR00T N1.7 [48] andπ0.5[6] as represe
 Tasks.We design three challenging long-horizon manipulation tasks for quantitative comparison:Sprinkle
 
 
-Pull the Chair Success Rate 90% V.S. GR00T 75%
+ Pull the Chair Success Rate 90% V.S. GR00T 75%
 Push the Chair Success Rate 100%
 Deliver the Menu Success Rate 100%
 Grab the Spatulas &Steak Success Rate 95%
@@ -426,7 +426,7 @@ As shown inFigure 8andTable 6, RynnBrain-VLA achieves stable performance across 
 RynnBrain-VLA also performs well on the Unitree G1 humanoid. OnPull the Chair, which involves coordinated humanoid whole-body motion, RynnBrain-VLA achieves a 90% success rate, compared with 75% for
 
 
-Table 6Real-robot evaluation results. Each task reports the process score and final success rate (%). The process score measures the average fraction of completed sub-tasks, while a trial is counted as successful only when all sub-tasks of the corresponding task are completed.
+ Table 6Real-robot evaluation results. Each task reports the process score and final success rate (%). The process score measures the average fraction of completed sub-tasks, while a trial is counted as successful only when all sub-tasks of the corresponding task are completed.
 Sprinkle the Petals Pour the Wine Grab the Spatulas Average
 ModelAstribot Astribot Tianji-Wuji–
 Proc. Succ. Proc. Succ. Proc. Succ. Proc. Succ.
@@ -441,7 +441,7 @@ To examine whether the capability of RynnBrain-VLA is tied to a specific robot e
 More interestingly, we find that jointly training multiple tasks and embodiments within a single VLA does not introduce obvious interference. With the unified action-space strategy inSection 4.2, RynnBrainVLAGeneralist improves the average process score from 91.28% to 94.14% and the final success rate from 86.67% to 91.67% compared with separately fine-tuned single-task policies. We hypothesize that different embodiments share common interaction structures—such as object affordances, task progress, and reach– grasp–manipulate patterns—even though their executable actions are different. Joint training therefore allows these shared structures to reinforce a common visual–action representation, while unified action-space
 
 
-preserves embodiment-specific control. This suggests that cross-embodiment data can act as complementary supervision: the key benefit of a unified VLA may lie not only in supporting more robots with one model, but also in allowing different embodiments to teach each other how the physical world can be interacted with.
+ preserves embodiment-specific control. This suggests that cross-embodiment data can act as complementary supervision: the key benefit of a unified VLA may lie not only in supporting more robots with one model, but also in allowing different embodiments to teach each other how the physical world can be interacted with.
 6Conclusion and Future Work
 We presentedRynnBrain 1.1, an embodied foundation model family spanning 2B, 9B, and 122B-A10B scales. RynnBrain 1.1 studies embodied capability scaling under a unified training framework and demonstrates clear improvements in multi-view reasoning, spatial grounding, and robot-oriented understanding. We further introduce explicit 3D-grounded supervision for the 2B and 9B models, enabling native language-conditioned 3D grounding, together with a compact contact-centered representation for interaction grounding.
 We also develop RynnBrain-VLA to connect embodied understanding with real-world action. Under the same post-training recipe, RynnBrain-VLA substantially outperforms a Qwen-based VLA on long-horizon manipulation tasks. Through a unified action space with embodiment-specific masking, the policy is deployed across a Unitree G1 humanoid, an Astribot bimanual robot, and a Tianji-Wuji dexterous-hand system. Joint multi-task and multi-embodiment training further improves real-robot performance, providing initial evidence that heterogeneous robot data can contribute complementary supervision to a shared policy.
@@ -456,7 +456,7 @@ References
 [7]Kevin Black, Manuel Galliker, and Sergey Levine. Real-time execution of action chunking flow policies.Advances in Neural Information Processing Systems, 38:33383–33407, 2026.
 
 
-[8]Fabian Caba Heilbron, Victor Escorcia, Bernard Ghanem, and Juan Carlos Niebles. Activitynet: A large-scale video benchmark for human activity understanding. InProceedings of the ieee conference on computer vision and pattern recognition, pages 961–970, 2015.
+ [8]Fabian Caba Heilbron, Victor Escorcia, Bernard Ghanem, and Juan Carlos Niebles. Activitynet: A large-scale video benchmark for human activity understanding. InProceedings of the ieee conference on computer vision and pattern recognition, pages 961–970, 2015.
 [9]Holger Caesar, Jasper Uijlings, and Vittorio Ferrari. Coco-stuff: Thing and stuff classes in context. InProceedings of the IEEE conference on computer vision and pattern recognition, pages 1209–1218, 2018.
 [10]Zhongang Cai, Ruisi Wang, Chenyang Gu, Fanyi Pu, Junxiang Xu, Yubo Wang, Wanqi Yin, Zhitao Yang, Chen Wei, Qingping Sun, et al. Scaling spatial intelligence with multimodal foundation models.arXiv preprint arXiv:2511.13719, 2025.
 [11]Zhongang Cai, Ruisi Wang, Chenyang Gu, Fanyi Pu, Junxiang Xu, Yubo Wang, Wanqi Yin, Zhitao Yang, Chen Wei, Qingping Sun, Tongxi Zhou, Jiaqi Li, Hui En Pang, Oscar Qian, Yukun Wei, Zhiqian Lin, Xuanke Shi, Kewang Deng, Xiaoyang Han, Zukai Chen, Xiangyu Fan, Hanming Deng, Lewei Lu, Liang Pan, Bo Li, Ziwei Liu, Quan Wang, Dahua Lin, and Lei Yang. Scaling spatial intelligence with multimodal foundation models. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2026.
@@ -475,7 +475,7 @@ References
 [24]Miquel Farré, Andi Marafioti, Lewis Tunstall, Leandro Von Werra, and Thomas Wolf. Finevideo.https:// huggingface.co/datasets/HuggingFaceFV/finevideo, 2024.
 
 
-[25]Difei Gao, Ruiping Wang, Ziyi Bai, and Xilin Chen. Env-qa: A video question answering benchmark for comprehensive understanding of dynamic environments. InProceedings of the IEEE/CVF International Conference on Computer Vision (ICCV), pages 1675–1685, October 2021.
+ [25]Difei Gao, Ruiping Wang, Ziyi Bai, and Xilin Chen. Env-qa: A video question answering benchmark for comprehensive understanding of dynamic environments. InProceedings of the IEEE/CVF International Conference on Computer Vision (ICCV), pages 1675–1685, October 2021.
 [26]Kristen Grauman, Andrew Westbury, Eugene Byrne, Zachary Chavis, Antonino Furnari, Rohit Girdhar, Jackson Hamburger, Hao Jiang, Miao Liu, Xingyu Liu, et al. Ego4d: Around the world in 3,000 hours of egocentric video. InProceedings of the IEEE/CVF conference on computer vision and pattern recognition, pages 18995–19012, 2022.
 [27]Xiaoshuai Hao, Yingbo Tang, Lingfeng Zhang, Yanbiao Ma, Yunfeng Diao, Ziyu Jia, Wenbo Ding, Hangjun Ye, and Long Chen. Roboafford++: A generative ai-enhanced dataset for multimodal affordance learning in robotic manipulation and navigation.arXiv preprint arXiv:2511.12436, 2025.
 [28]Xiaoshuai Hao, Lei Zhou, Zhijian Huang, Zhiwen Hou, Yingbo Tang, Lingfeng Zhang, Guang Li, Zheng Lu, Shuhuai Ren, Xianhui Meng, et al. Mimo-embodied: X-embodied foundation model technical report.arXiv preprint arXiv:2511.16518, 2025.
@@ -494,7 +494,7 @@ References
 [41]Songming Liu, Lingxuan Wu, Bangguo Li, Hengkai Tan, Huayu Chen, Zhengyi Wang, Ke Xu, Hang Su, and Jun Zhu. Rdt-1b: a diffusion foundation model for bimanual manipulation. InInternational Conference on Learning Representations, pages 29982–30009, 2025.
 
 
-[42]Zhengyi Luo, Ye Yuan, Tingwu Wang, Chenran Li, Fernando Castañeda, Sirui Chen, Zi-Ang Cao, Jiefeng Li, David Minor, Qingwei Ben, et al. Sonic: Supersizing motion tracking for natural humanoid whole-body control. arXiv preprint arXiv:2511.07820, 2025.
+ [42]Zhengyi Luo, Ye Yuan, Tingwu Wang, Chenran Li, Fernando Castañeda, Sirui Chen, Zi-Ang Cao, Jiefeng Li, David Minor, Qingwei Ben, et al. Sonic: Supersizing motion tracking for natural humanoid whole-body control. arXiv preprint arXiv:2511.07820, 2025.
 [43]Muhammad Maaz, Hanoona Rasheed, Salman Khan, and Fahad Khan. Videogpt+: Integrating image and video encoders for enhanced video understanding.arXiv preprint arXiv:2406.09418, 2024.
 [44]Junhua Mao, Jonathan Huang, Alexander Toshev, Oana Camburu, Alan L Yuille, and Kevin Murphy. Generation and comprehension of unambiguous object descriptions. InProceedings of the IEEE conference on computer vision and pattern recognition, pages 11–20, 2016.
 [45]Lingchen Meng, Jianwei Yang, Rui Tian, Xiyang Dai, Zuxuan Wu, Jianfeng Gao, and Yu-Gang Jiang. Deepstack: Deeply stacking visual tokens is surprisingly simple and effective for lmms.Advances in Neural Information Processing Systems, 37:23464–23487, 2024.
@@ -514,7 +514,7 @@ References
 [59]Pierre Sermanet, Tianli Ding, Jeffrey Zhao, Fei Xia, Debidatta Dwibedi, Keerthana Gopalakrishnan, Christine Chan, Gabriel Dulac-Arnold, Sharath Maddineni, Nikhil J Joshi, et al. Robovqa: Multimodal long-horizon reasoning for robotics. In2024 IEEE International Conference on Robotics and Automation (ICRA), pages 645–652. IEEE, 2024.
 
 
-[60]Chan Hee Song, Valts Blukis, Jonathan Tremblay, Stephen Tyree, Yu Su, and Stan Birchfield. Robospatial: Teaching spatial understanding to 2d and 3d vision-language models for robotics. InProceedings of the Computer Vision and Pattern Recognition Conference, pages 15768–15780, 2025.
+ [60]Chan Hee Song, Valts Blukis, Jonathan Tremblay, Stephen Tyree, Yu Su, and Stan Birchfield. Robospatial: Teaching spatial understanding to 2d and 3d vision-language models for robotics. InProceedings of the Computer Vision and Pattern Recognition Conference, pages 15768–15780, 2025.
 [61]Srinidhi Kalgundi Srinivas, Yash Shukla, Adam Arnold, and Sachin Chitta. Graspfactory: A large object-centric grasping dataset.arXiv preprint arXiv:2509.20550, 2025.
 [62]Huajie Tan, Enshen Zhou, Zhiyu Li, Yijie Xu, Yuheng Ji, Xiansheng Chen, Cheng Chi, Pengwei Wang, Huizhu Jia, Yulong Ao, et al. Robobrain 2.5: Depth in sight, time in mind.arXiv preprint arXiv:2601.14352, 2026.
 [63]Gemini Team, Rohan Anil, Sebastian Borgeaud, Jean-Baptiste Alayrac, Jiahui Yu, Radu Soricut, Johan Schalkwyk, Andrew M Dai, Anja Hauth, Katie Millican, et al. Gemini: a family of highly capable multimodal models. arXiv preprint arXiv:2312.11805, 2023.
@@ -533,7 +533,7 @@ References
 [76]Boqiang Zhang, Kehan Li, Zesen Cheng, Zhiqiang Hu, Yuqian Yuan, Guanzheng Chen, Sicong Leng, Yuming Jiang, Hang Zhang, Xin Li, et al. Videollama 3: Frontier multimodal foundation models for image and video understanding.arXiv preprint arXiv:2501.13106, 2025.
 
 
-[77]Yi Zhang, Che Liu, Xiancong Ren, Hanchu Ni, Shuai Zhang, Zeyuan Ding, Jiayu Hu, Hanzhe Shan, Zhenwei Niu, Zhaoyang Liu, et al. Pelican-vl 1.0: A foundation brain model for embodied intelligence.arXiv preprint arXiv:2511.00108, 2025.
+ [77]Yi Zhang, Che Liu, Xiancong Ren, Hanchu Ni, Shuai Zhang, Zeyuan Ding, Jiayu Hu, Hanzhe Shan, Zhenwei Niu, Zhaoyang Liu, et al. Pelican-vl 1.0: A foundation brain model for embodied intelligence.arXiv preprint arXiv:2511.00108, 2025.
 [78]Yuanhan Zhang, Jinming Wu, Wei Li, Bo Li, Zejun Ma, Ziwei Liu, and Chunyuan Li. Video instruction tuning with synthetic data.arXiv preprint arXiv:2410.02713, 2024.
 [79]Bolei Zhou, Hang Zhao, Xavier Puig, Sanja Fidler, Adela Barriuso, and Antonio Torralba. Scene parsing through ade20k dataset. InProceedings of the IEEE conference on computer vision and pattern recognition, pages 633–641, 2017.
 [80]Enshen Zhou, Jingkun An, Cheng Chi, Yi Han, Shanyu Rong, Chi Zhang, Pengwei Wang, Zhongyuan Wang, Tiejun Huang, Lu Sheng, et al. Roborefer: Towards spatial referring with reasoning in vision-language models for robotics.arXiv preprint arXiv:2506.04308, 2025.
