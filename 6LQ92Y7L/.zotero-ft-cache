@@ -12,7 +12,7 @@ Large Language Models (LLMs) have demonstrated remarkable capabilities across a 
 arXiv:2604.06169v1 [cs.LG] 7 Apr 2026
 
 
-In-context learning [8,56] offers a way to mitigate this problem via maintaining all past input tokens in the context. However, its effectiveness is tethered to the model’s context window, restricted by the quadratic complexity of the de facto attention mechanism [52]. This bottleneck has spurred a line of research into architectural solutions aimed at efficiently extending the context window [6, 10, 17, 42]. Differently,Test-Time Training (TTT)has emerged as a new paradigm [ 3, 47, 48, 53, 63]. Instead of merely making a static model more efficient, TTT enables the model to dynamically update the parameters and adapt to any specific context, directly targeting the aforementioned limitation. Specifically, TTT introduces a small subset of model parameters, called fast weights [43], which can be updated on the fly for each new input. By minimizing a self-supervised reconstruction objective, these fast weights compress and internalize contextual information, functioning as an expressive, online evolving state.
+ In-context learning [8,56] offers a way to mitigate this problem via maintaining all past input tokens in the context. However, its effectiveness is tethered to the model’s context window, restricted by the quadratic complexity of the de facto attention mechanism [52]. This bottleneck has spurred a line of research into architectural solutions aimed at efficiently extending the context window [6, 10, 17, 42]. Differently,Test-Time Training (TTT)has emerged as a new paradigm [ 3, 47, 48, 53, 63]. Instead of merely making a static model more efficient, TTT enables the model to dynamically update the parameters and adapt to any specific context, directly targeting the aforementioned limitation. Specifically, TTT introduces a small subset of model parameters, called fast weights [43], which can be updated on the fly for each new input. By minimizing a self-supervised reconstruction objective, these fast weights compress and internalize contextual information, functioning as an expressive, online evolving state.
 Despite its conceptual appeal, unleashing TTT’s potential within the current LLM ecosystem is hindered by critical barriers:(i)Existing TTT methods often rely on specialized layers beyond standard Transformer blocks, which usually demand costly pretraining from scratch to achieve satisfactory performance. [47, 48, 53, 67]; (ii)the canonical TTT mechanism is inherently sequential [ 47, 48]. While existing works explore chunk-wise acceleration [3, 30, 49, 63], TTT’s role as the primary token mixer forces a reliance on small chunks to maintain performance, thereby bottlenecking the massive parallelism required to saturate modern accelerators; and (iii)the prevalent use of a generic reconstruction objective for TTT’s fast weights updating is not explicitly tailored for the causal, Next-Token Prediction task that governs autoregressive LMs, potentially hindering their ultimate performance.
 To bridge this gap, we introduceIn-Place Test-Time Training (In-Place TTT), a framework designed to seamlessly endow LLMs with Test-Time Training capabilities by directly addressing the aforementioned barriers. Our core insight is to repurpose existing MLP blocks with an in-place design rather than introducing a new, specialized layer(tackling barrier i). Specifically, In-Place TTT treats the final projection matrix of MLP blocks as their fast weights, updating it in-place during inference. This “drop-in" design requires no modifications to the model’s architecture, preserving the integrity of pre-trained weights and enabling on-the-fly adaptation without costly retraining from scratch.
 To tackle the computational inefficiency and objective misalignment, we further design a bespoke adaptation mechanism for language modeling. Following previous works [3, 30, 49, 63, 67], we replace the inefficient per-token updates with a scalable chunk-wise update rule(tackling barrier ii). Furthermore, our in-place design operates complementarily to the attention mechanism. This synergy obviates the need for small chunks required by standalone TTT layers, thereby ensuring high throughput on modern accelerators. Concurrently, we move beyond the generic reconstruction targets of prior work [48, 67] and introduce a novel objective explicitly aligned with the Next-Token Prediction (NTP) goal(tackling barrier iii). Grounded in a rigorous theoretical analysis, we show this NTP-aligned objective encourages the fast weights to store predictively useful information for autoregressive language modeling, leading to a highly effective and scalable algorithm.
@@ -22,7 +22,7 @@ This section introduces Test-Time Training (TTT), a paradigm that enables models
 2
 
 
-The TTT mechanism.At its core, the TTT mechanism leverages fast weights [2, 43], denoted byW. These weights constitute a small neural network fW(·) : Rd →R d, which is rapidly updated at test time. Unlike standard model weights that are frozen after training, the fast weightsWact as a dynamic memory, continuously storing and retrieving contextual information from the sequence.
+ The TTT mechanism.At its core, the TTT mechanism leverages fast weights [2, 43], denoted byW. These weights constitute a small neural network fW(·) : Rd →R d, which is rapidly updated at test time. Unlike standard model weights that are frozen after training, the fast weightsWact as a dynamic memory, continuously storing and retrieving contextual information from the sequence.
 To process an input sequencex= [ x1, x2, . . . , xN ], each token xi ∈R d is typically projected to derive the necessary inputs for the TTT operations, such as a query (qi), a key (ki), and a value (vi). The TTT mechanism then operates through two core, sequential operations:
 1. Update Operation:The fast weightsWare updated to associate a key ki with its corresponding value vi. This is framed as a single optimization step that minimizes a loss function L(·,· )(e.g., Mean Squared Error), which measures the discrepancy in this association. Intuitively, this step encodes the information from the(k i, vi)pair into the neural memoryf W. Given a learning rateη, the update rule is:
 Wi ←W i−1 −η∇ WL fWi−1 (ki), vi .
@@ -37,7 +37,7 @@ To satisfy the desiderata outlined insection 2, we introduceIn-Place Test-TimeTr
 3
 
 
-ensuring computational efficiency with a chunk-wise update mechanism (section 3.1). We then detail our novel LM-aligned objective, which is explicitly designed for LLMs by aligning with the Next-Token Prediction (NTP) goal (section 3.2). Following this, we provide a theoretical analysis of our objective’s superior properties (section 3.3) and conclude with practical implementation details (section 3.4).
+ ensuring computational efficiency with a chunk-wise update mechanism (section 3.1). We then detail our novel LM-aligned objective, which is explicitly designed for LLMs by aligning with the Next-Token Prediction (NTP) goal (section 3.2). Following this, we provide a theoretical analysis of our objective’s superior properties (section 3.3) and conclude with practical implementation details (section 3.4).
 3.1Overall Framework
 Repurposing MLP Blocks for In-Place Adaptation.Previous TTT research has largely positioned it as a potential solution to replace the attention mechanism. However, these prior studies were typically conducted at moderate scales, a regime vastly different from that of modern, billion-parameter LLMs. Consequently, replacing the core attention mechanism—whose learned properties are critical to an LLM’s capabilities—is a high-risk architectural modification. Moreover, introducing any new, randomly-initialized layer also creates a conflict with the billions of trained parameters of LLMs, necessitating costly and often impractical retraining to resolve this imbalance.
 Our core insight is to sidestep these challenges entirely. Instead of replacing or adding components, we repurpose a ubiquitous module–the Multi-Layer Perceptron (MLP) block–to also serve as the fast weights. Recalling the TTT formulations insection 2, there exist no constraints on the choice of fast weights, i.e., any parameters can serve as fast weights updated via the TTT mechanism. In particular, the MLP blocks in Transformers can also be viewed as a form of key-value memory [22], functioning as a “slow weights" for the vast, general knowledge acquired during pre-training. It is therefore a natural extension to leverage this same component to also function as the adaptive "fast weights", dynamically internalizing transient, in-context information at inference time.
@@ -65,7 +65,7 @@ This chunk-wise update strategy is designed for modern hardware, similar to prio
 4
 
 
-Moreover, due to our in-place MLP adaptation, we can use a large chunk size C to process large blocks of tokens at once, thereby highly leveraging parallelism and utilizing the computational power of GPUs or TPUs.
+ Moreover, due to our in-place MLP adaptation, we can use a large chunk size C to process large blocks of tokens at once, thereby highly leveraging parallelism and utilizing the computational power of GPUs or TPUs.
 3.2LM-Aligned Objective
 With the efficient, in-place adaptation framework established, the performance of In-Place TTT now hinges on the design of its learning objective. In this subsection, we introduce our Language Modeling-Aligned objective, which is explicitly tailored for LLMs.
 Prior TTT approaches typically use a reconstruction target, e.g., L fW(k), v where both k and v are linear projection outputs of the same input token x [47, 48, 67], which encourages the model to simply memorize the current token’s representation. We argue that this is suboptimal for language modeling tasks. Instead, we propose to align the objective with the Next-Token Prediction (NTP) goal governing LLMs.
@@ -98,7 +98,7 @@ t )Z n =0.
 5
 
 
-Split into
+ Split into
 chunks
 L(O[i], V[i])
 Attention
@@ -133,7 +133,7 @@ down = (Vˆ [i])⊤Z[i]
 6
 
 
-in parallel; (ii) a single prefix sum over[ ..., ∆W(i)
+ in parallel; (ii) a single prefix sum over[ ..., ∆W(i)
 down, ∆W(i+1)
 down , ...]is conducted to compute the aggregated
 updates for each chunk:∆S i = Pi−1
@@ -166,7 +166,7 @@ To validate In-Place TTT as a “drop-in” enhancement for existing, pre-traine
 7
 
 
-Table 2Extension of In-Place TTT to LLaMA-3.1-8B and Qwen3-14B-Base on the RULER benchmark. We report the average accuracy (%) with the best results inbold.
+ Table 2Extension of In-Place TTT to LLaMA-3.1-8B and Qwen3-14B-Base on the RULER benchmark. We report the average accuracy (%) with the best results inbold.
 Base Model Method 4k 8k 16k 32k 64k 64k+YaRN
 LLaMA-3.1-8B Baseline 93.9 92.1 92.5 91.1 81.6 –
 In-Place TTT94.4 93.0 93.3 91.7 83.7–
@@ -182,7 +182,7 @@ Experimental Setup.Firstly, we benchmark our In-Place TTT against prior TTT-rela
 8
 
 
-(a) Sliding Window Perplexity of 500M Model
+ (a) Sliding Window Perplexity of 500M Model
 2k 4k 8k 16k 32k Context Length
 9.5
 10.0
@@ -215,7 +215,7 @@ Moreover, the results in Table3further show that 4B-parameter Transformers with 
 9
 
 
-RULER-4k RULER-8k RULER-16k
+ RULER-4k RULER-8k RULER-16k
 0
 20
 40
@@ -279,7 +279,7 @@ Efficiency Impact of In-Place TTT.We further study the computational overhead in
 10
 
 
-5Related Work
+ 5Related Work
 Test-Time Training (TTT).Test-Time Training (TTT) is a paradigm that enables a model to adapt dynamically in response to continuous streams of data at inference by updating a small subset of its parameters, known as fast weights[ 2]. Initially demonstrating success in computer vision [47, 53], TTT has since been extended to numerous other modalities—including language [48], video [15], and audio [18]—underscoring its broad applicability. Research in this area has largely focused on two avenues for improving TTT’s effectiveness: the design of more sophisticated test-time optimizers [4] and the formulation of novel, self-supervised online learning objectives [3, 32]. However, the computational efficiency of TTT remained a critical bottleneck due to its inherently sequential, per-token update process. The chunk wise Test-Time Training framework was the first to directly address this challenge by introducing a chunk-wise update mechanism to better leverage parallel hardware [3, 30, 36, 49, 63, 67]. Despite these advances, TTT’s function as the primary token mixer necessitates reliance on small chunks to preserve performance—this in turn creates a bottleneck that limits the massive parallelism needed to fully utilize modern accelerators. Furthermore, prior work has not addressed how to seamlessly integrate TTT into large, pre-trained models, nor developed learning objectives specifically tailored for the autoregressive nature of LLMs, which are gaps our work directly addresses.
 Efficient Long-Context Architectures.A parallel line of research seeks to extend the effective context window of LLMs by mitigating the quadratic complexity of the standard attention mechanism. Major approaches include: 1) Sparse attention methods, which restrict the range of token-to-token interactions via fixed patterns like sliding or strided windows [6, 10, 65]; 2) Linear-time variants, which approximate the attention mechanism or replace it with efficient recurrent or gated formulations, such as linear attention [33, 43] Gated Linear Attention (GLA) [58]; and 3) State-Space Models (SSMs), which compress sequence history into a compact latent state, enabling processing with linear complexity [16, 17]. Recently, thedelta rulehas emerged as a popular design choice for linear attention and SSMs, enabling better experessivity and highly parallelizable implementations [61]. These architectural advances are complementary to our framework. While they focus on efficientlyprocessinglong contexts, TTT provides a mechanism for onlineadaptationto the information within that context. Our In-Place TTT can be also naturally integrated with these efficient backbones, as they also have MLP blocks. And we leave these as the future work.
 Memory Design and Augmentation.A related domain of research involves augmenting neural architectures with explicit memory modules to enhance their reasoning and contextual understanding capabilities. These approaches can be broadly distinguished by their function: some are designed to store persistent, task-agnostic knowledge in an external memory bank, while others focus on capturing transient, data-dependent information from the immediate context [25, 34, 35, 55, 64]. The latter, contextual memories, have been implemented using various mechanisms, including recurrent state transitions, attention-based context aggregation in Transformers [14], and rapid, gradient-based updates to fast weights [61]. Test-Time Training (TTT) represents a powerful instance of this latter category, which conceptually extends the notion of a hidden state found in Recurrent Neural Networks (RNNs). Rather than compressing contextual history into a fixed-size activation vector, TTT designates a subset of the model’s own parameters—thefast weights—to function as a high-capacity, dynamic memory [2, 43]. These weights are updated on the fly at inference time, allowing the model to continuously internalize evolving contextual information and thereby function as an expressive, online evolving state.
@@ -288,7 +288,7 @@ We introduced In-Place Test-Time Training, a practical framework that resolves t
 11
 
 
-References
+ References
 [1] Marah Abdin, Jyoti Aneja, Hany Awadalla, Ahmed Awadallah, Ammar Ahmad Awan, Nguyen Bach, Amit Bahree, Arash Bakhtiari, Jianmin Bao, Harkirat Behl, Alon Benhaim, Misha Bilenko, Johan Bjorck, Sébastien Bubeck, Martin Cai, et al. Phi-3 technical report: A highly capable language model locally on your phone, 2024. URL https://arxiv.org/abs/2404.14219.
 [2] Jimmy Lei Ba, Geoffrey E. Hinton, Volodymyr Mnih, Joel Z. Leibo, and Catalin Ionescu. Using fast weights to attend to the recent past. In Advances in Neural Information Processing Systems, 2016. URL https: //arxiv.org/abs/1610.06258.
 [3] Ali Behrouz, Peilin Zhong, and Vahab Mirrokni. Titans: Learning to memorize at test time. arXiv preprint arXiv:2501.00663, 2024.
@@ -310,7 +310,7 @@ We introduced In-Place Test-Time Training, a practical framework that resolves t
 12
 
 
-[19] Nelson Elhage, Neel Nanda, Catherine Olsson, Tom Brown, and et al. A mathematical framework for transformer circuits. Transformer Circuits Thread, 2021. URL https://transformer-circuits.pub/2021/framework/index. html.
+ [19] Nelson Elhage, Neel Nanda, Catherine Olsson, Tom Brown, and et al. A mathematical framework for transformer circuits. Transformer Circuits Thread, 2021. URL https://transformer-circuits.pub/2021/framework/index. html.
 [20] Leo Gao, Stella Biderman, Sid Black, Laurence Golding, Travis Hoppe, Charles Foster, Jason Phang, Horace He, Anish Thite, Noa Nabeshima, Shawn Presser, and Connor Leahy. The pile: An 800gb dataset of diverse text for language modeling. arXiv preprint arXiv:2101.00027, 2020. URLhttps://arxiv.org/abs/2101.00027.
 [21] Leo Gao, Jonathan Tow, Baber Abbasi, Stella Biderman, Sid Black, Anthony DiPofi, Charles Foster, Laurence Golding, Jeffrey Hsu, Alain Le Noac’h, Haonan Li, Kyle McDonell, Niklas Muennighoff, Chris Ociepa, Jason Phang, Laria Reynolds, Hailey Schoelkopf, Aviya Skowron, Lintang Sutawika, Eric Tang, Anish Thite, Ben Wang, Kevin Wang, and Andy Zou. The language model evaluation harness, 07 2024. URL https://zenodo.org/ records/12608602.
 [22] Mor Geva, Roei Schuster, Jonathan Berant, and Omer Levy. Transformer feed-forward layers are key-value memories. arXiv preprint arXiv:2012.14913, 2020.
@@ -330,7 +330,7 @@ We introduced In-Place Test-Time Training, a practical framework that resolves t
 13
 
 
-[36] Zeman Li, Ali Behrouz, Yuan Deng, Peilin Zhong, Praneeth Kacham, Mahdi Karami, Meisam Razaviyayn, and Vahab Mirrokni. Tnt: Improving chunkwise training for test-time memorization. arXiv preprint arXiv:2511.07343, 2025.
+ [36] Zeman Li, Ali Behrouz, Yuan Deng, Peilin Zhong, Praneeth Kacham, Mahdi Karami, Meisam Razaviyayn, and Vahab Mirrokni. Tnt: Improving chunkwise training for test-time memorization. arXiv preprint arXiv:2511.07343, 2025.
 [37] Aixin Liu, Bei Feng, Bing Xue, Bingxuan Wang, Bochao Wu, Chengda Lu, Chenggang Zhao, Chengqi Deng, Chenyu Zhang, Chong Ruan, et al. Deepseek-v3 technical report. arXiv preprint arXiv:2412.19437, 2024.
 [38] Catherine Olsson, Nelson Elhage, Neel Nanda, Nicholas Joseph, Nova DasSarma, Tom Henighan, Ben Mann, Amanda Askell, Yuntao Bai, Anna Chen, Tom Conerly, Dawn Drain, Deep Ganguli, Zac Hatfield-Dodds, Danny Hernandez, Scott Johnston, Andy Jones, Jackson Kernion, Liane Lovitt, Kamal Ndousse, Dario Amodei, Tom Brown, Jack Clark, Jared Kaplan, Sam McCandlish, and Chris Olah. In-context learning and induction heads. arXiv preprint arXiv:2209.11895, 2022. URLhttps://arxiv.org/abs/2209.11895.
 [39]OpenAI. Gpt-4 technical report. arXiv preprint arXiv:2303.08774, 2024.
@@ -352,7 +352,7 @@ We introduced In-Place Test-Time Training, a practical framework that resolves t
 14
 
 
-[55] Yu Wang, Yifan Gao, Xiusi Chen, Haoming Jiang, Shiyang Li, Jingfeng Yang, Qingyu Yin, Zheng Li, Xian Li, Bing Yin, Jingbo Shang, and Julian McAuley. Memoryllm: Towards self-updatable large language models, 2024. URLhttps://arxiv.org/abs/2402.04624.
+ [55] Yu Wang, Yifan Gao, Xiusi Chen, Haoming Jiang, Shiyang Li, Jingfeng Yang, Qingyu Yin, Zheng Li, Xian Li, Bing Yin, Jingbo Shang, and Julian McAuley. Memoryllm: Towards self-updatable large language models, 2024. URLhttps://arxiv.org/abs/2402.04624.
 [56] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Brian Ichter, Fei Xia, Ed Chi, Quoc Le, and Denny Zhou. Chain-of-thought prompting elicits reasoning in large language models, 2023. URL https: //arxiv.org/abs/2201.11903.
 [57] An Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu, Chang Gao, Chengen Huang, Chenxu Lv, et al. Qwen3 technical report. arXiv preprint arXiv:2505.09388, 2025.
 [58] Songlin Yang, Bailin Wang, Yikang Shen, Rameswar Panda, and Yoon Kim. Gated linear attention transformers with hardware-efficient training. arXiv preprint arXiv:2312.06635, 2023. URL https://arxiv.org/abs/2312. 06635.
@@ -368,7 +368,7 @@ We introduced In-Place Test-Time Training, a practical framework that resolves t
 15
 
 
-Appendix
+ Appendix
 AProof oftheorem 1
 For completeness, we first restate the theorem with the precise bounds derived from the assumptions.
 Theorem 1(Logit-wise Effect of LM-Aligned Target v.s. Reconstruction Target (Restated)).Under the specified setting and assumptions, for a learning rate λlr > 0, the expected change in logits∆ ln after one update step using theNTP-aligned targetsatisfies:
@@ -432,7 +432,7 @@ norm.(13)
 16
 
 
-Next, for any incorrect token w̸ = v∗, the expected change is E[∆l n[w]] = E (e⊤
+ Next, for any incorrect token w̸ = v∗, the expected change is E[∆l n[w]] = E (e⊤
 w ev∗ )·(z ⊤
 t∗ zn) . Taking the absolute value and applying Assumption 1, which states that distinct embeddings are nearly orthogonal (|e⊤
 wev∗ | ≤ε), we obtain the bound inequation (5):
@@ -478,7 +478,7 @@ This appendix provides all details of the experimental settings, datasets, model
 17
 
 
-for our three primary sets of experiments: thecontinual pre-trainingof Qwen3-4B-Base, thefrom-scratch pre-trainingof models at multiple scales (500M, 1.5B, and 4B), and thetargeted ablation studies. Our goal is to provide sufficient detail to ensure the reproducibility of our findings.
+ for our three primary sets of experiments: thecontinual pre-trainingof Qwen3-4B-Base, thefrom-scratch pre-trainingof models at multiple scales (500M, 1.5B, and 4B), and thetargeted ablation studies. Our goal is to provide sufficient detail to ensure the reproducibility of our findings.
 C.1Details of Datasets
 For the large scale pretraining, continual pretraining, and ablation study, we use the dataset collected by ourselves, we give the details of these datasets as follows.
 From Scratch Pretraining Dataset.The pretraining dataset mainly includes general English and Chinese text, along with high knowledge- or reasoning-density data, code, mathematics data, and multilingual text, forming a balanced mixture of linguistic diversity, knowledge and reasoning-rich content, programming material, and mathematical reasoning.
@@ -496,7 +496,7 @@ Evaluation Details.We employ the evaluation framework lm-evaluation-harness [ 21
 18
 
 
-Table 6Hyperparameters for two-stage continual pre-training.
+ Table 6Hyperparameters for two-stage continual pre-training.
 Hyperparameter Stage 1 (32k Context) Stage 2 (128k Context)
 Base Model Qwen3-4B-Base Qwen3-4B-Base Optimizer AdamW AdamW Learning Rate 5e-6 5e-6 Weight Decay 0.1 0.1
 Sequence Length 32,768 131,072 Tokens Trained∼20B∼15B RoPE Extension None YaRN Conv Size 5 5
@@ -519,7 +519,7 @@ For the continual pre-training experiments described insection 4.1, we start dir
 19
 
 
-Table 8Model architectural configurations for 500M and 1.5B Model.
+ Table 8Model architectural configurations for 500M and 1.5B Model.
 Parameter 500M 1.5B
 Parameters (Approx.) 500M 1.5B Hidden Size (dmodel) 1024 2048 Num Layers 24 24 Num Attention Heads 8 16 FFN Hidden Size (dff) 3072 6144 Window Size 2048 4096 Vocabulary Size 32,000 32,000 Rope Base 1e6 1e6
 integrated into the MLP blocks and applied to every sixth layer. For the ablation studies, this frequency is varied as described in the main paper. The training hyperparameters for Qwen3-4B-Base are listed intable 6, and those for LLaMA-3.1-8B and Qwen3-14B-Base are listed intable 7.

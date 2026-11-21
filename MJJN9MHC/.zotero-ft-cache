@@ -9,7 +9,7 @@ Learning representations from sequences of data requires expressive temporal and
 arXiv:2209.12951v1 [cs.LG] 26 Sep 2022
 
 
-Liquid Structural State-Space Models
+ Liquid Structural State-Space Models
 Transformers across many data modalities such as text, sequence of pixels, audio, and time series (Gu et al., 2021,2022a,b;Gupta,2022). Structural SSMs achieve such impressive performance by using three main mechanisms: 1) High-order polynomial projection operators (HiPPO) (Gu et al.,2020a) that are applied to state and input transition matrices to memorize signals’ history, 2) diagonal plus low-rank parametrization of the obtained HiPPO (Gu et al.,2022a), and 3) an efficient (convolution) kernel computation of an SSM’s transition matrices in the frequency domain, transformed back in time via an inverse Fourier transformation (Gu et al.,2022a). To combine S4 and LTCs, instead of modeling sequences by linear state-space models of the form x ̇ = A x + B u, y = C x, (as done in structural and diagonal SSMs (Gu et al.,2022a,b)), we propose to use a linearized LTC state-space model (Hasani et al.,2021b), given by the following dynamics: x ̇ = (A + B u) x + B u, y = C x. We show that this dynamical system can also be efficiently solved via the same parametrization of S4, giving rise to an additional convolutional Kernel that accounts for the similarities of lagged signals. We call the obtained model Liquid-S4. Through extensive empirical evaluation, we show that Liquid-S4 consistently leads to better generalization performance compared to all variants of S4, CNNs, RNNs, and Transformers across many time-series modeling tasks. In particular, we achieve SOTA performance on the Long Range Arena benchmark (Tay et al.,2020b) with an average of 87.32%. To sum up, we make the following contributions:
 1.We introduce Liquid-S4, a new state-space model that encapsulates the generalization and causality capabilities of liquid networks as well as the memorization, efficiency and scalability of S4. 2.We achieve State-of-the-art performance on pixel-level sequence classification, text, speech recognition and all six tasks of the long-range arena benchmark with an average accuracy of 87.32%. On the full raw Speech Command recognition dataset Liquid-S4 achieves 96.78% accuracy with 30% reduction in parameter. Finally on the BIDMC vital signs dataset Liquid-S4 achieves SOTA in all modes.
 2.Related Works
@@ -17,7 +17,7 @@ Learning Long-Range Dependencies with RNNs. Sequence modeling can be performed a
 2
 
 
-Liquid Structural State-Space Models
+ Liquid Structural State-Space Models
 time-continuous path signatures (Friz and Victoir,2010), and neural controlled differential equations (Kidger et al.,2020), and liquid time-constant networks (LTCs) (Hasani et al.,2021b). Numerous solutions have been proposed to resolve these gradient issues to enable long-range dependency learning. Examples include discrete gating mechanisms in LSTMs (Greff et al.,2016;Hasani et al.,2019; Hochreiter and Schmidhuber,1997), GRUs (Chung et al.,2014), continuous gating mechanisms such as CfCs (Hasani et al.,2021a), hawks LSTMs (Mei and Eisner,2017), IndRNNs (Li et al.,2018), state regularization (Wang and Niepert,2019), unitary RNNs (Jing et al.,2019), dilated RNNs (Chang et al.,2017), long memory stochastic processes (Greaves-Tunnell and Harchaoui,2019), recurrent kernel networks (Chen et al.,2019), Lipschitz RNNs (Erichson et al.,2021), symmetric skew decomposition (Wisdom et al.,2016), infinitely many updates in iRNNs (Kag et al.,2019), coupled oscillatory RNNs (coRNNs) (Rusch and Mishra,2021), mixedmemory RNNs (Lechner and Hasani,2021), and Legendre Memory Units (Voelker et al.,2019).
 Learning Long-range Dependencies with CNNs and Transformers. RNNs are not the only solution to learning long-range dependencies. Continuous convolutional kernels such as CKConv (Romero et al.,2021b) and (Romero et al.,2021a), and circular dilated CNNs (Cheng et al.,2022) have shown to be efficient in modeling long sequences faster than RNNs. There has also been a large series of works showing the effectiveness of attention-based methods for modeling spatiotemporal data. A large list of these models is listed in Table 1. These baselines have recently been largely outperformed by the structural state-space models (Gu et al.,2022a). State-Space Models. SSMs are well-established frameworks to study deterministic and stochastic dynamical systems (KALMAN,1960). Their state and input transition matrices can be directly learned by gradient descent to model sequences of observations (Gu et al.,2021;Hasani et al.,2021b;Lechner et al.,2020b). In a seminal work,Gu et al.(2022a) showed that with a couple of fundamental algorithmic methods on memorization and computation of input sequences, SSMs can turn into the most powerful sequence modeling framework to-date, outperforming advanced RNNs, temporal and continuous CNNs (Cheng et al.,2022;Romero et al.,2021a,b) and a wide variety of Transformers (Vaswani et al.,2017), available in Table 1 by a significant margin. The key to their success is their diagonal plus-low rank parameterization of the transition matrix of SSMs via higher-order polynomial projection (HiPPO) matrix (Gu et al.,2020a) obtained by a scaled Legendre measure (LegS) inspired by the Legendre Memory Units (Voelker et al.,2019) to memorize input sequences, a learnable input transition matrix, and an efficient Cauchy Kernel algorithm, results in obtaining structural SSMs named S4. It was also shown recently that diagonal SSMs (S4D) (Gupta,2022) could be as performant as S4 in learning long sequences when parametrized and initialized properly (Gu et al.,2022b,c). There was also a new variant of S4 introduced as simplified-S4 (S5)Smith et al.(2022) that tensorizes the 1-D operations of S4 to gain a more straightforward realization of SSMs. Here, we introduce Liquid-S4, which is obtained by a more expressive SSM, namely liquid time-constant (LTC) representation (Hasani et al.,2021b) which achieves SOTA performance across many benchmarks.
 3.Setup and Methodology
@@ -27,7 +27,7 @@ We aim to design an end-to-end sequence modeling framework built by SSMs. A cont
 3
 
 
-Liquid Structural State-Space Models
+ Liquid Structural State-Space Models
 x ̇(t) = A x(t) + B u(t), y(t) = C x(t) + D u(t). (1)
 Here, x(t) is an N-dimensional latent state, receiving a 1-dimensional input signal u(t), and computing a 1-dimensional output signal y(t). A(N×N), B(N×1), C(1×N) and D(1×1) are system’s parameters. For the sake of brevity, throughout our analysis, we set D = 0 as it can be added eventually after construction of our main results in the form of a skip connection (Gu et al.,2022a). Discretization of SSMs. In order to create a sequence-to-sequence model similar to a recurrent neural network (RNN), we discretize the continuous-time representation of SSMs by the trapezoidal rule (bilinear transform)† as follows (sampling step = δt) (Gu et al.,2022a):
 xk = A xk−1 + B uk, yk = C xk (2)
@@ -59,7 +59,7 @@ In this work, we construct a convolutional kernel corresponding to a linearized 
 4
 
 
-Liquid Structural State-Space Models
+ Liquid Structural State-Space Models
 In their general form, the state of a liquid time-constant network at each time-step is given by the set of ODEs described below (Hasani et al.,2021b):
 dx(t)
 dt = −
@@ -88,7 +88,7 @@ The resulting expressions of the Liquid-SSM at each time step consist of two typ
 5
 
 
-Liquid Structural State-Space Models
+ Liquid Structural State-Space Models
 kernel. These kernels generate the following input-output mapping:
 yk = CAkBu0 + CAk−1Bu1 + . . . CABuk−1 + CBuk +
 P
@@ -144,7 +144,7 @@ Here, V ∈ CN×N is a unitary matrix, Λ is diagonal, and P, Q ∈ RN×r are th
 6
 
 
-Liquid Structural State-Space Models
+ Liquid Structural State-Space Models
 Algorithm 1 LIQUID-S4 KERNEL - The S4 convolution kernel (highlighted in black) is used fromGu et al. (2022a) andGu et al.(2022b). Liquid kernel computation is highlighted in purple.
 Input: S4 parameters Λ, P, B, C ∈ CN, step size ∆,liquid kernel order P, inputs seq length L, liquid kernel sequence length  ̃L Output: SSM convolution kernel K = KL(A, B, C) and SSM liquid kernel Kliquid = K  ̃L(A, B, C) for A =
 Λ − PP∗ (Eq.6)
@@ -194,7 +194,7 @@ The proof is given in Appendix. Proposition1indicates that the liquid-s4 kernel 
 7
 
 
-Liquid Structural State-Space Models
+ Liquid Structural State-Space Models
 Table 1: Performance on Long Range Arena Tasks. Numbers indicate validation accuracy (standard deviation). The accuracy of models denoted by * are reported from (Tay et al.,2020b). Methods denoted by ** are reported from (Gu et al.,2022a). The rest of the models’ performance results are reported from the cited paper. Liquid-S4 is used with its PB kernel.
 Model ListOps IMDB AAN CIFAR Pathfinder Path-X Avg. (input length) 2048 2048 4000 1024 1024 16384
 Random∗ 10.00 50.00 50.00 10.00 50.00 50.00 36.67 Transformer∗ (Vaswani et al.,2017) 36.37 64.27 57.46 42.44 71.40 x 54.39 Local Att.∗ (Tay et al.,2020b) 15.82 52.98 53.39 41.46 66.63 x 46.06 Sparse Transformer∗ (Child et al.,2019) 17.07 63.58 59.59 44.24 71.71 x 51.24 Longformer∗ (Beltagy et al.,2020) 35.63 62.85 56.89 42.22 69.71 x 53.46 Linformer∗ (Wang et al.,2020) 16.13 65.90 53.09 42.34 75.30 x 50.55 Reformer∗ (Kitaev et al.,2019) 37.27 56.10 53.40 38.07 68.50 x 50.56 Sinkhorn Trans.∗ (Tay et al.,2020a) 33.67 61.20 53.83 41.23 67.45 x 51.23 BigBird∗ (Zaheer et al.,2020) 36.05 64.02 59.29 40.83 74.87 x 55.01 Linear Trans.∗ (Katharopoulos et al.,2020) 16.13 65.90 53.09 42.34 75.30 x 50.46 Performer∗ (Choromanski et al.,2020) 18.01 65.40 53.82 42.77 77.05 x 51.18
@@ -213,7 +213,7 @@ In this section, we present an extensive evaluation of Liquid-S4 on sequence mod
 8
 
 
-Liquid Structural State-Space Models
+ Liquid Structural State-Space Models
 Table 2: Performance on BIDMC Vital Signs dataset. Numbers indicate RMSE on the test set. The accuracy of models denoted by * is reported from (Gu et al.,2022b). The rest of the models’ performance results are reported from the cited paper.
 BIDMC
 Model HR RR SPO2
@@ -225,7 +225,7 @@ Finally, we perform RAW Speech Command (SC) recognition with FULL 35 LABELS as c
 9
 
 
-Liquid Structural State-Space Models
+ Liquid Structural State-Space Models
 AB
 Fig. 1: Performance vs Liquid Order in Liquid-S4 for A) ListOps, and B) IMDB datasets. (n=3)
 very recently in the updated S4 article (Gu et al.,2022a). ‡ SC dataset contains sequences of length 16k to be classified into 35 commands.Gu et al.(2022a) introduced a new test case setting to assess the performance of models (trained on 16kHz sequences) on sequences of length 8kHz. S4 and S4D perform exceptionally well in this zero-shot test scenario.
@@ -237,7 +237,7 @@ Table 2 demonstrates the performance of a variety of classical and advanced base
 10
 
 
-Liquid Structural State-Space Models
+ Liquid Structural State-Space Models
 Table 3: Performance on sCIFAR dataset. Numbers indicate Accuracy (standard deviation). The accuracy of baseline models is reported from Table 9 ofGu et al.(2022b).
 Model Accuracy
 Transformer (Trinh et al.,2018) 62.2 FlexConv (Romero et al.,2021a) 80.82 TrellisNet (Bai et al.,2018) 73.42 LSTM (Hochreiter and Schmidhuber,1997) 63.01 r-LSTM (Trinh et al.,2018) 72.2 UR-GRU (Gu et al.,2020b) 74.4 HiPPO-RNN (Gu et al.,2020a) 61.1 LipschitzRNN (Erichson et al.,2021) 64.2
@@ -252,7 +252,7 @@ Table 4 demonstrates that Liquid-S4 with liquid order p = 2 achieves the best pe
 11
 
 
-Liquid Structural State-Space Models
+ Liquid Structural State-Space Models
 Table 4: Performance on RAW Speech Command dataset with FULL 35 Labels and with the reduced ten classes.Numbers indicate validation accuracy. The accuracy of baseline models is reported from Table 11 of (Gu et al., 2022b).
 SC FULL Labels
 Model Parameters 16kHz 8kHz
@@ -272,7 +272,7 @@ F. W. Belletti, E. R. Sparks, M. J. Franklin, A. M. Bayen, and J. E. Gonzalez. S
 12
 
 
-Liquid Structural State-Space Models
+ Liquid Structural State-Space Models
 I. Beltagy, M. E. Peters, and A. Cohan. Longformer: The long-document transformer. arXiv preprint arXiv:2004.05150, 2020.
 Y. Bengio, P. Simard, and P. Frasconi. Learning long-term dependencies with gradient descent is difficult. IEEE transactions on neural networks, 5(2):157–166, 1994.
 S. G. Brush. History of the lenz-ising model. Reviews of modern physics, 39(4):883, 1967.
@@ -295,7 +295,7 @@ G. Foster. Wavelets for period analysis of unevenly sampled time series. The Ast
 13
 
 
-Liquid Structural State-Space Models
+ Liquid Structural State-Space Models
 K. J. Friston, L. Harrison, and W. Penny. Dynamic causal modelling. Neuroimage, 19(4):1273–1302, 2003.
 P. K. Friz and N. B. Victoir. Multidimensional stochastic processes as rough paths: theory and applications, volume 120. Cambridge University Press, 2010.
 K.-i. Funahashi and Y. Nakamura. Approximation of dynamical systems by continuous time recurrent neural networks. Neural networks, 6(6):801–806, 1993.
@@ -316,7 +316,7 @@ Y. Hanshu, D. Jiawei, T. Vincent, and F. Jiashi. On robustness of neural ordinar
 14
 
 
-Liquid Structural State-Space Models
+ Liquid Structural State-Space Models
 R. Hasani, A. Amini, M. Lechner, F. Naser, R. Grosu, and D. Rus. Response characterization for auditing cell dynamics in long short-term memory networks. In 2019 International Joint Conference on Neural Networks (IJCNN), pages 1–8. IEEE, 2019.
 R. Hasani, M. Lechner, A. Amini, D. Rus, and R. Grosu. The natural lottery ticket winner: Reinforcement learning with ordinary neural circuits. In Proceedings of the 2020 International Conference on Machine Learning. JMLR. org, 2020.
 R. Hasani, M. Lechner, A. Amini, L. Liebenwein, M. Tschaikowski, G. Teschl, and D. Rus. Closed-form continuous-depth models. arXiv preprint arXiv:2106.13898, 2021a.
@@ -337,7 +337,7 @@ C. Lea, R. Vidal, A. Reiter, and G. D. Hager. Temporal convolutional networks: A
 15
 
 
-Liquid Structural State-Space Models
+ Liquid Structural State-Space Models
 M. Lechner and R. Hasani. Mixed-memory rnns for learning long-term dependencies in irregularly sampled time series. OpenReview, 2021.
 M. Lechner, R. Hasani, M. Zimmer, T. A. Henzinger, and R. Grosu. Designing worm-inspired neural networks for interpretable robotic control. In 2019 International Conference on Robotics and Automation (ICRA), pages 87–94. IEEE, 2019.
 M. Lechner, R. Hasani, A. Amini, T. A. Henzinger, D. Rus, and R. Grosu. Neural circuit policies enabling auditable autonomy. Nature Machine Intelligence, 2(10):642–652, 2020a.
@@ -358,7 +358,7 @@ R. Pearson, G. Goney, and J. Shwaber. Imbalanced clustering for microarray time-
 16
 
 
-Liquid Structural State-Space Models
+ Liquid Structural State-Space Models
 W. Penny, Z. Ghahramani, and K. Friston. Bilinear dynamical systems. Philosophical Transactions of the Royal Society B: Biological Sciences, 360(1457):983–993, 2005.
 M. A. Pimentel, A. E. Johnson, P. H. Charlton, D. Birrenkott, P. J. Watkinson, L. Tarassenko, and D. A. Clifton. Toward a robust estimation of respiratory rate from pulse oximeters. IEEE Transactions on Biomedical Engineering, 64(8):1914–1923, 2016.
 A. Quaglino, M. Gallieri, J. Masci, and J. KoutnA ̃ k. Snode: Spectral discretization of neural odes for system identification. In International Conference on Learning Representations, 2020.
@@ -379,7 +379,7 @@ T. Trinh, A. Dai, T. Luong, and Q. Le. Learning longer-term dependencies in rnns
 17
 
 
-Liquid Structural State-Space Models
+ Liquid Structural State-Space Models
 A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez, Ł. Kaiser, and I. Polosukhin. Attention is all you need. Advances in neural information processing systems, 30, 2017.
 A. Voelker, I. Kaji ́c, and C. Eliasmith. Legendre memory units: Continuous-time representation in recurrent neural networks. Advances in neural information processing systems, 32, 2019.
 C. Vorbach, R. Hasani, A. Amini, M. Lechner, and D. Rus. Causal navigation by continuous-time neural networks. Advances in Neural Information Processing Systems, 34, 2021.
@@ -392,7 +392,7 @@ Z. Zhu and R. Soricut. H-transformer-1d: Fast one-dimensional hierarchical atten
 18
 
 
-Liquid Structural State-Space Models
+ Liquid Structural State-Space Models
 Supplementary Materials
 S1.Proof of Proposition1
 Proof. This can be shown by unrolling the S4 convolution kernel and multiplying its components with Bp−1, performing an anti-diagonal transformation to obtain the corresponding liquid S4 kernel:
@@ -414,7 +414,7 @@ Causal Modeling vs. Bidirectional Modeling Liquid-S4 works better when it is use
 19
 
 
-Liquid Structural State-Space Models
+ Liquid Structural State-Space Models
 Table S1: Hyperparameters for obtaining best performing models. BN= Batch Normalization, LN = Layer normalization, WD= Weight decay.
 Depth Features H State Size Norm Pre-norm Dropout LR Batch Size Epochs WD
 ListOps 9 128 7 BN True 0.01 0.002 12 30 0.03 Text (IMDB) 4 128 7 BN True 0.1 0.003 8 50 0.01 Retrieval (AAN) 6 256 64 BN False 0.2 0.005 16 20 0.05 Image (CIFAR) 6 512 512 LN False 0.1 0.01 16 200 0.03 Pathfinder 6 256 64 BN True 0.0 0.0004 4 200 0.03 Path-X 6 320 64 BN True 0.0 0.001 8 60 0.05

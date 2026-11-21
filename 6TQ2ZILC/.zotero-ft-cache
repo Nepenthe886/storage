@@ -12,7 +12,7 @@ While compression methods (e.g., quantization, distillation) can reduce inferenc
 arXiv:2510.03283v1 [cs.LG] 28 Sep 2025
 
 
-MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
+ MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
 An efficient retrainer
 Timeline
 Ad, Bd Cp, Dp, Ad, Bd Aft Bd, Cd, Dd Bd, Cd, Dd ...
@@ -43,7 +43,7 @@ We conduct extensive experiments on real-world traces from personalized chat dat
 Recent surge in deploying LLMs for real-time user interaction (Shen et al.,2024) has necessitated effective strategies for handling concurrent training and inference tasks. These workloads span responding to user queries and retraining
 
 
-MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
+ MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
 aimed at aligning LLMs with human preferences (Askell et al.,2021) to ensure helpfulness (Ethayarajh et al.,2022; Li et al.,2025b) and harmlessness (Fu et al.,2024a).
 Alignment fine-tuning and personalization.Modern
 LLMs often rely on post-training alignment techniques, such asreinforcement learning from human feedback (RLHF) (Ouyang et al.,2022) or DPO (Rafailov et al.,2023) to better align generated responses with human preferences. To reduce the cost of full fine-tuning, PEFT like LoRA (Hu et al.,2022) and surgical fine-tuning (Lee et al.,2023) have been widely adopted. LoRA introduces learnable low-rank matrices into attention layers, enabling efficient adaptation to new data without updating the backbone model. Surgical fine-tuning, on the other hand, identifies and updates only specific components of the model that are most impactful for alignment (Shi et al.,2024). Such resource-efficient techniques are particularly advantageous for user personalization or continual alignment during deployment, where rapid adaptation to new preferences is essential.
@@ -72,7 +72,7 @@ Here, πθ is the current model policy, β is a temperature parameter controllin
 Empirical results.We study the impact of retraining strategies under a shared LLM serving system using two alignment fine-tuning benchmarks: Anthropic HH-RLHF (Bai et al.,2022) and StanfordNLP SHP (Ethayarajh et al.,2022).
 
 
-MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
+ MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
 0 60 120 180 240
 0.5
 0.6
@@ -170,7 +170,7 @@ Memory fragmentation and hybrid scheduling.Figure4 (left) visualizes the resourc
 A6000 server (Figure 5a)—fragmentation-dominated and hybrid gains. On the A6000 server, average utilization is low: Periodic 17.8% / Continuous 21.1% / Hybrid 27.7%. Here, the bottleneck is not compute saturation but fragmen
 
 
-MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
+ MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
 0
 50
 100
@@ -276,7 +276,7 @@ ft (t) =P ft(t) +γ· L DPO(x, y+, y−),
 where γ is a tunable weight. This mechanism prioritizes retraining samples with higher misalignment. As shown in Figure7, after prioritization at iteration 9, the tasks are ordered by priority as Aft, Cd, Fd, Ed, Hp, Gd, and Dft (from highest to lowest).
 
 
-MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
+ MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
 Algorithm 1GPU-Local Request Scheduling
 Require: Task queue Q, memory capacity P, thresholds (τmem, τtask), memory-latency weights(λ 1, λ2). Ensure:Scheduled binB 1 for execution. 1:Initialize bin listB ←[], task counterc←0 2:whileQnot emptydo 3:ifB ̸=∅ ∧(B 1.memory≥τ mem · P ∨c≥τ task)then 4:break
 5:Retrieve task← Q.dequeue(), incrementc←c+ 1 6:Estimate workload:(m, l)←GETWORKLOAD(task) 7:Initialize best bin←Null, best score← ∞ 8:foreach binB i inBdo 9:ifB i.free memory≥mthen 10:Compute fragmentation scoref 11:ifscore<best scorethen 12:Update: best score←score,best bin← B i 13:ifbest bin̸=Nonethen 14:Assign task to best bin, update memory and latency 15:else 16:Create new binB new, insert task, append toB 17:ifB ̸=∅then
@@ -313,7 +313,7 @@ Tasks needing further iterations are requeued with updated priorities; others ar
 To further mitigate the retraining–inference tradeoff,MACE leverages two key optimization techniques:Prefix sharing(Lin et al.,2024;Zheng et al.,2024) andKV cache pruning(Li et al.,2024;Fu et al.,2025). These techniques aim to reduce memory and latency overhead for inference, thereby creating more opportunities for retraining without compromising serving throughput.
 
 
-MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
+ MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
 0.0 0.2 0.4 0.6 0.8 1.0 Prefix sharing ratio
 0.0
 0.2
@@ -359,7 +359,7 @@ Concurrency support.MACEis implemented with multithreaded concurrency using a th
 Hardware platforms.We test bothserverwith NVIDIA A6000 Ada GPU (48 GB VRAM) andedgedevice with
 
 
-MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
+ MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
 NVIDIA AGX Orin (32GB LPDDR5), ensuring a controlled environment to isolate the scheduler’s effects.
 Workloads and datasets.We simulate a mixed workload of inference and retraining requests representing single- and multiple-user domains with varying alignment needs. Inference requests are generated as a Poisson arrival process (Li et al.,2023b), and additional fraction of them (i.e., retrain rate, which is typically less than 50% (Bhardwaj et al., 2022)) are retraining jobs. We consider two datasets to emulate different alignment domains or user preferences:
 • RLHF(Bai et al.,2022) (harmlessness): Human feedback focusing on safety alignment—preferred responses tend to avoid unsafe or illegal content. This represents users requiring the model to refuse harmful outputs. • SHP(Ethayarajh et al.,2022) (helpfulness): A broad human preference dataset with 385k comparisons across 18 topics, emphasizing helpfulness of responses over others. This represents general user satisfaction alignment.
@@ -468,7 +468,7 @@ Throughput.Figure10reports inference throughput on both server-scale and edge-sc
 Latency breakdown.Figure11decomposes end-to-end latency into prefill, decode, and fine-tuning components. MACEachieves lower decode latency (TBT) via cache
 
 
-MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
+ MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
 TTFT TBT FT
 0
 1
@@ -555,7 +555,7 @@ Bin efficiency.Figure13shows that under the same concurrency constraints (e.g., 
 Overhead analysis.As shown in Table1, the added overhead is computationally lightweight and memory efficient (under 5MB total), and the latency cost is amortized across each batch. In real workloads with high GPU compute cost, this overhead is a worthwhile tradeoff for improved throughput and accuracy. The scheduling decision in our
 
 
-MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
+ MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
 full method introduces ∼15 ms/request overhead, about 5× higher than Ekya, which is expected given our scheduler tracks per-request priority, memory fragmentation estimates, and iteration-level packing. However, this is still negligible (<0.1%) compared to typical request execution time (which ranges from tens to hundreds of milliseconds). Compared to AdaInf,MACEadds ∼7 ms/request additional overhead due to more fine-grained request-level decisionmaking instead of coarse DAG session-level scheduling. Our full scheduler uses up to 5MB, largely for per-iteration job queues, lightweight memory pressure estimation, and cache tracking structures (prefix/KV/retention flags). In contrast, Ekya and AdaInf maintain only coarse batch/session metadata (no fine-grained tracking), hence use<2MB.
 7 LIMITATIONS ANDDISCUSSION
 Scalability beyond a single node.Our current design and evaluation focus on a single edge server equipped with limited GPU resources. While the method naturally generalizes to multiple concurrent models and tasks within a node, scaling across multiple edge nodes or hybrid cloud-edge architectures introduces challenges such as synchronization of model versions, cross-node retraining coordination, and distributed cache consistency. Future extensions may explore hierarchical or federated variants ofMACEthat operate over distributed GPU clusters.
@@ -570,7 +570,7 @@ This work introducedMACE, a hybrid GPU-local scheduler that unifies inference an
 Overall,MACEhighlights the importance of fine-grained runtime scheduling as a key enabler for practical “learning while serving” LLM deployments. Future directions include extending hybrid scheduling to heterogeneous accelerators, incorporating multi-user adaptation policies, and generalizing the approach to multimodal foundation models.
 
 
-MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
+ MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
 REFERENCES
 Achiam, J., Adler, S., Agarwal, S., Ahmad, L., Akkaya, I., Aleman, F. L., Almeida, D., Altenschmidt, J., Altman, S., Anadkat, S., et al. Gpt-4 technical report.arXiv preprint arXiv:2303.08774, 2023.
 Agrawal, A., Kedia, N., Panwar, A., Mohan, J., Kwatra, N., Gulavani, B., Tumanov, A., and Ramjee, R. Taming {Throughput-Latency} tradeoff in {LLM} inference with {Sarathi-Serve}. In18th USENIX Symposium on Operating Systems Design and Implementation (OSDI 24), pp. 117–134, 2024.
@@ -595,7 +595,7 @@ Lee, Y., Chen, A. S., Tajwar, F., Kumar, A., Yao, H., Liang, P., and Finn, C. Su
 Li, J., Xu, H., Zhu, Y., Liu, Z., Guo, C., and Wang, C. Lyra: Elastic scheduling for deep learning clusters. In Proceedings of the Eighteenth European Conference on Computer Systems, pp. 835–850, 2023a.
 
 
-MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
+ MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
 Li, Y., Chen, S., and Yang, W. Estimating predictive uncertainty under program data distribution shift.arXiv preprint arXiv:2107.10989, 2021.
 Li, Y., Li, Z., Yang, W., and Liu, C. Rt-lm: Uncertaintyaware resource management for real-time inference of language models. In2023 IEEE Real-Time Systems Symposium (RTSS), pp. 158–171. IEEE, 2023b.
 Li, Y., Yu, X., Liu, Y., Chen, H., and Liu, C. Uncertaintyaware bootstrap learning for joint extraction on distantlysupervised data. In Rogers, A., Boyd-Graber, J., and Okazaki, N. (eds.),Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 2: Short Papers), pp. 1349–1358, Toronto, Canada, July 2023c. Association for Computational Linguistics. doi: 10.18653/v1/2023.acl-short.116.
@@ -617,7 +617,7 @@ Perplexity AI. Perplexity AI. https://www. perplexity.ai/. Accessed: 2025-06-16.
 Qiao, S., Zhang, N., Fang, R., Luo, Y., Zhou, W., Jiang, Y., Lv, C., and Chen, H. Autoact: Automatic agent learning from scratch for qa via self-planning. InProceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), pp. 3003–3021, 2024.
 
 
-MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
+ MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
 Rafailov, R., Sharma, A., Mitchell, E., Manning, C. D., Ermon, S., and Finn, C. Direct preference optimization: Your language model is secretly a reward model. InThirtyseventh Conference on Neural Information Processing Systems, 2023.
 Romero, F., Li, Q., Yadwadkar, N. J., and Kozyrakis, C. INFaaS: Automated model-less inference serving. In 2021 USENIX Annual Technical Conference (USENIX ATC 21), pp. 397–411. USENIX Association, July 2021. ISBN 978-1-939133-23-6.
 Sarukkai, V., Xie, Z., and Fatahalian, K. Self-generated in-context examples improve llm agents for sequential decision-making tasks.arXiv preprint arXiv:2505.00234, 2025.
@@ -673,7 +673,7 @@ In this section, we provide additional insights into the design choices ofMACE, 
 Prefix sharing.As shown in Figure14, overlapping prompts can be represented in a trie structure, where internal nodes denote common prefixes and leaf nodes correspond to individual requests. By reusing computation along shared prefixes, the prefill stage is significantly accelerated. This design is particularly beneficial under workloads with
 
 
-MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
+ MACE: A Hybrid LLM Serving System with Colocated SLO-aware Continuous Retraining Alignment
 0 2 4 6 8 10 12 14
 0 2 4 6 8 10 12 14
 Layer-0 Head-0

@@ -17,7 +17,7 @@ Project website: https://test-time-training.github.io/.
 arXiv:1909.13231v3 [cs.LG] 1 Jul 2020
 
 
-Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
+ Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
 2. Method
 This section describes the algorithmic details of our method. To set up notation, consider a standard K-layer neural network with parameters θk for layer k. The stacked parameter vector θ = (θ1, . . . , θK ) specifies the entire model for a classification task with loss function lm(x, y; θ) on the test sample (x, y). We call this the main task, as indicated by the subscript of the loss function.
 We assume to have training data (x1, y1), . . . , (xn, yn) drawn i.i.d. from a distribution P . Standard empirical risk minimization solves the optimization problem:
@@ -55,7 +55,7 @@ Network details. Our architecture and hyper-parameters are consistent across all
 We use Group Normalization (GN) instead of Batch Normalization (BN) in our architecture, since BN has been shown to be ineffective when training with small batches, for which the estimated batch statistics are not accurate (Ioffe & Szegedy,2015). This technicality hurts Test-Time Training since each batch only contains (augmented) copies of a single image. Different from BN, GN is not dependent on batch size and achieves similar results on our baselines.
 
 
-Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
+ Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
 original
 gauss
 shot
@@ -90,7 +90,7 @@ CIFAR-10-C. Our results on the level 5 corruptions (most severe) are shown inFig
 The baseline ResNet-26 with object recognition task only has error 8.9% on the original test set of CIFAR-10. The joint training baseline actually improves performance on the original to 8.1%. More surprisingly, unlike many other methods that trade off original performance for robustness, Test-Time Training further improves on the original test set by 0.2% consistently over multiple independent trials. This suggests that our method does not choose between specificity and generality.
 
 
-Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
+ Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
 original
 gauss
 shot
@@ -192,7 +192,7 @@ very low for most corruptions. The general trend is roughly the same as on CIFAR
 In the lower panel ofFigure 2, we visualize how the accuracy (averaged over a sliding window) of the online version changes as more images are tested. Due to space constraints, we show this plot on the original test set, as well as every third corruption type, following the same order as in the original paper. On the original test set, there is no visible trend in performance change after updating on the 50,000 samples. With corruptions, accuracy has already risen significantly after 10,000 samples, but is still rising towards the end of the 50,000 samples, indicating room for additional improvements if more samples were available. Without seeing a single label, TTT-Online behaves as if we were training on the test set from the appearance of the plots.
 
 
-Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
+ Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
 orig gauss shot impul defoc glass motn zoom snow frost fog brit contr elast pixel jpeg
 TTT-Online 8.2 25.8 22.6 30.6 14.6 34.4 18.3 17.1 20.0 18.0 16.9 11.2 15.6 21.6 18.1 21.2
 UDA-SS 9.0 28.2 26.5 20.8 15.6 43.7 24.5 23.8 25.0 24.9 17.2 12.7 11.6 22.1 20.3 22.6
@@ -244,7 +244,7 @@ adapts the representation to be good for the current test distribution. That is,
 Gradually changing distribution shifts. In our previous experiments, we have been evaluating the online version under the assumption that the test inputs xt for t = 1...n are all sampled from the same test distribution Q, which can be different from the training distribution P . This assumption is indeed satisfied for i.i.d. samples from a shuffled test set. But here we show that this assumption can in fact be relaxed to allow xt ∼ Qt, where Qt is close to Qt+1 (in the sense of distributional distance). We call this the assumption of gradually changing distribution shifts. We perform experiments by simulating such distribution shifts on the three noise types of CIFAR-10-C. For each noise type, xt is corrupted with standard deviation σt, and σ1, ..., σn interpolate between the standard deviation of level 1 and level 5. So xt is more severely corrupted as we evaluate further into the test set and t grows larger. As shown in Figure 3, TTT-Online still improves upon joint training (and our standard version) with this relaxed assumption, and even upon UDA-SS for the first two noise types.
 
 
-Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
+ Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
 Accuracy (%) Airplane Bird Car Dog Cat Horse Ship Average
 Object recognition task only 67.9 35.8 42.6 14.7 52.0 42.0 66.7 41.4
 Joint training (Hendrycks et al.,2019a) 70.2 36.7 42.6 15.5 52.0 44.0 66.7 42.4
@@ -272,7 +272,7 @@ The distribution shifts from CIFAR-10 to CIFAR-10.1 pose an extremely difficult 
 On the original CIFAR-10 test set, the baseline with only object recognition has error 8.9%, and with joint training has 8.1%; comparing to the first two rows ofTable 4, both suffer the typical performance drop (by a factor of two). TTT yields an improvement of 0.8% (relative improvement of 4.8%) over joint training. We recognize that this improvement is small relative to the performance drop, but see it as an encouraging first step for this very difficult problem.
 
 
-Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
+ Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
 0 10 20 30 40 50 60 Gradient inner product
 0
 1
@@ -332,7 +332,7 @@ and v>w > 0 . (9)
 For our toy model, both parts of the condition above have an intuition interpretation. The first part says that the mistakes should be correlated, in the sense that predictions from both tasks are mistaken in the same direction. The second part, v>w > 0, says that the decision boundaries on the feature space should be correlated. In fact, these two parts hold iff. 〈∇lm(A), ∇ls(A)〉 > 0 (see a simple proof of this fact in the appendix). To summarize, if the gradients have positive correlation, Test-Time Training is guaranteed to reduce the main task loss. Our main theoretical result extends this to general smooth and convex loss functions.
 
 
-Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
+ Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
 Theorem 1. Let lm(x, y; θ) denote the main task loss on test instance x, y with parameters θ, and ls(x; θ) the selfsupervised task loss that only depends on x. Assume that for all x, y, lm(x, y; θ) is differentiable, convex and β-smooth in θ, and both ‖∇lm(x, y; θ)‖ , ‖∇ls(x, θ)‖ ≤ G for all θ. With a fixed learning rate η = βG2 , for every x, y such that
 〈∇lm(x, y; θ), ∇ls(x; θ)〉 > , (10)
 we have
@@ -347,7 +347,7 @@ Adversarial robustness studies the robust risk RP,∆(θ) = Ex,y∼P maxδ∈∆
 Non-adversarial robustness studies the effect of corruptions, perturbations, out-of-distribution examples, and realworld distribution shifts (Hendrycks et al.,2019b;a;2018; Hendrycks & Gimpel,2016).Geirhos et al.(2018) show that training on images corrupted by Gaussian noise makes deep learning models robust to this particular noise type, but does not improve performance on images corrupted by another noise type e.g. salt-and-pepper noise.
 
 
-Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
+ Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
 Unsupervised domain adaptation (a.k.a. transfer learning) studies the problem of distribution shifts, when an unlabeled dataset from the test distribution (target domain) is available at training time, in addition to a labeled dataset from the training distribution (source domain) (Chen et al., 2011;Gong et al.,2012;Long et al.,2015;Ganin et al., 2016;Long et al.,2016;Tzeng et al.,2017;Hoffman et al., 2017;Csurka,2017;Chen et al.,2018). The limitation of the problem setting, however, is that generalization might only be improved for this specific test distribution, which can be difficult to anticipate in advance. Prior work try to anticipate broader distributions by using multiple and evolving domains (Hoffman et al.,2018;2012;2014). Test-Time Training does not anticipate any test distribution, by changing the setting of unsupervised domain adaptation, while taking inspiration from its algorithms. Our paper is a followup toSun et al.(2019), which we explain and empirically compare with in Section3. Our update rule can be viewed as performing one-sample unsupervised domain adaptation on the fly, with the caveat that standard domain adaptation techniques might become ill-defined when there is only one sample from the target domain.
 Domain generalization studies the setting where a meta distribution generates multiple environment distributions, some of which are available during training (source), while others are used for testing (target) (Li et al.,2018;Shankar et al.,2018;Muandet et al.,2013;Balaji et al.,2018;Ghifary et al.,2015;Motiian et al.,2017;Li et al.,2017a;Gan et al., 2016). With only a few environments, information on the meta distribution is often too scarce to be helpful, and with many environments, we are back to the i.i.d. setting where each environment can be seen as a sample, and a strong baseline is to simply train on all the environments (Li et al., 2019). The setting of domain generalization is limited by the inherent tradeoff between specificity and generality of a fixed decision boundary, and the fact that generalization is again elusive outside of the meta distribution i.e. the actual P learned by the algorithm.
 One (few)-shot learning studies how to learn a new task or a new classification category using only one (or a few) sample(s), on top of a general representation that has been learned on diverse samples (Snell et al.,2017;Vinyals et al., 2016;Fei-Fei et al.,2006;Ravi & Larochelle,2016;Li et al.,2017b;Finn et al.,2017;Gidaris & Komodakis,2018). Our update rule can be viewed as performing one-shot selfsupervised learning and can potentially be improved by progress in one-shot learning.
@@ -360,7 +360,7 @@ More generally, we hope this paper can encourage researchers to abandon the self
 Acknowledgements. This work is supported by NSF grant 1764033, DARPA and Berkeley DeepDrive. This paper took a long time to develop, and benefited from conversations with many of our colleagues, including Ben Recht and his students Ludwig Schmidt, Vaishaal Shanker and Becca Roelofs; Ravi Teja Mullapudi, Achal Dave and Deva Ramanan; and Armin Askari, Allan Jabri, Ashish Kumar, Angjoo Kanazawa and Jitendra Malik.
 
 
-Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
+ Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
 References
 Asano, Y. M., Rupprecht, C., and Vedaldi, A. Surprising effectiveness of few-image unsupervised feature learning. arXiv preprint arXiv:1904.13132, 2019.
 Athalye, A., Carlini, N., and Wagner, D. Obfuscated gradients give a false sense of security: Circumventing defenses to adversarial examples. arXiv preprint arXiv:1802.00420, 2018.
@@ -389,7 +389,7 @@ Gidaris, S., Singh, P., and Komodakis, N. Unsupervised representation learning b
 Gong, B., Shi, Y., Sha, F., and Grauman, K. Geodesic flow kernel for unsupervised domain adaptation. In 2012 IEEE Conference on Computer Vision and Pattern Recognition, pp. 2066–2073. IEEE, 2012.
 
 
-Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
+ Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
 Goodfellow, I. J., Shlens, J., and Szegedy, C. Explaining and harnessing adversarial examples. arXiv preprint arXiv:1412.6572, 2014.
 Guo, C., Rana, M., Cisse, M., and van der Maaten, L. Countering adversarial images using input transformations. arXiv preprint arXiv:1711.00117, 2017.
 Hazan, E. et al. Introduction to online convex optimization. Foundations and Trends® in Optimization, 2(3-4):157– 325, 2016.
@@ -419,7 +419,7 @@ Li, D., Zhang, J., Yang, Y., Liu, C., Song, Y.-Z., and Hospedales, T. M. Episodi
 Li, Y., Tian, X., Gong, M., Liu, Y., Liu, T., Zhang, K., and Tao, D. Deep domain generalization via conditional invariant adversarial networks. In Proceedings of the European Conference on Computer Vision (ECCV), pp. 624–639, 2018.
 
 
-Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
+ Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
 Li, Z. and Hoiem, D. Learning without forgetting. IEEE transactions on pattern analysis and machine intelligence, 40(12):2935–2947, 2017.
 Li, Z., Zhou, F., Chen, F., and Li, H. Meta-sgd: Learning to learn quickly for few-shot learning. arXiv preprint arXiv:1707.09835, 2017b.
 Liu, Z., Sun, M., Zhou, T., Huang, G., and Darrell, T. Rethinking the value of network pruning. arXiv preprint arXiv:1810.05270, 2018.
@@ -448,7 +448,7 @@ Su, J.-C., Maji, S., and Hariharan, B. Boosting supervision with self-supervisio
 Sun, Y., Tzeng, E., Darrell, T., and Efros, A. A. Unsupervised domain adaptation through self-supervision. arXiv preprint, 2019.
 
 
-Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
+ Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
 Tripuraneni, N. and Mackey, L. Debiasing linear prediction. arXiv preprint arXiv:1908.02341, 2019.
 Tsipras, D., Santurkar, S., Engstrom, L., Turner, A., and Madry, A. Robustness may be at odds with accuracy. arXiv preprint arXiv:1805.12152, 2018.
 Tzeng, E., Hoffman, J., Saenko, K., and Darrell, T. Adversarial discriminative domain adaptation. In Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition, pp. 7167–7176, 2017.
@@ -461,7 +461,7 @@ Zhang, R., Isola, P., and Efros, A. A. Colorful image colorization. In European 
 Zhu, W., Huang, Y., Vannan, M. A., Liu, S., Xu, D., Fan, W., Qian, Z., and Xie, X. Neural multi-scale self-supervised registration for echocardiogram dense tracking. arXiv preprint arXiv:1906.07357, 2019.
 
 
-Appendix: Test-Time Training with Self-Supervision
+ Appendix: Test-Time Training with Self-Supervision
 for Generalization under Distribution Shifts
 A1. Informal Discussion on Our Variable Decision Boundary
 In the introduction, we claim that in traditional supervised learning θ gives a fixed decision boundary, while our θ gives a variable decision boundary. Here we informally discuss this claim.
@@ -478,7 +478,7 @@ A3.1. The Toy Problem
 The following setting applies to the two lemmas; this is simply the setting of our toy problem, reproduced here for ease of reference.
 
 
-Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
+ Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
 Consider a two layer linear network parametrized by A ∈ Rh×d (shared) and v, w ∈ Rh (fixed) for the two heads, respectively. Denote x ∈ Rd the input and y1, y2 ∈ R the labels for the two tasks, respectively. For the main task loss
 lm(A; v) = 1
 2
@@ -620,7 +620,7 @@ Since η/η∗ > 0, we have shown that
 lm(x, y; θ) − lm(x, y; θ(x)) > 0. (28)
 
 
-Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
+ Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
 A4. Additional Results on the Common Corruptions Dataset
 For table aethetics, we use the following abbreviations: B for baseline, JT for joint training, TTT for Test-Time Training standard version, and TTT-Online for online Test-Time Training i.e. the online version.
 We have abbreviated the names of the corruptions, in order: original test set, Gaussian noise, shot noise, impulse noise, defocus blur, glass blue, motion blur, zoom blur, snow, frost, fog, brightness, contrast, elastic transformation, pixelation, and JPEG compression.
@@ -640,7 +640,7 @@ The following comparison has been requested by an anonymous reviewer for our fin
 Summary of architectural changes: 1) Group Normalization (GN) instead of Batch Normalization (BN). For completeness, the results with BN are provided in Table S1; c.f. GN results in Table S2 which significantly improves robustness, with or without self-supervision. 2) We split after the second residual group, while they split after the third residual group right before the linear layer. This consistently gives about 0.5% - 1% improvement. 3) We use a ResNet-26, while they use a 40-2 Wide ResNet. But our baseline still performs better than their method even though our network is 4x smaller, due to the two tricks above.
 
 
-Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
+ Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
 Gaussian Noise Shot Noise Impulse Noise Defocus Blur Frosted Glass Blur
 Motion Blur Zoom Blur Snow Frost Fog
 Brightness Contrast Elastic Pixelate JPEG
@@ -676,7 +676,7 @@ orig gauss shot impul defoc glass motn zoom snow frost fog brit contr elast pixe
 Table A3. Test accuracy (%) on ImageNet-C, level 5, ResNet-18.
 
 
-Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
+ Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
 original
 gauss
 shot
@@ -732,7 +732,7 @@ orig gauss shot impul defoc glass motn zoom snow frost fog brit contr elast pixe
 Table A5. Test error (%) on CIFAR-10-C, level 3, ResNet-26.
 
 
-Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
+ Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
 original
 gauss
 shot
@@ -787,5 +787,5 @@ orig gauss shot impul defoc glass motn zoom snow frost fog brit contr elast pixe
 Table A7. Test error (%) on CIFAR-10-C, level 1, ResNet-26.
 
 
-Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
+ Test-Time Training with Self-Supervision for Generalization under Distribution Shifts
 Figure A7. Sample Images from the VID-Robust dataset (Shankar et al.,2019) in the results section adapted to CIFAR-10. Each row shows eight sample images from one class. The seven classes shown are, in order: airplane, bird, car, dog, cat, horse, ship.

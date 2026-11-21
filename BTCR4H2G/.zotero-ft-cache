@@ -29,7 +29,7 @@ Reverse-mode automatic differentiation of LTCs. LTCs realize differentiable comp
 arXiv:2006.04439v4 [cs.LG] 14 Dec 2020
 
 
-Bounded dynamics - stability. In Section 4, we show that the state and the time-constant of LTCs are bounded to a finite range. This property assures the stability of the output dynamics and is desirable when inputs to the system relentlessly increase. Superior expressivity. In Section 5, we theoretically and quantitatively analyze the approximation capability of LTCs. We take a functional analysis approach to show the universality of LTCs. We then delve deeper into measuring their expressivity compared to other time-continuous models. We perform this by measuring the trajectory length of activations of networks in a latent trajectory representation. Trajectory length was introduced as a measure of expressivity of feed-forward deep neural networks (Raghu et al. 2017). We extend these criteria to the family of continuous-time recurrent models. Time-series modeling. In Section 6, we conduct a series of eleven time-series prediction experiments and compare the performance of modern RNNs to the time-continuous models. We observe improved performance on a majority of cases achieved by LTCs.
+ Bounded dynamics - stability. In Section 4, we show that the state and the time-constant of LTCs are bounded to a finite range. This property assures the stability of the output dynamics and is desirable when inputs to the system relentlessly increase. Superior expressivity. In Section 5, we theoretically and quantitatively analyze the approximation capability of LTCs. We take a functional analysis approach to show the universality of LTCs. We then delve deeper into measuring their expressivity compared to other time-continuous models. We perform this by measuring the trajectory length of activations of networks in a latent trajectory representation. Trajectory length was introduced as a measure of expressivity of feed-forward deep neural networks (Raghu et al. 2017). We extend these criteria to the family of continuous-time recurrent models. Time-series modeling. In Section 6, we conduct a series of eleven time-series prediction experiments and compare the performance of modern RNNs to the time-continuous models. We observe improved performance on a majority of cases achieved by LTCs.
 Why this specific formulation? There are two primary justifications for the choice of this particular representation: I) LTC model is loosely related to the computational models of neural dynamics in small species, put together with synaptic transmission mechanisms (Hasani et al. 2020). The dynamics of non-spiking neurons’ potential, v(t), can be written as a system of linear ODEs of the form (Lapicque 1907; Koch and Segev 1998): dv/dt = −glv(t) + S(t), where S is the sum of all synaptic inputs to the cell from presynaptic sources, and gl is a leakage conductance. All synaptic currents to the cell can be approximated in steady-state by the following nonlinearity (Koch and Segev 1998; Wicks, Roehrig, and Rankin 1996): S(t) = f (v(t), I(t)), (A − v(t)), where f (.) is a sigmoidal nonlinearity depending on the state of all neurons, v(t) which are presynaptic to the current cell, and external inputs to the cell, I(t). By plugging in these two equations, we obtain an equation similar to Eq. 1. LTCs are inspired by this foundation. II) Eq. 1 might resemble that of the famous Dynamic Causal Models (DCMs) (Friston, Harrison, and Penny 2003) with a Bilinear dynamical system approximation (Penny, Ghahramani, and Friston 2005). DCMs are formulated by taking a second-order approximation (Bilinear) of the dynamical system dx/dt = F (x(t), I(t), θ), that would result in the following format (Friston, Harrison, and Penny 2003): dx/dt = (A + I(t)B)x(t) + CI(t) with A = dF
 dx , B =
 dF 2
@@ -61,7 +61,7 @@ x(t + ∆t) = x(t) + ∆tf (x(t), I(t), t, θ)A
 Eq. 3 computes one update state for an LTC network. Correspondingly, Algorithm 1 shows how to implement an LTC network, given a parameter space θ. f is assumed to have an arbitrary activation function (e.q. for a tanh nonlinearity f = tanh(γrx + γI + μ)). The computational complexity of the algorithm for an input sequence of length T is O(L × T ), where L is the number of discretization steps. Intuitively, a dense version of an LTC network with N neurons, and a dense version of a long short-term memory (LSTM) (Hochreiter and Schmidhuber 1997) network with N cells, would be of the same complexity.
 
 
-Algorithm 2 Training LTC by BPTT
+ Algorithm 2 Training LTC by BPTT
 Inputs: Dataset of traces [I(t), y(t)] of length T , RNNcell = f (I, x) Parameter: Loss func L(θ), initial param θ0, learning rate α, Output w = Wout, and bias = bout for i = 1 . . . number of training steps do (Ib,yb) = Sample training batch, x := xt0 ∼ p(xt0 ) for j = 1 . . . T do x = f (I(t), x), yˆ(t) = Wout.x + bout, Ltotal =
 ∑T
 j=1 L(yj (t), yˆj (t)), ∇L(θ) = ∂Ltot
@@ -96,7 +96,7 @@ The proof is given in Appendix. It is constructed based on the sign of the LTC�
 Understanding how the structural properties of neural networks determine which functions they can compute is known as the expressivity problem. The very early attempts on measuring expressivity of neural nets include the theoretical studies based on functional analysis. They show that neural networks with three-layers can approximate any finite set of continuous mapping with any precision. This is known as the universal approximation theorem (Hornik, Stinchcombe, and White 1989; Funahashi 1989; Cybenko
 
 
-Table 2: Computational depth of models
+ Table 2: Computational depth of models
 Computational Depth
 Activations Neural ODE CT-RNN LTC
 tanh 0.56 ± 0.016 4.13 ± 2.19 9.19 ± 2.92 sigmoid 0.56 ± 0.00 5.33 ± 3.76 7.00 ± 5.36 ReLU 1.29 ± 0.10 4.31 ± 2.05 56.9 ± 9.03 Hard-tanh 0.61 ± 0.02 4.05 ± 2.17 81.01 ± 10.05
@@ -117,7 +117,7 @@ w/k), and biases ∼ N (0, σ2
 b ). We then perform forward-pass simulations by using different types of ODE solvers, for arbitrary weight profiles, while exposing the networks to a circular input trajectory I(t) = {I1(t) = sin(t), I2(t) = cos(t)}, for t ∈ [0, 2π]. By looking at the first two principle components (with an average varianceexplained of over 80%) of hidden layers’ activations, we observed consistently more complex trajectories for LTCs. Fig. 2 gives a glimpse of our empirical observations. All networks are implemented by the Dormand-Prince explicit Runge-Kutta(4,5) solver (Dormand and Prince 1980) with a variable step size. We had the following observations: I) Exponential growth of the trajectory length of Neural ODEs and CT-RNNs with Hard-tanh and ReLU activations (Fig. 2A) and unchanged shape of their latent space regardless of their weight profile. II) LTCs show a slower growth-rate of the trajectory length when designed by Hard-tanh and ReLU, with the compromise of realizing great levels of complexity (Fig. 2A, 2C and 2E). III) Apart from multi-layer time-continuous models built by Hard-tanh and ReLU activations, in all cases, we observed a longer and a more complex latent space behavior for the LTC networks (Fig. 2B to 2E). IV) Unlike static deep networks (Fig. 1), we witnessed that the trajectory length does not grow by depth in multi-layer continuous-time networks realized by tanh and sigmoid (Fig. 2D). V) conclusively, we observed that the trajectory length in TC models varies by a model’s activations, weight and bias distributions variance, width and depth. We presented this more systematically in Fig. 3. VI) Trajectory length grows linearly with a network’s width (Fig. 3B - Notice the logarithmic growth of the curves in the log-scale Yaxis). VII) The growth is considerably faster as the variance grows (Fig. 3C). VIII) Trajectory length is reluctant to the choice of ODE solver (Fig. 3A). IX) Activation functions diversify the complex patterns explored by the TC system, where ReLU and Hard-tanh networks demonstrate higher degrees of complexity for LTCs. A key reason is the presence of recurrent links between each layer’s cells. Definition of Computational Depth (L). For one hidden layer of f in a time-continuous network, L is the average number of integration steps taken by the solver for each incoming input
 
 
-sample. Note that for an f with n layers we define the total depth as n × L. These observations have led us to formulate Lower bounds for the growth of the trajectory length of continuous-time networks.
+ sample. Note that for an f with n layers we define the total depth as n × L. These observations have led us to formulate Lower bounds for the growth of the trajectory length of continuous-time networks.
 Theorem 4. Trajectory Length growth Bounds for Neural ODEs and CT-RNNs. Let dx/dt = fn,k(x(t), I(t), θ)
 with θ = {W, b}, represent a Neural ODE and dx(t)
 dt = − x(t)
@@ -409,7 +409,7 @@ B
 Figure 2: Trajectory length deformation A) in network layers with Hard-tanh activations, B) as a function of the weight distribution scaling factor, C) as a function of network width (ReLU), D) in network layers with logistic-sigmoid activations and E) as a function of width (Hard-tanh).
 
 
-RK2(3) RK4(5) ABM1(13) TR-BDF2 ODE Solvers
+ RK2(3) RK4(5) ABM1(13) TR-BDF2 ODE Solvers
 0
 200
 400
@@ -709,7 +709,7 @@ In the 2nd Setting, we carefully set up the experiment to match the modification
 6.3 Half-Cheetah kinematic modeling. We intended to evaluate how well continuous-time models can capture physical dynamics. To perform this, we collected 25 rollouts of a pre-trained controller for the HalfCheetah-v2 gym environment (Brockman et al. 2016), generated by the Mu
 
 
-Table 5: Person activity, 2nd setting
+ Table 5: Person activity, 2nd setting
 Algorithm Accuracy
 RNN ∆t ∗ 0.797± 0.003
 RNN-Decay∗ 0.800± 0.010 RNN GRU-D∗ 0.806± 0.007 RNN-VAE∗ 0.343± 0.040 Latent ODE (D enc.)∗ 0.835± 0.010 ODE-RNN ∗ 0.829 ± 0.016 Latent ODE(C enc.)∗ 0.846 ± 0.013 LTC (ours) 0.882 ± 0.005
@@ -736,7 +736,7 @@ Bengio 2013) suggested to count the number of linear regions of neural networks 
 We investigated the use of a novel class of time-continuous neural network models obtained by a combination of linear ODE neurons and special nonlinear weight configurations. We showed that they could be implemented effectively by arbitrary variable and fixed step ODE solvers, and be trained by backpropagation through time. We demonstrated their bounded and stable dynamics, superior expressivity, and superseding performance in supervised learning timeseries prediction tasks, compared to standard and modern deep learning models. Long-term dependencies. Similar to many variants of timecontinuous models, LTCs express the vanishing gradient phenomenon (Pascanu, Mikolov, and Bengio 2013; Lechner and Hasani 2020), when trained by gradient descent. Although the model shows promise on a variety of time-series prediction tasks, they would not be the obvious choice for learning long-term dependencies in their current format. Choice of ODE solver. Performance of time-continuous models is heavily tided to their numerical implementation approach (Hasani 2020). While LTCs perform well with advanced variable-step solvers and the Fused fixed-step solver introduced here, their performance is majorly influenced when off-the-shelf explicit Euler methods are used. Time and Memory. Neural ODEs are remarkably fast compared to more sophisticated models such as LTCs. Nonetheless, they lack expressivity. Our proposed model, in their current format, significantly enhances the expressive power of TC models at the expense of elevated time and memory complexity which must be investigated in the future.
 
 
-Causality. Models described by time-continuous differential equation semantics inherently possess causal structures (Scho ̈lkopf 2019), especially models that are equipped with recurrent mechanisms to map past experiences to nextstep predictions. Studying causality of performant recurrent models such as LTCs would be an exciting future research direction to take, as their semantics resemble dynamic causal models (Friston, Harrison, and Penny 2003) with a bilinear dynamical system approximation (Penny, Ghahramani, and Friston 2005). Accordingly, a natural application domain would be the control of robots in continuous-time observation and action spaces where causal structures such as LTCs can help improve reasoning (Lechner et al. 2020a).
+ Causality. Models described by time-continuous differential equation semantics inherently possess causal structures (Scho ̈lkopf 2019), especially models that are equipped with recurrent mechanisms to map past experiences to nextstep predictions. Studying causality of performant recurrent models such as LTCs would be an exciting future research direction to take, as their semantics resemble dynamic causal models (Friston, Harrison, and Penny 2003) with a bilinear dynamical system approximation (Penny, Ghahramani, and Friston 2005). Accordingly, a natural application domain would be the control of robots in continuous-time observation and action spaces where causal structures such as LTCs can help improve reasoning (Lechner et al. 2020a).
 Acknowledgments
 R.H. and D.R. are partially supported by Boeing. R.H. and R.G. were partially supported by the Horizon-2020 ECSEL Project grant No. 783163 (iDev40). M.L. was supported in part by the Austrian Science Fund (FWF) under grant Z211N23 (Wittgenstein Award). A.A. is supported by the National Science Foundation (NSF) Graduate Research Fellowship Program. This research work is partially drawn from the PhD dissertation of R.H.
 References
@@ -769,7 +769,7 @@ Holl, P.; Koltun, V.; and Thuerey, N. 2020. Learning to Control PDEs with Differ
 Hornik, K.; Stinchcombe, M.; and White, H. 1989. Multilayer feedforward networks are universal approximators. Neural networks 2(5): 359–366.
 
 
-Hosea, M.; and Shampine, L. 1996. Analysis and implementation of TR-BDF2. Applied Numerical Mathematics 20(1-2): 21–37.
+ Hosea, M.; and Shampine, L. 1996. Analysis and implementation of TR-BDF2. Applied Numerical Mathematics 20(1-2): 21–37.
 Jia, J.; and Benson, A. R. 2019. Neural jump stochastic differential equations. In Advances in Neural Information Processing Systems, 9843–9854.
 Kingma, D. P.; and Ba, J. 2014. Adam: A method for stochastic optimization. arXiv preprint arXiv:1412.6980 .
 Koch, C.; and Segev, K. 1998. Methods in Neuronal Modeling - From Ions to Networks. MIT press, second edition.
@@ -804,7 +804,7 @@ Zhang, K.; and Fan, W. 2008. Forecasting skewed biased stochastic ozone days: an
 Zhuang, J.; Dvornek, N.; Li, X.; Tatikonda, S.; Papademetris, X.; and Duncan, J. 2020. Adaptive Checkpoint Adjoint Method for Gradient Estimation in Neural ODE. In Proceedings of the 37th International Conference on Machine Learning. PMLR 119.
 
 
-Supplementary Materials
+ Supplementary Materials
 S1 Proof of Theorem 1
 Proof. Assuming the neural network f in Eq. 1, possesses a bounded sigmoidal nonlinearity which is a monotonically increasing between 0 and 1. Then for each neuron i, we have:
 0 < f (xj(t), γij, μij) < 1 (S1)
@@ -882,7 +882,7 @@ xi(t) ≤ max(0, Amax
 i ). (S12)
 
 
-Now if we replace x(i) by m = min{0, Amin
+ Now if we replace x(i) by m = min{0, Amin
 i }, and follow a similar methodology used for the upper bound, we can derive:
 x(t + ∆t) − m
 ∆t ≤ 0 → x(t + ∆t) ≤ m, (S13)
@@ -921,7 +921,7 @@ Locally Lipschitz. If every point of S has neighborhood S0 in S, such that the r
 Lemma 1. Let a mapping F : S → Rn be C1. Then F is locally Lipschitz. Also, if D ⊂ S is compact, then the restriction F | D is Lipschitz. (Proof in (Hirsch and Smale 1973), chapter 8, section 3).
 
 
-Lemma 2. Let F : S → Rn be a C1-mapping and x0 ∈ S. There exists a positive a and a unique solution x : (−a, a) → S of the differential equation
+ Lemma 2. Let F : S → Rn be a C1-mapping and x0 ∈ S. There exists a positive a and a unique solution x : (−a, a) → S of the differential equation
 x ̇ = F (x), (S18)
 which satisfies the initial condition x(0) = x0. (Proof in (Hirsch and Smale 1973), chapter 8, section 2, Theorem 1.)
 Lemma 3. Let S be an open subset of Rn and F : S → Rn be a C1-mapping. On a maximal interval J = (α, β) ⊂ R, let x(t) be a solution. Then for any compact subset D ⊂ S, there exists some t ∈ (α, β), for which x(t) ∈/ D. (Proof in (Hirsch and Smale 1973), Chapter 8, section 5, Theorem).
@@ -959,7 +959,7 @@ l < ηLF
 2(eLF T −1) . (S30)
 
 
-Based on the universal approximation theorem, there is an integer N , and an n × N matrix A, and an N × n matrix C and an N -dimensional vector μ such that
+ Based on the universal approximation theorem, there is an integer N , and an n × N matrix A, and an N × n matrix C and an N -dimensional vector μ such that
 max|F (x) − Af (γx + μ)| < l
 2 . (S31)
 We define a C1-mapping F ̃ : Rn → Rn as:
@@ -1019,7 +1019,7 @@ G ̃( ̃z) = − 1
 where;
 
 
-W (n+N )×(n+N ) =
+ W (n+N )×(n+N ) =
 (
 0A 0E
 )
@@ -1071,7 +1071,7 @@ S4 Proof of Theorem 4
 In this section, we describe our mathematical notions and revisit concepts that are required to state the proof. The main statements of our theoretical results about the expressive power of time-continuous neural networks are chiefly built over the expressivity measure, trajectory length, introduced for static deep neural networks in (Raghu et al. 2017). It is therefore intuitive to follow similar steps with careful considerations, due to the continuous nature of the models.
 
 
-S4.1 Notations
+ S4.1 Notations
 Neural network architecture – We determine a neural network architecture by fn,k(x(t), I(t), θ)d, with n layers (depth),width k and total number of neurons, N = n × k. Neural state, x(t) – For a layer d of a network f , x(d)(t) represent the neural state of the layer and is a matrix of the size k × m, with m being the size of the input time series. Inputs, I(t) – is a 2-dimensional matrix containing a 2-D trajectory for t ∈ [0, tmax]. Network parameters, θ – include weights matrices for each layer d of the form W (d) ∼ N (0, σ2
 w/k) and bias vectors as b(d) ∼ N (0, σ2
 b ). For CT-RNNs the vector parameter τ (d) is also sampled from ∼ N (0, σ2
@@ -1139,7 +1139,7 @@ dz dt
 Let us continue with the zero bias case and discuss the non-zero bias case later.
 
 
-We decompose W (d) in respect to the z(d), as W (d) = W (d)
+ We decompose W (d) in respect to the z(d), as W (d) = W (d)
 ‖ + W (d)
 ⊥ . For this decomposition, the hidden state h(d+1) =
 W (d)
@@ -1284,7 +1284,7 @@ i∈AW (d)
 (S73)
 
 
-As stated in Theorem 4, we conditioned the input on its perpendicular components. Therefore, we write the recurrence of the states also for their perpendicular components by dropping the parallel components, ‖W
+ As stated in Theorem 4, we conditioned the input on its perpendicular components. Therefore, we write the recurrence of the states also for their perpendicular components by dropping the parallel components, ‖W
 ⊥
 (d) and ‖W
 ‖
@@ -1488,7 +1488,7 @@ pj−1(1 − p)k−j
 and therefore:
 
 
-EW (d)
+ EW (d)
 [∥ ∥ ∥ ∥ ∥
 dz dt
 (d+1)
@@ -1696,7 +1696,7 @@ dz dt
 ‖I(t)‖ . (S88)
 
 
-Eq. S88 shows the lower bound for every infinitesimal fraction of the length of the hidden state (in principle components state, z, for a neural ODE architecture. consequently, the overall trajectory length is bounded by:
+ Eq. S88 shows the lower bound for every infinitesimal fraction of the length of the hidden state (in principle components state, z, for a neural ODE architecture. consequently, the overall trajectory length is bounded by:
 E
 [
 l(z(d)(t))
@@ -1797,7 +1797,7 @@ l(I(t)), (S97)
 This gives of the statement of the theorem for CT-RNNs.
 
 
-Proof of Theorem 5
+ Proof of Theorem 5
 Distribution of parameters of LTCs
 The Weight matrix for each layer d of the form W (d) ∼ N (0, σ2
 w/k). The bias vectors as b(d) ∼ N (0, σ2
@@ -1957,7 +1957,7 @@ In Eq. S108, the term w(d+1)
 which is a constant addition. |A| is the number of non-saturated states. Now by taking similar steps, from Eq. S65 to Eq. S77, and by applying Lemma 9 to Eq. S108, we have:
 
 
-EW (d)
+ EW (d)
 ⊥
 [(
 ∑
@@ -2233,7 +2233,7 @@ b
 (S116)
 
 
-And since A ∼ N (0, σ2
+ And since A ∼ N (0, σ2
 w), the bound can be computed as follows:
 EW (d)
 ‖
@@ -2381,10 +2381,10 @@ S5 Experimental Setup - Section 6
 Here, we describe the experimental setup for the tasks discussed in Tables 3, 4, 5, and 6. For each experiment we performed a training-validation-test split of 75:10:15 ratio, with the exact ratios depending on the specific dataset. After each training epoch the validation metric was evaluated. We kept a backup of the network weights of the configuration that achieved the best validation metric over the whole training process. At the end of the training process, we restored the backed-up weights and evaluated the network on the test-set. We repeated this procedure for five times with different weight initializations and reported the mean and standard deviation in Tables 3, 4, 5, and 6. Hyper-parameters are shown in Table S1. Each RNN consists of 32 hidden units. As each task requires a different number of output units, the output of the RNNs were fed through a learnable linear layer to project the output to the required dimension. Note that the objective of our experimental setup is not to build the best predictive models, but to empirically compare the expressive power and generalization abilities of various RNN models. We implemented all RNN models in TensorFlow1.14. For the sake of reproducability, we have submitted all code and data along with our submission and will make them publicly available upon acceptance. ODE solvers For simulating the differential equations we used an explicit Euler methods for CT-RNNs, a 4-th order RungeKutta method for the Neural ODE as suggested in (Chen et al. 2018), and our fused ODE solver for LTCs. All ODE solvers were fixed-step solvers. The time-step is set to 1/6 of the input sampling frequency, i.e., each RNN step consists of 6 ODE solver steps. Hand Gesture Segmentation The experiment concerns the temporal segmentation of hand gestures. The dataset consists of seven recordings of individuals performing a sequence of hand gesticulations (Wagner et al. 2014). The input features at each time-step are comprised of 32 data points recorded from a motion detection sensor. The output, at each time step, represents one of the five possible hand gestures; rest position, preparation, stroke, hold, and retraction. The objective is to train a classifier to detect hand gestures from the motion data. We cut each of the seven recordings into overlapping sub-sequences of exactly 32 time-steps. We randomly separated all sub-sequences into non-overlapping training (75%), validation (10%), and test (15%) sets. Input features were normalized to have zero mean and unit standard deviation. We used the categorical classification accuracy as the performance metric.
 
 
-Room Occupancy The objective is to detect whether a room is occupied by observations recorded from five physical sensor streams, such as temperature, humidity, and CO2 concentration sensors (Candanedo and Feldheim 2016). Input data and binary labels are sampled in one-minute long intervals. The original dataset consists of a pre-defined training and test set. We used the binary classification accuracy as the performance metric. We cut the sequences of each of the two sets into a training and test set of overlapping sub-sequences of exactly 32 time-steps. Note that no item from the test set was leaking into the training set during this process. Input features of all data were normalized by the mean and standard deviation of the training set, such that the training set has zero mean and unit standard deviation. We select 10% of the training set as the validation set. Human Activity Recognition This task involves the recognition of human activities, such as walking, sitting, and standing, from inertial measurements of the user’s smartphone (Anguita et al. 2013). Data consists of recordings from 30 volunteers performing activities form six possible categories. Input variables are filtered and are pre-processed to obtain a feature column of 561 items at each time step. The output variable represents one of six activity categories at each time step. We employed the categorical classification accuracy as our performance metric. The original data is already split into a training and test set and preprocessed by temporal filters. The accelerometer and gyroscope sensor data were transformed into 561 features in total at each time step. We aligned the sequences of the training and test set into overlapping sub-sequences of exactly 32 time-steps. We select 10% of the training set as the validation set. Sequential MNIST We also worked with MNIST. While the original MNIST is a computer vision classification problem, we transform the dataset into a sequence classification task. In particular, each sample is encoded as a 28-dimensional timeseries of length 28. Moreover, we downscale all input feature to the range [0,1]. We exclude 10% of the training set and use it as our validation set. Traffic Estimation The objective of this experiment is to predict the hourly westbound traffic volume at the US Interstate 94 highway between Minneapolis and St. Paul. Input features consist of weather data and date information such as local time and flags indicating the presence of weekends, national, or regional holidays. The output variable represents the hourly traffic volume. The original data consists of hourly recordings between October 2012 and October 2018, provided by the Minnesota Department of Transportation and OpenWeatherMap. We selected the seven columns of the data as input features: 1. Flag indicating whether the current day is a holiday, 2. The temperature in Kelvin normalized by annual mean, 3. Amount of rainfall, 4. Amount of snowfall, 5. Cloud coverage in percent, 6. Flag indicating whether the current day is a weekday, and 7. time of the day preprocessed by a sine function to avoid the discontinuity at midnight. The output variable was normalized to have zero mean and unit standard deviation. We used the mean-squared-error as training loss and evaluation metric. We split the data into partially overlapping sequences lasting 32 hours. We randomly separated all sequences into non-overlapping training (75%), validation (10%), and test (15%) set. Power We used the ”Individual household electric power consumption Data Set” from the UCI machine learning repository (Dua and Graff 2017). Objective of this task is to predict the hourly active power consumption of a household. Input features are secondary measurement such as the reactive power draw and sub-meterings. Approximately 1.25% of all measurements are missing, which we overwrite by the most recent measurement of the same feature. We apply a feature-wise whitening normalization and split the dataset into non-overlapping sub-sequences of length 32 time-steps. The prediction variable (active power consumption) is also whitened. We use the squared-error as optimization loss and evaluation metric. Ozone Day Prediction The objective of task is to forecast ozone days, i.e., days when the local ozone concentration exceeds a critical level. Input features consist of wind, weather, and solar radiation readings. The original dataset ”Ozone Level Detection Data Set” was taken from the UCI repository (Dua and Graff 2017) consists of daily data points collected by the Texas Commission on Environmental Quality (TCEQ). We split the 6-years period into overlapping sequences of 32 days. A day was labeled as ozone day if, for at least 8 hours, the exposure to ozone exceeded 80 parts per billion. Inputs consist of 73 features, including wind, temperature, and solar radiation data. The binary predictor variable has a prior of 6.31%, i.e., expresses a 1:15 imbalance. For the training procedure, we weighted the cross-entropy loss at each day, depending on the label. Labels representing an ozone day were assigned 15 times the weight of a non-ozone day. Moreover, we reported the F1-score instead of standard accuracy (higher score is better). In roughly 27% of all samples, some of the input features were missing. To not disrupt the continuity of the collected data, we set all missing features to zero. Note that such zeroing of some input features potentially negatively affects the performance of our RNN models compared to non-recurrent approaches and filtering out the missing data. Consequently, ensemble methods and model-based approaches, i.e., methods that leverage domain knowledge (Zhang and Fan 2008), can outperform the endto-end RNNs studied in our experiment. We randomly split all sub-sequences into training (75%), validation (10%), and test (15%) set. Person Activity - 1st Setting In this setting we used the ”Human Activity” dataset described in (Rubanova, Chen, and Duvenaud 2019). However, as we use different random seeds for the training-validation-test splitting, and a different input representation, our results are not transferable directly to those obtained by (Rubanova, Chen, and Duvenaud 2019), in the current setting. The dataset consists of 25 recordings of various physical activity of human participants, for instance, among others lying
+ Room Occupancy The objective is to detect whether a room is occupied by observations recorded from five physical sensor streams, such as temperature, humidity, and CO2 concentration sensors (Candanedo and Feldheim 2016). Input data and binary labels are sampled in one-minute long intervals. The original dataset consists of a pre-defined training and test set. We used the binary classification accuracy as the performance metric. We cut the sequences of each of the two sets into a training and test set of overlapping sub-sequences of exactly 32 time-steps. Note that no item from the test set was leaking into the training set during this process. Input features of all data were normalized by the mean and standard deviation of the training set, such that the training set has zero mean and unit standard deviation. We select 10% of the training set as the validation set. Human Activity Recognition This task involves the recognition of human activities, such as walking, sitting, and standing, from inertial measurements of the user’s smartphone (Anguita et al. 2013). Data consists of recordings from 30 volunteers performing activities form six possible categories. Input variables are filtered and are pre-processed to obtain a feature column of 561 items at each time step. The output variable represents one of six activity categories at each time step. We employed the categorical classification accuracy as our performance metric. The original data is already split into a training and test set and preprocessed by temporal filters. The accelerometer and gyroscope sensor data were transformed into 561 features in total at each time step. We aligned the sequences of the training and test set into overlapping sub-sequences of exactly 32 time-steps. We select 10% of the training set as the validation set. Sequential MNIST We also worked with MNIST. While the original MNIST is a computer vision classification problem, we transform the dataset into a sequence classification task. In particular, each sample is encoded as a 28-dimensional timeseries of length 28. Moreover, we downscale all input feature to the range [0,1]. We exclude 10% of the training set and use it as our validation set. Traffic Estimation The objective of this experiment is to predict the hourly westbound traffic volume at the US Interstate 94 highway between Minneapolis and St. Paul. Input features consist of weather data and date information such as local time and flags indicating the presence of weekends, national, or regional holidays. The output variable represents the hourly traffic volume. The original data consists of hourly recordings between October 2012 and October 2018, provided by the Minnesota Department of Transportation and OpenWeatherMap. We selected the seven columns of the data as input features: 1. Flag indicating whether the current day is a holiday, 2. The temperature in Kelvin normalized by annual mean, 3. Amount of rainfall, 4. Amount of snowfall, 5. Cloud coverage in percent, 6. Flag indicating whether the current day is a weekday, and 7. time of the day preprocessed by a sine function to avoid the discontinuity at midnight. The output variable was normalized to have zero mean and unit standard deviation. We used the mean-squared-error as training loss and evaluation metric. We split the data into partially overlapping sequences lasting 32 hours. We randomly separated all sequences into non-overlapping training (75%), validation (10%), and test (15%) set. Power We used the ”Individual household electric power consumption Data Set” from the UCI machine learning repository (Dua and Graff 2017). Objective of this task is to predict the hourly active power consumption of a household. Input features are secondary measurement such as the reactive power draw and sub-meterings. Approximately 1.25% of all measurements are missing, which we overwrite by the most recent measurement of the same feature. We apply a feature-wise whitening normalization and split the dataset into non-overlapping sub-sequences of length 32 time-steps. The prediction variable (active power consumption) is also whitened. We use the squared-error as optimization loss and evaluation metric. Ozone Day Prediction The objective of task is to forecast ozone days, i.e., days when the local ozone concentration exceeds a critical level. Input features consist of wind, weather, and solar radiation readings. The original dataset ”Ozone Level Detection Data Set” was taken from the UCI repository (Dua and Graff 2017) consists of daily data points collected by the Texas Commission on Environmental Quality (TCEQ). We split the 6-years period into overlapping sequences of 32 days. A day was labeled as ozone day if, for at least 8 hours, the exposure to ozone exceeded 80 parts per billion. Inputs consist of 73 features, including wind, temperature, and solar radiation data. The binary predictor variable has a prior of 6.31%, i.e., expresses a 1:15 imbalance. For the training procedure, we weighted the cross-entropy loss at each day, depending on the label. Labels representing an ozone day were assigned 15 times the weight of a non-ozone day. Moreover, we reported the F1-score instead of standard accuracy (higher score is better). In roughly 27% of all samples, some of the input features were missing. To not disrupt the continuity of the collected data, we set all missing features to zero. Note that such zeroing of some input features potentially negatively affects the performance of our RNN models compared to non-recurrent approaches and filtering out the missing data. Consequently, ensemble methods and model-based approaches, i.e., methods that leverage domain knowledge (Zhang and Fan 2008), can outperform the endto-end RNNs studied in our experiment. We randomly split all sub-sequences into training (75%), validation (10%), and test (15%) set. Person Activity - 1st Setting In this setting we used the ”Human Activity” dataset described in (Rubanova, Chen, and Duvenaud 2019). However, as we use different random seeds for the training-validation-test splitting, and a different input representation, our results are not transferable directly to those obtained by (Rubanova, Chen, and Duvenaud 2019), in the current setting. The dataset consists of 25 recordings of various physical activity of human participants, for instance, among others lying
 
 
-down, walking, sitting on the ground. The participants were equipped with four different sensors, each sampling at a period of 211 ms. Similar to (Rubanova, Chen, and Duvenaud 2019), we packed the 11 activity categories into 7 classes. No normalization is applied to the input features. The 25 sequences were split into partially overlapping sub-sequences of length 32 time-steps. unlike Rubanova et al. (Rubanova, Chen, and Duvenaud 2019), we represented the input time-series as a 7-dimensional feature vector, where the first 4 entries specified the sensor ID and the last 3 entries the sensor values. Due to the high sampling frequency we discarded all timing information. The results are reported in Table 4. Person Activity - 2nd Setting We setup a second experimental setup based on the same dataset as the person activity task above. In contrast to the first setting, we made sure that the training and test sets are equivalent to (Rubanova, Chen, and Duvenaud 2019) in order to be able to directly compare results. However, we apply the same pre-processing as in our experiment before. In particular, represent the datasets as irregularly sampled in time and dimension using a padding and masking, which results in a 24-dimensional input vector. On the other hand, we discard all time information and feed the input data as described above in the form of a 7-dimensional vector. Note that the data is still the same, just represented in a different format. Based on the training - test split of (Rubanova, Chen, and Duvenaud 2019) we select 10% of the training set as our validation set. Moreover, we train our model for 400 epochs and select the epoch checkpoint which achieved the best results on the validation set. This model is then selected to be tested on the test set provided by (Rubanova, Chen, and Duvenaud 2019). Results are reported in Table 5. Half-Cheetah Kinematic modeling This task is inspired by the physics simulation experiment of Chen et al. (Rubanova, Chen, and Duvenaud 2019), which evaluated how well RNNs are suited to model kinematic dynamics. In our experiment, we collected 25 rollouts of a pre-trained controller for the HalfCheetah-v2 gym environment (Brockman et al. 2016). Each rollout is composed of a series of 1000 17-dimensional observation vectors generated by the MuJoCo physics engine (Todorov, Erez, and Tassa 2012). The task is then to fit the observation space time-series in an autoregressive fashion.To increase the difficulty, we overwrote 5% of the actions produced by the pre-trained controller by random actions. We split the data into training, test, and validation sets by a ratio of 2:2:1. Training loss and test metric were mean squared error (MSE). Results were reported in Table 6.
+ down, walking, sitting on the ground. The participants were equipped with four different sensors, each sampling at a period of 211 ms. Similar to (Rubanova, Chen, and Duvenaud 2019), we packed the 11 activity categories into 7 classes. No normalization is applied to the input features. The 25 sequences were split into partially overlapping sub-sequences of length 32 time-steps. unlike Rubanova et al. (Rubanova, Chen, and Duvenaud 2019), we represented the input time-series as a 7-dimensional feature vector, where the first 4 entries specified the sensor ID and the last 3 entries the sensor values. Due to the high sampling frequency we discarded all timing information. The results are reported in Table 4. Person Activity - 2nd Setting We setup a second experimental setup based on the same dataset as the person activity task above. In contrast to the first setting, we made sure that the training and test sets are equivalent to (Rubanova, Chen, and Duvenaud 2019) in order to be able to directly compare results. However, we apply the same pre-processing as in our experiment before. In particular, represent the datasets as irregularly sampled in time and dimension using a padding and masking, which results in a 24-dimensional input vector. On the other hand, we discard all time information and feed the input data as described above in the form of a 7-dimensional vector. Note that the data is still the same, just represented in a different format. Based on the training - test split of (Rubanova, Chen, and Duvenaud 2019) we select 10% of the training set as our validation set. Moreover, we train our model for 400 epochs and select the epoch checkpoint which achieved the best results on the validation set. This model is then selected to be tested on the test set provided by (Rubanova, Chen, and Duvenaud 2019). Results are reported in Table 5. Half-Cheetah Kinematic modeling This task is inspired by the physics simulation experiment of Chen et al. (Rubanova, Chen, and Duvenaud 2019), which evaluated how well RNNs are suited to model kinematic dynamics. In our experiment, we collected 25 rollouts of a pre-trained controller for the HalfCheetah-v2 gym environment (Brockman et al. 2016). Each rollout is composed of a series of 1000 17-dimensional observation vectors generated by the MuJoCo physics engine (Todorov, Erez, and Tassa 2012). The task is then to fit the observation space time-series in an autoregressive fashion.To increase the difficulty, we overwrote 5% of the actions produced by the pre-trained controller by random actions. We split the data into training, test, and validation sets by a ratio of 2:2:1. Training loss and test metric were mean squared error (MSE). Results were reported in Table 6.
 S6 Hyperparameters and Parameter counts - Tables 3, 4, and 6
 Table S1: Hyperparameters used for the experimental evaluations
 Parameter Value Description
@@ -2394,7 +2394,7 @@ Model Parameter count (asymptotic) Parameter count (exact)
 CT-RNN O(nk2) nk2 + 2nk ODE-RNN O(nk2) nk2 + nk LSTM O(nk2) 4nk2 + 4nk CT-GRU O(mk2) 2mk2 + 2mk + k2 + k LTC O(nk2) 4nk2 + 3nk
 
 
-S7 Additional trajectory space representations:
+ S7 Additional trajectory space representations:
 Trajectory space representation for the results provided can be viewed at: https://www.dropbox.com/s/ly6my34mbvsfi6k/ additional LTC neurIPS 2020.zip?dl=0
 S8 Trajectory Length results
 L1 L2 L3 L4 Network Layers

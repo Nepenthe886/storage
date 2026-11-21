@@ -22,7 +22,7 @@ To this end, we compute a tightly-bounded approximation of the solu
 arXiv:2106.13898v2 [cs.LG] 2 Mar 2022
 
 
-tion of an integral appearing in LTCs’ dynamics, that has had no known
+ tion of an integral appearing in LTCs’ dynamics, that has had no known
 closed-form solution so far. This closed-form solution substantially im
 pacts the design of continuous-time and continuous-depth neural mod
 els; for instance, since time appears explicitly in closed-form, the formu
@@ -50,7 +50,7 @@ While ODE-based neural networks with careful memory and gradient propaga
 2
 
 
-tion design (9) perform competitively with advanced discretized recurrent models on
+ tion design (9) perform competitively with advanced discretized recurrent models on
 relatively small benchmarks, their training and inference are slow due to the use of ad
 vanced numerical DE solvers (10). This becomes even more troublesome as the com
 plexity of the data, task and state-space increases (i.e., requiring more precision) (11),
@@ -78,7 +78,7 @@ typically continuous processes described by differential equations (c.f., dynami
 3
 
 
-Synapses
+ Synapses
 Postsynaptic Neuron
 Presynaptic Stimuli
 I(t)
@@ -112,7 +112,7 @@ namics of an LTC differential equation shown in Figure 1. We then simplify the s
 4
 
 
-Table 1: Time Complexity of the process to compute K solver’s steps. e is step-size, e ̃ is the max step-size and δ << 0. K ̃ is time steps for closed-form continuous depth models (CfCs) which is equivalent to K. Table is reproduced and taken from (17).
+ Table 1: Time Complexity of the process to compute K solver’s steps. e is step-size, e ̃ is the max step-size and δ << 0. K ̃ is time steps for closed-form continuous depth models (CfCs) which is equivalent to K. Table is reproduced and taken from (17).
 Method Complexity Local Error
 p-th order solver O(K · p) O(ep+1) adaptive–step solver − O(e ̃ p+1) Euler hypersolver O(K) O(δe2) p-th order hypersolver O(K · p) O(δep+1)
 CfC (Ours) O(K ̃ ) not relevant
@@ -139,7 +139,7 @@ time compared to their ODE-based counterparts, without loss of accuracy.
 5
 
 
-Table 2: Sequence and time-step prediction complexity. n is the sequence length, k the number of hidden units, and p = order of the ODE-solver.
+ Table 2: Sequence and time-step prediction complexity. n is the sequence length, k the number of hidden units, and p = order of the ODE-solver.
 Model Sequence Time-step prediction prediction
 RNN O(nk) O(k) ODE-RNN O(nkp) O(kp) Transformer O(n2k) O(nk) CfC O(nk) O(k)
 Sequence and Time-step Prediction Efficiency. CfCs perform per-time-step and per
@@ -161,7 +161,7 @@ physical dynamics, among others.
 6
 
 
-Deriving a Closed-form Solution
+ Deriving a Closed-form Solution
 In this section, we derive an approximate closed-form solution for liquid time-constant
 (LTC) networks, an expressive subclass of time-continuous models. We discuss how
 the scalar closed-form expression derived from a small LTC system can inspire the
@@ -187,7 +187,7 @@ inated by means of integration by substitution (21). With this, the remaining in
 7
 
 
-expression can be solved in the case of piecewise constant inputs and approximated in
+ expression can be solved in the case of piecewise constant inputs and approximated in
 the case of general inputs. The three steps of the proof are outlined below.
 Integral closed-form solution of LTC. We consider the ODE semantics of a single neu
 ron that receives some arbitrary continuous input signal I and has a positive, bounded,
@@ -232,7 +232,7 @@ u(0)
 8
 
 
-Analytical LTC solution for piecewise constant inputs. The derivation of a useful
+ Analytical LTC solution for piecewise constant inputs. The derivation of a useful
 closed-form expression of x requires us to solve the integral expression ∫ t
 0 f (I(s))ds for
 any t ≥ 0. Fortunately, the integral ∫ t
@@ -271,7 +271,7 @@ we can obtain the following sharpness results, additionally:
 9
 
 
-1.For any t ≥ 0, we have sup{ 1
+ 1.For any t ≥ 0, we have sup{ 1
 c (x(t) − x ̃(t)) | I : [0; t] → R} = e−wτt.
 2.For any t ≥ 0, we have inf{ 1
 c (x(t) − x ̃(t)) | I : [0; t] → R} = e−wτt(e−t − 1).
@@ -299,7 +299,7 @@ from a single neuron ODE given the same parametrization.
 10
 
 
-Algorithm 1 Translate a trained LTC network into its closed-form variant
+ Algorithm 1 Translate a trained LTC network into its closed-form variant
 Inputs: LTC inputs I(N×T)(t), LTC neurons activity x(H×T)(t), and their initial states
 x(H×1)(0), Synapses adjacency matrix W[(N+H)∗(N+H)]
 Adj
@@ -335,7 +335,7 @@ visualized the output neuron’s dynamics of the ODE (in blue) and of the closed
 11
 
 
-S!"(t)
+ S!"(t)
 S!#(t)
 dx1(t)
 dt = − x1 t
@@ -384,7 +384,7 @@ important to translate this theory into a practical neural network model which c
 12
 
 
-dx
+ dx
 dt = − w! + f x, I x t + A f x, I
 x t = x 0 − A e" #!$% &,( ) f(−x, −I) + A
 Perception module
@@ -416,7 +416,7 @@ x }, and is
 13
 
 
-neural network heads
+ neural network heads
 Backbone neural network
 f
 g
@@ -457,7 +457,7 @@ f (−x, −I; θ) present in Eq. 9 have both shared (backbone) and independent,
 14
 
 
-network compartments.
+ network compartments.
 Gating balance. The time-decaying sigmoidal term can play a gating role if we addi
 tionally multiply h(.), with (1 − σ(.)). This way, the time-decaying sigmoid function
 stands for a gating mechanism that interpolates between the two limits of t → −∞ and
@@ -489,7 +489,7 @@ than ODE-based networks.
 15
 
 
-How do you deal with time,t? CfCs are continuous-depth models that can set their
+ How do you deal with time,t? CfCs are continuous-depth models that can set their
 temporal behavior based on the task-under-test. For time-variant datasets (e.g., irreg
 ularly sampled time series, event-based data, and sparse data), t for each incoming
 sample is set based on its time-stamp or order. For sequential applications where the
@@ -516,7 +516,7 @@ How well CfCs perform in autonomous driving compared to NCPs and other mod
 16
 
 
-els? In this experiment, our objective is to evaluate how robustly CfCs learn to perform
+ els? In this experiment, our objective is to evaluate how robustly CfCs learn to perform
 autonomous navigation as opposed to its ODE-based counterparts LTC networks. The
 task is to map incoming pixel observations to steering curvature commands. We start
 off by training neural network architectures that possess a convolutional head stacked
@@ -544,7 +544,7 @@ into how these networks come with driving decisions. To this end, we computed th
 17
 
 
-Table 3: Lane-keeping models’ parameter count. CfC and NCP networks perform lanekeeping in unseen scenarios with a compact representation.
+ Table 3: Lane-keeping models’ parameter count. CfC and NCP networks perform lanekeeping in unseen scenarios with a compact representation.
 Modes Total Parameter Count RNN Parameter Count (CNN head + RNN)
 CNN 2,124,901 LSTM 259,733 33089 NCP 233,139 6495 Cf-S 227,728 1084 CfC 230,828 4184 CfC-NoGate 230,828 4184 CfC-mmRNN 235,052 8408
 attention of each network while driving, by using the visual-backprop algorithm (29).
@@ -567,7 +567,7 @@ all from (7).
 18
 
 
-Input CNN LSTM NCP CfC CfC-mmRNN
+ Input CNN LSTM NCP CfC CfC-mmRNN
 Time
 saliency map
 01
@@ -596,7 +596,7 @@ pRNNs) (41), mixed memory RNNs such as (ODE-LSTMs) (9), coupled oscillatory
 19
 
 
-RNNs (coRNN) (42), and Lipschitz RNNs (43).
+ RNNs (coRNN) (42), and Lipschitz RNNs (43).
 Regularly and Irregularly-Sampled Bit-Stream XOR
 The bit-stream XOR dataset (9) considers classifying bit-streams implementing an XOR
 function in time, i.e., each item in the sequence contributes equally to the correct out
@@ -622,7 +622,7 @@ patients admitted to the intensive care unit (ICU). The features represent time 
 20
 
 
-Table 4: Bit-stream XOR sequence classification. The performance values for all baseline models are reproduced from (9). Numbers present mean ± standard deviations, n=5
+ Table 4: Bit-stream XOR sequence classification. The performance values for all baseline models are reproduced from (9). Numbers present mean ± standard deviations, n=5
 Model Equidistant Event-based Time Per epoch ODE-based?
 encoding (irregular) encoding (min) †Augmented LSTM (20) 100.00% ± 0.00 89.71% ± 3.48 0.62 No †CT-GRU (34) 100.00% ± 0.00 61.36% ± 4.87 0.80 No †RNN Decay (7) 60.28% ± 19.87 75.53% ± 5.28 0.90 No †Bi-directional RNN (38) 100.00% ± 0.00 90.17% ± 0.69 1.82 No †GRU-D (36) 100.00% ± 0.00 97.90% ± 1.71 0.58 No †PhasedLSTM (37) 50.99% ± 0.76 80.29% ± 0.99 1.22 No †CT-LSTM (35) 97.73% ± 0.08 95.09% ± 0.30 0.86 No coRNN (42) 100.00% ± 0.00 52.89% ± 1.25 0.57 No Lipschitz RNN (43) 100.00% ± 0.00 52.84% ± 3.25 0.63 No †ODE-RNN (7) 50.47% ± 0.06 51.21% ± 0.37 4.11 Yes †CT-RNN (33) 50.42% ± 0.12 50.79% ± 0.34 4.83 Yes †GRU-ODE (7) 50.41% ± 0.40 52.52% ± 0.35 1.55 Yes †ODE-LSTM (9) 100.00% ± 0.00 98.89% ± 0.26 1.18 Yes LTC (1) 100.00% ± 0.00 49.11% ± 0.00 2.67 Yes
 Cf-S (ours) 100.00% ± 0.00 85.42% ± 2.84 0.36 No CfC-noGate (ours) 100.00% ± 0.00 96.29% ± 1.61 0.78 No CfC (ours) 100.00% ± 0.00 99.42% ± 0.42 0.75 No CfC-mmRNN (ours) 100.00% ± 0.00 99.72% ± 0.08 1.26 No
@@ -639,7 +639,7 @@ S2.
 21
 
 
-Table 5: PhysioNet. The experiment is performed without any pretraining or pretrained wordembeddings. Thus, we excluded advanced attention-based models (44, 45) such as Transformers (46) and RNN structures that use pretraining. Numbers present mean ± standard deviations, n=5
+ Table 5: PhysioNet. The experiment is performed without any pretraining or pretrained wordembeddings. Thus, we excluded advanced attention-based models (44, 45) such as Transformers (46) and RNN structures that use pretraining. Numbers present mean ± standard deviations, n=5
 Model AUC Score (%) time per epoch (min) †RNN-Impute (7) 0.764 ± 0.016 0.5 †RNN-delta-t (7) 0.787 ± 0.014 0.5 †RNN-Decay (7) 0.807 ± 0.003 0.7 †GRU-D (36) 0.818 ± 0.008 0.7 †Phased-LSTM (37) 0.836 ± 0.003 0.3 ∗IP-Nets (31) 0.819 ± 0.006 1.3 ∗SeFT (32) 0.795 ± 0.015 0.5 †RNN-VAE (7) 0.515 ± 0.040 2.0 †ODE-RNN (7) 0.833 ± 0.009 16.5 †Latent-ODE-RNN (7) 0.781 ± 0.018 6.7 †Latent-ODE-ODE (7) 0.829 ± 0.004 22.0 LTC (1) 0.6477 ± 0.010 0.5 Cf-S (ours) 0.643 ± 0.018 0.1 CfC-noGate (ours) 0.840 ± 0.003 0.1 CfC (ours) 0.839 ± 0.002 0.1 CfC-mmRNN (ours) 0.834 +- 0.006 0.2
 Note: The performance of the models marked by † are reported from (7) and the ones with ∗ from (44).
 Sentiment Analysis - IMDB
@@ -654,7 +654,7 @@ hyperparameter details of this experiment is provided in Table S3.
 22
 
 
-Table 6: Results on the IMDB datasets. The experiment is performed without any pretraining or pretrained word-embeddings. Thus, we excluded advanced attention-based models (44, 45) such as Transformers (46) and RNN structures that use pretraining. Numbers present mean ± standard deviations, n=5
+ Table 6: Results on the IMDB datasets. The experiment is performed without any pretraining or pretrained word-embeddings. Thus, we excluded advanced attention-based models (44, 45) such as Transformers (46) and RNN structures that use pretraining. Numbers present mean ± standard deviations, n=5
 Model Test accuracy (%)
 †HiPPO-LagT (40) 88.0 ± 0.2 †HiPPO-LegS (40) 88.0 ± 0.2 †LMU (39) 87.7 ± 0.1 †LSTM (20) 87.3 ± 0.4 †GRU (30) 86.2 ± n/a ∗ReLU GRU (48) 84.8 ± n/a ∗Skip LSTM (49) 86.6 ± n/a †expRNN (41) 84.3 ± 0.3 †Vanilla RNN (49) 67.4 ± 7.7 ∗coRNN (42) 86.7 ± 0.3 LTC (1) 61.8 ± 6.1
 Cf-S (ours) 81.7 ± 0.5 CfC-noGate (ours) 87.5 ± 0.1 CfC (ours) 85.9 ± 0.9 CfC-mmRNN (ours) 88.3 ± 0.1
@@ -670,7 +670,7 @@ irregularly sampled physical dynamics with missing phases. It is worth mentionin
 23
 
 
-Table 7: Per time-step regression. Modeling the physical dynamics of a Walker agent in simulation. Numbers present mean ± standard deviations. n = 5
+ Table 7: Per time-step regression. Modeling the physical dynamics of a Walker agent in simulation. Numbers present mean ± standard deviations. n = 5
 Model Square-error Time per epoch (min) †ODE-RNN (7) 1.904 ± 0.061 0.79 †CT-RNN (33) 1.198 ± 0.004 0.91 †Augmented LSTM (20) 1.065 ± 0.006 0.10 †CT-GRU (34) 1.172 ± 0.011 0.18 †RNN-Decay (7) 1.406 ± 0.005 0.16 †Bi-directional RNN (38) 1.071 ± 0.009 0.39 †GRU-D (36) 1.090 ± 0.034 0.11 †PhasedLSTM (37) 1.063 ± 0.010 0.25 †GRU-ODE (7) 1.051 ± 0.018 0.56 †CT-LSTM (35) 1.014 ± 0.014 0.31 †ODE-LSTM (9) 0.883 ± 0.014 0.29 coRNN (42) 3.241 ± 0.215 0.18 Lipschitz RNN (43) 1.781 ± 0.013 0.17 LTC (1) 0.662 ± 0.013 0.78 Transformer (46) 0.761 ± 0.032 0.8
 Cf-S (ours) 0.948 ± 0.009 0.12 CfC-noGate (ours) 0.650 ± 0.008 0.21 CfC (ours) 0.643 ± 0.006 0.08 CfC-mmRNN (ours) 0.617 ± 0.006 0.34
 Note: The performance of the models marked by † are reported from (9).
@@ -685,7 +685,7 @@ time-dependent gating mechanisms and having a liquid time-constant modulated by
 24
 
 
-neural networks.
+ neural networks.
 Continuous-Depth Models. Machine learning, control theory and dynamical systems
 merge at models with continuous-time dynamics (52–56). In a seminal work, Chen
 et. al. 2018 (2) revived the class of continuous-time neural networks (33, 57), with
@@ -713,7 +713,7 @@ gains in performance and scalability. On the other hand, implicit ODE-based mod
 25
 
 
-els can still be significantly beneficial in solving continuously defined physics prob
+ els can still be significantly beneficial in solving continuously defined physics prob
 lems and control tasks. Moreover, for generative modeling, continuous normalizing
 flows built by ODEs are the suitable choice of model as they ensure invertibility un
 like CfCs (2). This is because differential equations guarantee invertibility (i.e., under
@@ -740,7 +740,7 @@ networks. Proceedings of the AAAI Conference on Artificial Intelligence 35, 7657
 26
 
 
-(2021).
+ (2021).
 2.Chen, T. Q., Rubanova, Y., Bettencourt, J. & Duvenaud, D. K. Neural ordinary
 differential equations. In Advances in neural information processing systems, 6571–
 6583 (2018).
@@ -765,7 +765,7 @@ of computational and applied mathematics 7, 67–75 (1981).
 27
 
 
-11.Raissi, M., Perdikaris, P. & Karniadakis, G. E. Physics-informed neural networks:
+ 11.Raissi, M., Perdikaris, P. & Karniadakis, G. E. Physics-informed neural networks:
 A deep learning framework for solving forward and inverse problems involving
 nonlinear partial differential equations. Journal of Computational Physics 378, 686–
 707 (2019).
@@ -790,7 +790,7 @@ delberg, 1991).
 28
 
 
-21.Rudin, W. Principles of mathematical analysis (McGraw-Hill New York, 1976), 3d ed.
+ 21.Rudin, W. Principles of mathematical analysis (McGraw-Hill New York, 1976), 3d ed.
 edn.
 22.Lechner, M. et al. Neural circuit policies enabling auditable autonomy. Nature
 Machine Intelligence 2, 642–652 (2020).
@@ -815,7 +815,7 @@ driving. In IEEE International Conference on Robotics and Automation (ICRA), 1�
 29
 
 
-30.Chung, J., Gulcehre, C., Cho, K. & Bengio, Y. Empirical evaluation of gated recur
+ 30.Chung, J., Gulcehre, C., Cho, K. & Bengio, Y. Empirical evaluation of gated recur
 rent neural networks on sequence modeling. arXiv preprint arXiv:1412.3555 (2014).
 31.Shukla, S. N. & Marlin, B. Interpolation-prediction networks for irregularly sam
 pled time series. In International Conference on Learning Representations (2018).
@@ -838,7 +838,7 @@ actions on Signal Processing 45, 2673–2681 (1997).
 30
 
 
-39.Voelker, A. R., Kaji  ́c, I. & Eliasmith, C. Legendre memory units: Continuous
+ 39.Voelker, A. R., Kaji  ́c, I. & Eliasmith, C. Legendre memory units: Continuous
 time representation in recurrent neural networks. NeurIPS Reproducability Challenge
 (2019).
 40.Gu, A., Dao, T., Ermon, S., Rudra, A. & R e ́, C. Hippo: Recurrent memory with
@@ -862,7 +862,7 @@ cessing systems, 5998–6008 (2017).
 31
 
 
-47.Maas, A. et al. Learning word vectors for sentiment analysis. In Proceedings of the
+ 47.Maas, A. et al. Learning word vectors for sentiment analysis. In Proceedings of the
 49th annual meeting of the association for computational linguistics: Human language
 technologies, 142–150 (2011).
 48.Dey, R. & Salem, F. M. Gate-variants of gated recurrent unit (gru) neural networks.
@@ -887,7 +887,7 @@ ing. arXiv preprint arXiv:1710.09513 (2017).
 32
 
 
-56.Lechner, M., Hasani, R., Zimmer, M., Henzinger, T. A. & Grosu, R. Designing
+ 56.Lechner, M., Hasani, R., Zimmer, M., Henzinger, T. A. & Grosu, R. Designing
 worm-inspired neural networks for interpretable robotic control. In International
 Conference on Robotics and Automation (ICRA), 87–94 (2019).
 57.Cohen, M. A. & Grossberg, S. Absolute stability of global pattern formation and
@@ -911,7 +911,7 @@ International Conference on Robotics and Automation (ICRA), 5446–5452 (IEEE, 2
 33
 
 
-63.Gleeson, P., Lung, D., Grosu, R., Hasani, R. & Larson, S. D. c302: a multiscale
+ 63.Gleeson, P., Lung, D., Grosu, R., Hasani, R. & Larson, S. D. c302: a multiscale
 framework for modelling the nervous system of caenorhabditis elegans. Philosoph
 ical Transactions of the Royal Society B: Biological Sciences 373, 20170379 (2018).
 64.Li, X., Wong, T.-K. L., Chen, R. T. & Duvenaud, D. Scalable gradients for stochastic
@@ -936,7 +936,7 @@ for real-time gesture and error detection. Autonomous Robots 44, 1303–1322 (20
 34
 
 
-72.Hasani, R. Interpretable Recurrent Neural Networks in Continuous-time Control Envi
+ 72.Hasani, R. Interpretable Recurrent Neural Networks in Continuous-time Control Envi
 ronments. PhD dissertation, Technische Universit ̈at Wien (2020).
 Acknowledgments
 Authors would like to thank Tsun-Hsuan Wang, Patrick Kao, Makram Chahine, Wei
@@ -961,13 +961,13 @@ producing and extending the analysis.
 35
 
 
-List of Supplementary materials
+ List of Supplementary materials
 Materials and Methods.
 Tables S1 to S4.
 36
 
 
-Supplementary Materials
+ Supplementary Materials
 Here, we provide all supplementary materials used in our analysis.
 Materials and Methods
 In this section, we provide the full proof for Lemma 1.
@@ -1011,7 +1011,7 @@ nli→m∞
 37
 
 
-where L is the Lipschitz constant of f and the last identity is due to dominated conver
+ where L is the Lipschitz constant of f and the last identity is due to dominated conver
 gence theorem (21). To see 2), we first note that the negation of the signal −I provides
 us with
 e− ∫ t
@@ -1024,7 +1024,7 @@ I′, I′′ : [0; t] → R.
 38
 
 
-Table S1: Bit-Stream XOR experiments. Hyperparameters
+ Table S1: Bit-Stream XOR experiments. Hyperparameters
 Parameter Value
 Cf-S CfC CfC-noGate CfC-mmRNN
 clipnorm 5 1 10 10 optimizer Adam RMSProp RMSprop RMSprop batch size 256 128 128 128 Hidden size 64 192 128 64 epochs 200 200 200 200 base lr 0.005 0.05 0.005 0.005 decay lr 0.9 0.7 0.95 0.95 backbone activation SiLU ReLU SiLU ReLU backbone dr 0.0 0.0 0.3 0.0 forget bias 1.2 1.2 4.7 0.6 backbone units 64 128 192 128 backbone layers 1 1 1 1 weight decay 3e-05 3e-06 5e-06 2e-06
@@ -1035,7 +1035,7 @@ epochs 116 57 58 65 class weight 18.25 11.69 7.73 5.91 clipnorm 0 0 0 0 Hidden s
 39
 
 
-Table S3: IMDB experiments. Hyperparameters
+ Table S3: IMDB experiments. Hyperparameters
 Parameter Value
 Cf-S CfC CfC-noGate CfC-mmRNN
 clipnorm 1 10 5 10 optimizer Adam RMSProp RMSprop RMSprop batch size 128 128 128 128 Hidden size 320 192 224 64 embed dim 64 192 192 32 embed dr 0.0 0.0 0.2 0.3 epochs 27 47 37 20 base lr 0.0005 0.0005 0.0005 0.0005 decay lr 0.8 0.7 0.8 0.8 backbone activation Relu SiLU SiLU LeCun Tanh backbone dr 0.0 0.0 0.1 0.0 backbone units 64 64 128 64 backbone layers 1 2 1 1 weight decay 0.00048 3.6e-05 2.7e-05 0.00029

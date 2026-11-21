@@ -15,7 +15,7 @@ In a kernel (linearized-quadratic) regime, where TTT typically operates, we pres
 arXiv:2606.15569v2 [cs.LG] 19 Oct 2026
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 We further show that fixed steps and fixed update subspaces can fail (Propositions6.1–6.3). (C2) We show that selecting the number of updates by prompt evidence provides a PAC-Bayes guarantee and mitigates overfitting to the prompt (Thm.7.2). (C3) Under a linear-Gaussian correction prior, we characterize the Bayes-optimal update subspace via an information-capture matrix, yielding an attention block/head scoring rule for prediction (Thm.8.2); see App.E.6for a regret bound.
 Together, these results give a principled starting point for analyzing few-step, restricted-update TTT. We do not aim to give a complete theory of fully nonlinear TTT. Rather, we use a local Bayesian lens to identify design principles for TTT: how far to update, and which directions to update. The Transformer specializations in Secs.3.3and8.2make this link to block/head-level TTT explicit.
 1.1. Related Work
@@ -52,7 +52,7 @@ This section builds a tractable local model for few-step TTT. We do not assume t
 2
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 approximation to the nonlinear update path. This approximation is appropriate when the update subspace is restricted and the number of test-time steps is modest; AppendixF.1 gives a finite-step deviation bound between the nonlinear and linearized prompt corrections. Within this model, TTT becomes a linear inverse problem in the update parameters. Since test-time supervision is available only through the labeled prompt, we use leave-one-out residuals as noisy observations of the desired correction at prompt points.
 Residual correction induced by a base predictor.Let TTT output MTTT(Pn, x) =B(P n, x) +C(P n, x). We
 form leave-one-out residuals r∈R n with ri :=y i −
@@ -101,7 +101,7 @@ ks are attention weights (eval
 3
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 uated at w0). Under tokenwise supervision (i≡k ), let
 g(h)
 k :=∇ o(h)
@@ -175,7 +175,7 @@ x q(K)r with q⋆(λ) := (λ+ λ⋆)−1, the Bayes gap satisfies E {ˆhq(x)−f
 4
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 K, kx, κx = Pn
 i=1 ai(x) q(λi)−q ⋆(λi) 2, where the
 mode weights area i(x) := (τ 2λi +σ 2) (u⊤
@@ -216,7 +216,7 @@ In the global-upstream regime (4), the representable promptspace directions sati
 5
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 Connection to phenomenon.Prop.6.3formalizes a representational bottleneck, that is, regardless of hyperparameters, the correction fˆg lies in S, so components outside S are unavoidable. Consistent with this view,Zhang et al. (2025) discuss gains from scaling test-time state capacity (expanding S in our context). However, simply expanding the update space is not sufficient.Choi et al.(2022) report settings where full-parameter updates can degrade performance, motivating careful design of the update mechanism A(and hence the inducedS).
 Takeaway (C1-2): whyTandAmust adapt
 A fixed T can be Bayes-suboptimal under test-time prior shift; taking T→ ∞ can overfit; and any fixed representable subspace induces an irreducible mismatch floor.
@@ -255,7 +255,7 @@ Assumption 8.1(Gaussian benchmark of subspace).There
 6
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 exists a latent parameter correction u⋆ ∈R p such that u⋆ ∼ N(0,Σ) , r=J wu⋆ +ε , ε∼ N(0, σ 2In), and u⋆ ⊥ε , where Σ≻0 is task-to-task variability and Jw :=∇ wsw(Pn)|w=w0 ∈R n×p.
 This assumption is the subspace version of Assumption5.1(see Lem.E.20). For a query input x, denote the linearized query correction by fx :=j ⊤
 x u⋆, where
@@ -325,7 +325,7 @@ The exact query-specificQUERY-AWAREscore requires one backward pass through the 
 7
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 backward pass gives jx for all blocks, after which the blockspecific vectors j(b)
 x are obtained by slicing. The remaining inverses and trace scores are in prompt space (dimension n) and can be implemented with Jacobian–vector products without materializing Jw. When per-query latency is undesirable, the query-averaged choice Q=E X [jX j⊤
 X ] gives an amortized global design that removes the per-query backward pass while remaining the Bayes-optimal solution for the averaged query objective; see AppendixH.4for details.
@@ -354,7 +354,7 @@ We have presented a unified Bayes-risk framework for TTT, interpreting it as imp
 8
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 ! # "!
 $
 % $!
@@ -389,7 +389,7 @@ Alfarra, M., Correia, A., Ghanem, B., and Louizos, C. Testtime adaptation with s
 9
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 actions on Machine Learning Research, 2025. ISSN 2835-8856. URL https://openreview.net/ forum?id=XWAXcxNg4n.
 Alquier, P. et al. User-friendly introduction to PAC-Bayes bounds.Foundations and Trends®in Machine Learning, 17(2):174–303, 2024.
 Attia, A., Alexanderian, A., and Saibaba, A. K. Goaloriented optimal design of experiments for large-scale bayesian linear inverse problems.Inverse Problems, 34 (9):095009, 2018. doi: 10.1088/1361-6420/aad210.
@@ -414,7 +414,7 @@ James, W. and Stein, C. Estimation with quadratic loss. InProceedings of the Fou
 10
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 1961. URL https://digitalassets.lib. berkeley.edu/math/ucb/text/math_s4_ v1_article-07.pdf.
 Kim, C., Park, J., Shim, H., and Yang, E. SGEM: TestTime Adaptation for Automatic Speech Recognition via Sequential-Level Generalized Entropy Minimization. InProceedings of the Annual Conference of the International Speech Communication Association (INTERSPEECH), pp. 3367–3371, Dublin, Ireland, 2023. doi: 10.21437/Interspeech.2023-1282.
 Kuwataka, K. and Suzuki, T. Test time training enhances in-context learning of nonlinear functions.arXiv preprint arXiv:2509.25741, 2025.
@@ -438,7 +438,7 @@ Sahoo, S., ElAraby, M., Ngnawe, J., Pequignot, Y., Precioso, F., and Gagn ́e, C
 11
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 Sanh, V., Debut, L., Chaumond, J., and Wolf, T. Distilbert, a distilled version of bert: smaller, faster, cheaper and lighter. InProceedings of the 5th Workshop on Energy Efficient Machine Learning and Cognitive Computing () co-located with NeurIPS 2019, 2019.
 Shao, P. Y.-S. and Strawderman, W. E. Improving on the James-Stein Positive-Part Estimator.The Annals of Statistics, 22(3):1517 – 1538, 1994. doi: 10.1214/aos/ 1176325640. URL https://doi.org/10.1214/ aos/1176325640.
 Socher, R., Perelygin, A., Wu, J., Chuang, J., Manning, C. D., Ng, A., and Potts, C. Recursive deep models for semantic compositionality over a sentiment treebank. In Yarowsky, D., Baldwin, T., Korhonen, A., Livescu, K., and Bethard, S. (eds.),Proceedings of the 2013 Conference on Empirical Methods in Natural Language Processing, pp. 1631–1642, Seattle, Washington, USA, October 2013. Association for Computational Linguistics. URL https://aclanthology.org/D13-1170/.
@@ -458,12 +458,12 @@ Zhang, T., Bi, S., Hong, Y., Zhang, K., Luan, F., Yang, S., Sunkavalli, K., Free
 12
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 Zhao, H., Liu, Y., Alahi, A., and Lin, T. On pitfalls of test-time adaptation. InProceedings of the 40th International Conference on Machine Learning, volume 202 ofProceedings of Machine Learning Research, pp. 42058–42080. PMLR, 23–29 Jul 2023. URL https://proceedings.mlr.press/ v202/zhao23d.html.
 13
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 A. Roadmap
 This appendix provides full proofs and additional analyses supporting the main claims. We begin with a self-contained primer on the relevant decision-theoretic background. We then derive the Bayes risk identities and other theorems stated in the main text. Finally, we describe the experimental setup to facilitate reproducibility.
 • Notation and background.We list the notation used throughout (App.B), provide a brief primer on decision theory (App.C), and relate our setting to classical early stopping (App.D).
@@ -508,7 +508,7 @@ n :Prompt with theith example removed.
 14
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 r:Prompt residual vector:r i =y i −B(P (−i)
 n , xi).
 φ(x;P n):Jacobian featureφ(x;P n) =∇ θfθ(x;P n)|θ=0.
@@ -594,7 +594,7 @@ qT (λ): Query-side TTT filter: qT (λ) = 1−(1−ρλ)T
 15
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 q⋆(λ):Bayes-optimal resolvent:q ⋆(λ) = (λ+λ ⋆)−1.
 κx: Query-point kernel scalar in the GP benchmark, so that
 K kx k⊤
@@ -653,7 +653,7 @@ Equivalently, any two minimizers agreeP X -almost surely.
 16
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 C.2. Bayes risk under the mixture task model
 In the context of TTT and ICL, we do not face a single static distribution. Instead, we face a distribution of tasks (e.g., a mixture of different functions or domains (Wakayama & Suzuki,2026)).
 As in (1), let α∼π and, conditional on α, let (Xi, Yi)n
@@ -700,7 +700,7 @@ This appendix provides proofs for the decision-theoretic statements in Sec.2. Th
 17
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 (1).
 E.1.1. PROOF OFPROP.2.1
 Proof. Let MBayes(Pn, X) :=E[Y|P n, X], and ξ:= Y−M Bayes(Pn, X). Then E[ξ|P n, X] = 0 and Y= MBayes(Pn, X) +ξ . For any predictor M(P n, X) with E[M(P n, X)2]<∞,
@@ -762,7 +762,7 @@ for ̃r:=U ⊤r, f ̃:=U ⊤f, and ̃ε:=U ⊤ε:
 18
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 For each coordinate, the posterior mean is given by the scalar Gaussian conditioning formula (Rasmussen & Williams, 2006;Bishop,2006):
 E[f ̃i | ̃ri] = cT,i
 cT,i +σ 2  ̃ir.
@@ -838,7 +838,7 @@ Within this benchmark, we model test-time prior shift as changes in the effectiv
 19
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 Proposition E.3(Bayes-optimal estimator on prompt values).Under AssumptionE.2with K=Udiag(λ 1, . . . , λn)U ⊤, conditioned on (K, r), the Bayes-optimal estimator of f⋆ under squared loss is the posterior mean fBayes =Udiag g⋆(λ1), . . . , g⋆(λn) U ⊤r, whereg ⋆(λ) :=λ/(λ+λ ⋆).
 The Bayes-optimal estimator is a spectral shrinkage rule: each eigenmode with eigenvalue λ is scaled by g⋆(λ)∈ [0,1] , where λ⋆ encodes the test-time noise-to-signal ratio. This provides a precise target for adaptation: a procedure helps when it moves its spectral shrinkage closer to g⋆ on the eigenvalues ofK(P n).
 We next quantify the Bayes gap of any spectral estimator under the GP benchmark.
@@ -931,7 +931,7 @@ x κx
 20
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 ε∼ N(0, σ 2In), andε⊥(f ⋆, fx). Hence
 Cov(r) =τ 2K+σ 2In =τ 2(K+λ ⋆In),
 Cov(fx, r) =τ 2k⊤
@@ -1047,7 +1047,7 @@ j +σ 2).
 21
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 Hence, for eachj∈ {1,2},
 Eλj
 h
@@ -1131,7 +1131,7 @@ In our setting with finite T , this reduces to the familiar normalized weightsν
 22
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 Measurability (posterior as a kernel).If l(h, D) is measurable in (h, D), then Zβ(D) is measurable in D and the map D7→ν β(· |D) is a measurable probability kernel from the data space to (H,A) . Consequently, posterior expectations (model averaging) and measurable selectors such as an argmin/argmax (e.g., TMAP with a deterministic tie-breaking rule) are measurable functions of the observed data.
 Why the PAC-Bayes statement is naturally conditional on K.In Sec.7and App.E.5, we condition on the promptinduced geometry K and analyze the randomness of r|K . This is not merely a convenience: the Gibbs posterior νβ(· | r, K) is defined as an RN tilt of π0 given the realized data, so all PAC-Bayes change-of-measure steps (e.g., Donsker– Varadhan / exponential-moment arguments) can be applied pathwise in K to the conditional law of r|K . The resulting bounds therefore hold with high probability over r|K for each fixed K. If desired, one can then integrate over the distribution ofKto obtain unconditional statements.
 Nullspace contributions.If K is singular, then on null(K) we have ΣT =σ 2I for all T , so both log det(ΣT ) and r⊤Σ−1
@@ -1217,7 +1217,7 @@ T )/n to conclude (14).
 23
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 E.5.2. OPTIMIZING THE TEMPERATUREβ(RATE FORM)
 Corollary E.14(Rate form via β-optimization).On the event of Lem.E.13, for anyν∈∆(T),
 ET∼ν L(T|K)
@@ -1334,7 +1334,7 @@ Using the definitions of L(T|K) and Ltrue(K) yields (18).
 24
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 E.5.5. A PAC-BAYES HIGH-PROBABILITY BOUND FOR THEEB/MAPT
 Let T ⊂N 0 be a finite candidate set and define the EB/MAP T
 Tb∈arg mTin∈T lT (r).(20)
@@ -1426,7 +1426,7 @@ x Σjx.
 25
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 In particular, taking Σ = ΠU yields the benchmark in Assumption5.1with K=J wΠU J ⊤
 w and kx =J wΠU jx (and
 κx =j ⊤
@@ -1496,7 +1496,7 @@ forI Q,glob.
 26
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 Assumption E.24(Matrix-martingale concentration conditions for IbQ).Let Fj :=σ(J 1, . . . , Jj) and define the centered increments Xj :=I Q(Jj )− I Q,glob ∈R dQ×dQ . Assume: (A1) (Martingale-difference mean.) E[Xj | Fj−1] = 0 a.s. for allj. (In particular, this holds whenJ j are i.i.d.) (A2) (Uniform boundedness.) There exists R >0 such that ∥Xj∥op ≤Ra.s. for allj.
 (A3) (Predictable quadratic variation bound.) Let Vm :=
 Pm
@@ -1581,7 +1581,7 @@ t . Let the (prompt-dependent) restricted
 27
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 kernel at initialization be K0 := ΦΦ⊤ ⪰0 . Then, f lin
 t
 satisfies the closed recursion
@@ -1683,7 +1683,7 @@ R.
 28
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 Let E:= max{E R,∥r∥ 2}. Then ∥r∥2 ≤E and ER ≤E , so
 ∥δt+1∥2 ≤ ∥δt∥2 + 2LB2ρ2 t E2 + L
 2 B2ρ2E2.
@@ -1791,7 +1791,7 @@ This subsection extends the GP benchmark by relaxing the aligned covariance assu
 29
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 Assumption F.9(Anisotropic Gaussian prior in update parameters).Let Φ∈R n×d be the prompt feature matrix and consider the linearized residual model r= Φθ ⋆ +ε, ε∼ N(0, σ 2In). Assume an anisotropic prior on the latent update parameter signal θ⋆ ∼ N(0, τ 2Σ), with Σ∈R d×d and λ⋆ :=σ 2/τ 2.
 Proposition F.10(Bayes-optimal predictor on prompt values under anisotropic priors).Under AssumptionF.9, the latent prompt-level signal f⋆ := Φθ⋆ satisfies f⋆ ∼ N(0, τ 2Ke), Ke:= ΦΣΦ ⊤, and the Bayes-optimal estimator off ⋆ givenrunder squared loss is
 fBayes =E[f ⋆ |r] = Ke(Ke+λ ⋆In)−1r.(38)
@@ -1824,7 +1824,7 @@ Lemma G.2(Discrete GD ≈ gradient flow).Fix λ≥0 and
 30
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 assumeρλ <1. Lett:=ρT. Then
 0≤g T (λ)−g t(λ) =e −tλ −(1−ρλ) T ≤ T(ρλ) 2
 2(1−ρλ) e−tλ.
@@ -1927,7 +1927,7 @@ g′
 31
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 Interpretation (horizon instability).The risk identity
 decomposes the error into two meaningful components: dt(μ)2 represents the mismatch at a representative eigenvalue, while P
 i ai(λi −μ) 2 penalizes spectral spread via weighted variance. Notably, the Lipschitz factor (t+ 1/λ ⋆) grows linearly with t, suggesting that longer diffusion times heighten the procedure’s sensitivity to spectral heterogeneity. This scaling relationship provides a principled explanation for horizon instability, particularly why performance degrades when the prompt geometry K possesses a broad spectrum.
@@ -2027,7 +2027,7 @@ Assump.G.8, K (hence {λi}, μ(K), and Rin,n) is random. The limits νγ, μ∞,
 32
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 G.4. Transformer head example: head choice⇒ spectrum⇒horizon
 We specialize to Value-matrix updates in Transformer head h under the global-upstream regime. With attention matrix A(h) (entries α(h)
 ks ), residual stream stack Z∈R n×dz , and
@@ -2092,7 +2092,7 @@ ts ) and all upstream gradients (e.g. gi) at w0 and treat them as constants unde
 33
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 Remark (why attention can be treated as fixed for WV /WO features).For standard attention, α(h)
 ts depends on(W (h)
 Q , W (h)
@@ -2218,7 +2218,7 @@ w +σ 2I)−1 and I can look expensive, but the core linear algebra lives inprom
 34
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 (dimension n) and can be implemented via Jacobian–vector products (JVP/VJP), without materializingJ w ∈R n×p.
 H.4.1. BOOKKEEPING AND PRIMITIVE COSTS
 We use the following dimensions (consistent with the main text):
@@ -2261,7 +2261,7 @@ Solves with K for larger n.When n is small, one can form K explicitly and use a 
 35
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 H.4.4. COST OFPAC-BAYES HORIZON SELECTION (SEC.7)
 Horizon selection evaluates (for T∈ T ) the evidence score
 lT (r) = 1
@@ -2348,7 +2348,7 @@ w +σ 2In)−1, is an n×n matrix. Thus it is cheap whenever n is modest. If n i
 36
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 Method # forward passes # backward/Jacobian passes Remarks
 No-update inference (ICL)1 0baseline inference only Standard TTT (Tsteps)T+ 1Tone prompt step = fwd+bwd TTT + horizon selection (ours)T+ 1T+n J nJ to estimateK/ spectrum TTT + offline subspace design (ours)T+ 1Tno extra test-time overhead
 Table 2.Test-time pass counts (coarse). Horizon selection adds Jacobian access to estimate K, while offline subspace design adds no test-time cost.
@@ -2386,7 +2386,7 @@ n ∥r∥2 from the unadapted residuals. We then select
 37
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 Tto minimize:
 L(T) =− T
 n
@@ -2431,7 +2431,7 @@ Kernel and step-size construction.For each task, we compute the prompt kernel an
 38
 
 
-A Decision-Theoretic View of Test-Time Training
+ A Decision-Theoretic View of Test-Time Training
 ρ=c/λ max(K) with c= 0.1 and clipped so that ρ < 1/λmax(K).
 Horizon selection.For the update horizon experiment, we compare a fixed-horizon baseline with T= 8 against evidence-based per-prompt selection. The evidence methods search over the same grid as in the synthetic experiment, T∈ {0,1, . . . ,30} , using either a fixed plug-in estimate of σ or the profiled MLE-σ variant. The evidence score is evaluated from the prompt-kernel eigenspectrum and the rotated residuals, so the candidate horizons are not evaluated by rerunning TTT from scratch.
 Subspace selection.For the block/head selection experiment, we consider 48 candidate attention heads from the last four layers of distilgpt2. We evaluate budgets kbudget ∈ {1,2,4,8,16,32} and compareQUERY-AWARE, TRACE-TOPK,TRACE-BOTTOMK, and Random selection. QUERY-AWAREuses the prompt–query coupling to greedily select heads under the fixed horizon T= 8 ;TRACE-TOPK ranks heads by the query-agnostic trace score;TRACEBOTTOMKis the corresponding negative-control baseline. The Random baseline is averaged over five independent random head selections for each task and budget. As in the main text, subspace results are reported as query-MSE improvement relative to Random, so positive values indicate lower query error than Random.

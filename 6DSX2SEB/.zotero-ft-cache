@@ -11,7 +11,7 @@ Submitted to 40th Conference on Neural Information Processing Systems (NeurIPS 2
 arXiv:2606.12240v1 [cs.LG] 10 Jun 2026
 
 
-Neural Networks (LNNs) address some of these limitations by modeling continuous-time dynamics through differential equations Chen et al. [2018], Hasani et al. [2021]. Each differential equation is characterized by a time constant, which controls the rate of state evolution. The notion of “liquid” refers to the adaptability of these time constants, allowing the model to better capture underlying temporal dynamics Rubanova et al. [2019], Kidger et al. [2020].
+ Neural Networks (LNNs) address some of these limitations by modeling continuous-time dynamics through differential equations Chen et al. [2018], Hasani et al. [2021]. Each differential equation is characterized by a time constant, which controls the rate of state evolution. The notion of “liquid” refers to the adaptability of these time constants, allowing the model to better capture underlying temporal dynamics Rubanova et al. [2019], Kidger et al. [2020].
 Nevertheless, standard LNNs typically rely on a single dynamical system, meaning that a single set of differential equations governs the evolution of the hidden state across all inputs. While this provides a compact representation, it limits the model’s ability to capture heterogeneous patterns and multi-scale temporal structures, where different underlying processes may evolve at distinct time scales. This limitation motivates the need for structured models that can explicitly separate and efficiently model different temporal scales.
 In addition, LNNs often incur higher computational costs due to the need for numerical integration of differential equations, which can become a bottleneck when scaling to large datasets or long time horizons. This makes efficient modeling of large-scale time-series particularly challenging.
 To address these challenges, we propose a structured framework that combines multi-scale modeling, expert specialization, and attention mechanisms. Specifically, we first introduce a Mixture-of-Experts (MoE) framework based on Liquid Neural Networks, where multiple experts improve representation capacity and capture diverse temporal patterns through expert specialization Shazeer et al. [2017]. Building upon this idea, we further propose a Multi-Rate Mixture-of-Experts (MR-MoE) architecture, where experts operate at distinct time scales to explicitly separate fast-changing dynamics from slow-evolving temporal trends.
@@ -25,7 +25,7 @@ Contributions.The main contributions of this work are summarized as follows:
 2
 
 
-2 Method
+ 2 Method
 In this work, we progressively develop our model from standard sequence modeling to a structured multi-scale framework with attention mechanisms. Specifically, we begin with an LSTM baseline, extend it to continuous-time modeling via Liquid Neural Networks (LNNs), introduce a Mixture-ofExperts (MoE) architecture for specialization, incorporate the singular perturbation method to model multi-time-scale dynamics, and enhance the model with both temporal and feature-level attention mechanisms.
 2.1 LSTM Baseline
 As a baseline, we consider Long Short-Term Memory (LSTM) networks?for sequence modeling. Given an input sequenceu(t), the hidden state is updated as Eq. 1:
@@ -48,7 +48,7 @@ To improve model expressiveness, we introduce a Mixture-of-Experts (MoE) archite
 3
 
 
-π(t) = softmax(g(z(t);φ))(6)
+ π(t) = softmax(g(z(t);φ))(6)
 The final prediction is computed as a weighted combination of expert outputs in Eq. 7:
 y(t) =
 K
@@ -84,7 +84,7 @@ where βj(t) denotes the attention weight assigned to feature j at time t. The i
 4
 
 
- ̃u(t) =β(t)⊙u(t)(14)
+  ̃u(t) =β(t)⊙u(t)(14)
 where β(t)∈R d denotes the feature attention vector and ⊙ represents element-wise multiplication. This mechanism acts as a soft feature selection layer, suppressing irrelevant variables and improving the signal-to-noise ratio.
 Temporal Attention.For each expert k, we compute attention weights over historical hidden states using Eq. 15:
 αk(t, i) = exp(qk(t)⊤xk(i))
@@ -118,7 +118,7 @@ We compare our method with the following baselines:
 5
 
 
-•MR-MoE:The proposed multi-time-scale MoE model without attention.
+ •MR-MoE:The proposed multi-time-scale MoE model without attention.
 •MR-MoE-Attention:Our full model with both feature-level and temporal attention.
 3.3 Implementation Details
 All models are implemented in PyTorch and trained using the Adam optimizer. The learning rate is set to10 −3 and the batch size is fixed across all experiments.
@@ -144,7 +144,7 @@ We further evaluate the Mixture-of-Experts (MoE) framework introduced in Section
 6
 
 
-We use K= 3 experts, each with a hidden dimension of 1500, while maintaining the same optimizer and training settings as previous experiments.
+ We use K= 3 experts, each with a hidden dimension of 1500, while maintaining the same optimizer and training settings as previous experiments.
 As shown in Figure 5 and 6, the MoE model achieves an AUROC of approximately 0.58 and an AUPRC of approximately0.36, outperforming both the LSTM and monolithic LNN baselines.
 These results demonstrate that expert specialization improves representation capacity by allowing different experts to capture diverse temporal behaviors. However, without explicit multi-scale modeling, the MoE framework may still struggle to efficiently separate dynamics across different temporal scales.
 3.5.4 Multi-Rate-MoE
@@ -163,7 +163,7 @@ The superior ROC and PRC performance of the Multi-Rate-MoE model over both the L
 7
 
 
-Furthermore, the integration of singular perturbation method enables explicit modeling of multiscale temporal dynamics, allowing the model to separate fast and slow processes. This structured decomposition further enhances representation capacity compared to monolithic architectures, which attempt to learn all dynamics within a single system.
+ Furthermore, the integration of singular perturbation method enables explicit modeling of multiscale temporal dynamics, allowing the model to separate fast and slow processes. This structured decomposition further enhances representation capacity compared to monolithic architectures, which attempt to learn all dynamics within a single system.
 The Multi-Rate-MoE model augmented with attention achieves the best AUROC and AUPRC performance due to its ability to selectively focus on the most informative temporal and featurelevel signals. Attention mechanisms allow the model to dynamically weight historical information, effectively improving long-range dependency modeling and mitigating the information bottleneck commonly observed in recurrent architectures. As a result, the model can better retain and utilize critical past information, leading to more accurate predictions. This combination of expert diversity, multi-scale modeling, and adaptive attention contributes to the strongest performance among all evaluated methods.
 3.6 Efficiency Analysis
 The memory consumption of different models is shown in Figure 13. We observe that the LSTM baseline incurs the highest memory cost, primarily due to its large hidden state and sequential processing overhead. The monolithic LNN significantly reduces memory usage by modeling continuous-time dynamics with a compact representation.
@@ -178,7 +178,7 @@ Furthermore, feature-level attention suppresses irrelevant or noisy variables by
 8
 
 
-As a result, the proposed framework achieves higher prediction accuracy in noisy clinical environments by reducing the propagation of irrelevant information and improving the stability of temporal representations.
+ As a result, the proposed framework achieves higher prediction accuracy in noisy clinical environments by reducing the propagation of irrelevant information and improving the stability of temporal representations.
 Figure 14 further illustrates the robustness of different models under increasing noise levels. As the noise standard deviation increases, the performance of all models gradually decreases. However, the proposed Multi-Rate-MoE and Multi-Rate-MoE with Attention models exhibit significantly slower degradation compared to LSTM and monolithic LNN baselines. In particular, Multi-Rate-MoE with Attention maintains the highest AUROC across all noise levels, demonstrating that multi-scale expert decomposition and attention mechanisms effectively improve robustness to noisy clinical signals.
 4 Future work
 Future work will focus on improving the flexibility and scalability of the proposed Multi-RateMoE framework by developing more adaptive multi-time-scale training strategies and reducing the computational overhead associated with continuous-time dynamics and attention mechanisms.
@@ -196,46 +196,46 @@ Overall, this work highlights the importance of combining continuous-time modeli
 9
 
 
-Technical Appendices
+ Technical Appendices
 Figure 1: AUROC curve for the LSTM baseline.
 10
 
 
-Figure 2: Precision-recall curve for the LSTM baseline.
+ Figure 2: Precision-recall curve for the LSTM baseline.
 Figure 3: AUROC curve for the monolithic LNN baseline.
 11
 
 
-Figure 4: Precision-recall curve for the monolithic LNN baseline.
+ Figure 4: Precision-recall curve for the monolithic LNN baseline.
 Figure 5: AUROC curve for the MoE model with LNN experts.
 12
 
 
-Figure 6: Precision-recall curve for the MoE model with LNN experts.
+ Figure 6: Precision-recall curve for the MoE model with LNN experts.
 Figure 7: AUROC curve for the proposed Multi-Rate-MoE model.
 13
 
 
-Figure 8: Precision-recall curve for the proposed Multi-Rate-MoE model.
+ Figure 8: Precision-recall curve for the proposed Multi-Rate-MoE model.
 Figure 9: AUROC curve for the proposed Multi-Rate-MoE model with attention mechanisms.
 14
 
 
-Figure 10: Precision-recall curve for the proposed Multi-Rate-MoE model with attention mechanisms.
+ Figure 10: Precision-recall curve for the proposed Multi-Rate-MoE model with attention mechanisms.
 Figure 11: AUROC curve comparison of LSTM, Monolithic LNN, MoE, Multi-Rate-MOE, and Multi-Rate-MOE with Attention. The proposed Multi-Rate-MOE with Attention achieves the highest AUROC performance.
 15
 
 
-Figure 12: Precision–Recall curve comparison of different models. The proposed Multi-Rate-MOE variants outperform baseline models in terms of AUPRC.
+ Figure 12: Precision–Recall curve comparison of different models. The proposed Multi-Rate-MOE variants outperform baseline models in terms of AUPRC.
 Figure 13: Memory comparison of different architectures. Multi-Rate-MOE achieves lower memory usage than LSTM, while attention mechanisms introduce moderate additional memory cost.
 16
 
 
-Figure 14: AUROC under different input noise levels. The proposed Multi-Rate-MoE with Attention model demonstrates stronger robustness and slower performance degradation compared to LSTM and monolithic LNN baselines as noise increases.
+ Figure 14: AUROC under different input noise levels. The proposed Multi-Rate-MoE with Attention model demonstrates stronger robustness and slower performance degradation compared to LSTM and monolithic LNN baselines as noise increases.
 17
 
 
-References
+ References
 Zhengping Che, Sanjay Purushotham, Kyunghyun Cho, David Sontag, and Yan Liu. Recurrent neural networks for multivariate time series with missing values.Scientific Reports, 8(1):6085, 2018.
 Michael Moor, Nicolas Bennett, Drago Plecˇko, Max Horn, Bastian Rieck, Nicolai Meinshausen, Peter Bühlmann, and Karsten M. Borgwardt. Predicting sepsis using deep learning across international sites: A retrospective development and validation study.eClinicalMedicine, 62:102124, 2023.
 Shilong Zong, Alex Bierly, Almuatazbellah Boker, and Hoda Eldardiry. Accuracy, memory efficiency and generalization: A comparative study on liquid neural networks and recurrent neural networks. arXiv preprint arXiv:2510.07578, 2025.
@@ -256,7 +256,7 @@ Yes. The claims made in the abstract and introduction are consistent with the ex
 18
 
 
-2.Limitations
+ 2.Limitations
 Yes. The limitations of the proposed method, including computational overhead of continuous-time dynamics and sensitivity to hyperparameters, are discussed in the paper. The proposed method introduces additional computational overhead due to continuous-time modeling and attention mechanisms. Performance may also depend on hyperparameter selection and dataset characteristics.
 3.Theory, Assumptions and Proofs
 Yes. All model assumptions are clearly described in Section 2, and full mathematical formulations are provided in the supplementary material.

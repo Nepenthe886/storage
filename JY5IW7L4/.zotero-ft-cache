@@ -13,7 +13,7 @@ Despite the growing number of TTT variants, the design space of TTT remains poor
 arXiv:2608.07110v1 [cs.LG] 7 Aug 2026
 
 
-Figure 1 (a)Linear, MLP, and gated learners viewed as composable TTT memory forms.(b)Training throughput vs. official TTT at 160M scale.(c)Ablations over key design choices: small lr init, decay, and SiLU each reduce validation loss.
+ Figure 1 (a)Linear, MLP, and gated learners viewed as composable TTT memory forms.(b)Training throughput vs. official TTT at 160M scale.(c)Ablations over key design choices: small lr init, decay, and SiLU each reduce validation loss.
 difficult to determine which design choices are responsible for the observed behavior. As a result, while many TTT variants have been proposed [8, 44, 47, 54], their common structure and the contribution of each module remain unclear.
 In this work, we present Modular TTT, a framework that represents the inner learner as a directed acyclic graph and factorizes TTT into explicit, controllable design dimensions. In Modular TTT, the fast-weight network, loss function, learning rate, weight decay, and normalization are treated as modular components that can be specified and varied independently. Given a learner DAG built from registered primitives, Modular TTT automatically composes their train-view forward, train-view backward, and causal query-view rules into the full graph-level TTT computation, including the fast-weight state transition. Automatic differentiation provides the local backward signals of the train-view loss; the causal query readout and fast-weight state transition are defined by the registered primitive rules. This removes the need to hand-derive a new global update rule for every TTT variant, and turns TTT design from a collection of custom implementations into a modular space that can be explored and analyzed systematically. Its optimized implementation also achieves multi-fold training-throughput improvements over the official implementations of the same TTT topologies. Figure1gives an overview of the modular formulation, speedup, and ablation results.
 Building on Modular TTT, we conduct systematic ablations over the key components of TTT and obtain a clearer empirical picture of its design space. We find that small learning-rate initialization, weight decay, and a single-layer nonlinearity provide consistent gains, while MSE and inner-product losses perform similarly. Deeper fast-weight networks and normalization tend to degrade performance, likely due to excessively large activations, and residual connections and gating yield little measurable benefit. Guided by these findings, we train the selected variant at 410M/1.45B scale for 100B tokens and observe loss and benchmark performance comparable to Gated DeltaNet (GDN) [52].
@@ -21,7 +21,7 @@ To summarize, our contributions are threefold. First, we introduce Modular TTT, 
 2
 
 
-Figure 2Modular TTT: graph-structured memory with a shared three-pass computation.Left:the Modular TTT layer within a standard pre-norm backbone.Right:one chunk processed by train-view forward, train-view backward, and query-view forward over the graph memory.
+ Figure 2Modular TTT: graph-structured memory with a shared three-pass computation.Left:the Modular TTT layer within a standard pre-norm backbone.Right:one chunk processed by train-view forward, train-view backward, and query-view forward over the graph memory.
 2Related Work
 Existing work on efficient sequence modeling can be broadly grouped into four families: recurrent models, linear attention, state space models, and test-time training. All of these approaches aim to preserve long-context modeling ability while reducing the computation and memory costs that grow with sequence length, although they differ substantially in their implementations.
 RNNRecurrent models compress historical context into a fixed-size hidden state, and enhance expressiveness through mechanisms such as gating and nonlinear transformations [11, 20]. The core idea is to accumulate contextual information through explicit state transition rules in a constant-size state, so that the cost of each inference step is decoupled from the history length. Recent work shows that removing nonlinearities from RNNs can improve efficiency while still achieving competitive performance [28,31,33,35].
@@ -31,7 +31,7 @@ Test-Time TrainingUnlike the approaches above, test-time training [ 26, 44] form
 3
 
 
-as an online learning process, in which the hidden state is no longer a fixed-form vector state, but the fast weights [3, 22, 23, 41, 42] of a learnable model, and the corresponding state update is given by one or more optimization steps on a self-supervised objective. With suitable choices of the online learning loss and other components, the TTT perspective can instantiate a variety of Linear Attention, Linear RNN, and SSM variants. Recent work from this perspective has introduced instances such as TTT-Linear and TTT-MLP [44], LaCT [54], and Titans [8], demonstrating the potential of internal learners for long-context modeling. Subsequent work has further explored neural memory optimization [5], broader connections between TTT, retention, and online optimization [6, 7], and extensions to vision [18]. However, naive TTT implementations typically rely on token-wise recurrent updates and therefore cannot fully exploit GPU parallelism. As in linear attention and SSMs, existing work often adopts chunkwise TTT implementations [27, 54] to achieve a better balance between computational efficiency and empirical performance.
+ as an online learning process, in which the hidden state is no longer a fixed-form vector state, but the fast weights [3, 22, 23, 41, 42] of a learnable model, and the corresponding state update is given by one or more optimization steps on a self-supervised objective. With suitable choices of the online learning loss and other components, the TTT perspective can instantiate a variety of Linear Attention, Linear RNN, and SSM variants. Recent work from this perspective has introduced instances such as TTT-Linear and TTT-MLP [44], LaCT [54], and Titans [8], demonstrating the potential of internal learners for long-context modeling. Subsequent work has further explored neural memory optimization [5], broader connections between TTT, retention, and online optimization [6, 7], and extensions to vision [18]. However, naive TTT implementations typically rely on token-wise recurrent updates and therefore cannot fully exploit GPU parallelism. As in linear attention and SSMs, existing work often adopts chunkwise TTT implementations [27, 54] to achieve a better balance between computational efficiency and empirical performance.
 3Method
 3.1Analyzing the Computation of TTT
 Previous TTT methods typically hard-code both the forward and backward computations. However, we observe that this process can be automated. Consider an m-layer TTT module with nonlinear activation functions f (i), where i∈ { 1, . . . , m} indexes layers inside the TTT inner learner. Given an inputK ∈R n×d, where n denotes the sequence length and d denotes the feature dimension, we first perform a forward pass, which we refer to as the train-view forward:
@@ -65,7 +65,7 @@ O=Q (m).
 4
 
 
-Algorithm 1Modular TTT
+ Algorithm 1Modular TTT
 Input: keyK, queryQ, targetV, topological order τ , output node o, loss function L, train-view operators {φtrain
 j }j∈V ,
 train-view backward operators{φ train−bwd
@@ -124,7 +124,7 @@ which produces the train-view output Vˆ , and we compute the inner learning los
 5
 
 
-updates, and backward signals to parent nodes. Denoting  ̄htrain
+ updates, and backward signals to parent nodes. Denoting  ̄htrain
 j = ∂l/∂htrain
 j , the backward computation at nodejcan be written as
 {h ̄ train
@@ -154,7 +154,7 @@ inner product are the only competitive losses in the current TTT setting, while 
 6
 
 
-Table 1Primitive operators and loss functions used in Modular TTT. Here, η denotes the learning rate andMdenotes the decay matrix. For theGateoperator, sum(·)and cumsum(·)are taken along the sequence dimension. Here, s denotes a normalization constant. When s = n, we average the loss over samples; otherwise, we use the unnormalized loss.
+ Table 1Primitive operators and loss functions used in Modular TTT. Here, η denotes the learning rate andMdenotes the decay matrix. For theGateoperator, sum(·)and cumsum(·)are taken along the sequence dimension. Here, s denotes a normalization constant. When s = n, we average the loss over samples; otherwise, we use the unnormalized loss.
 Weight Operators
 Primitiveφ train φtrain-bwd φquery
 Linear Vˆ =KW dK=d Vˆ W⊤
@@ -210,7 +210,7 @@ none 3.2407 3.2028 2.9572 2.9273 scalar 3.0538 3.0383 2.80542.7938
 7
 
 
-Table 4Experimental results for TTT decay ablation. All methods use small-lr init and both MSE and inner-product losses are reported. Scalar decay provides the best efficiency–performance trade-off, while vector decay achieves the lowest loss at lower throughput and higher memory cost. Lower loss is better; higher Tgs is better. Tgs denotes training tokens per accelerator per second, and Mem is measured in GB.
+ Table 4Experimental results for TTT decay ablation. All methods use small-lr init and both MSE and inner-product losses are reported. Scalar decay provides the best efficiency–performance trade-off, while vector decay achieves the lowest loss at lower throughput and higher memory cost. Lower loss is better; higher Tgs is better. Tgs denotes training tokens per accelerator per second, and Mem is measured in GB.
 Decay
 MSE Inner-product
 160M 410M 160M 410M
@@ -232,7 +232,7 @@ Role of Non-linearityTo study the role of nonlinearity, we append non-fast-weigh
 8
 
 
-Table 5Experimental results for nonlinear operators. All methods use small-lr init and scalar decay, without mean scaling. GELU and SiLU consistently improve performance and provide the best trade-off between throughput and final loss.
+ Table 5Experimental results for nonlinear operators. All methods use small-lr init and scalar decay, without mean scaling. GELU and SiLU consistently improve performance and provide the best trade-off between throughput and final loss.
 Method
 MSE Inner-product
 160M 410M 160M 410M
@@ -260,7 +260,7 @@ Deeper graph learners do not surpass the shallow frontier, and shallow linear va
 9
 
 
-Why Is Deep TTT Memory more difficult to optimize?
+ Why Is Deep TTT Memory more difficult to optimize?
 Table6gives a consistent negative result: increasing the depth of the fast-weight memory does not improve over the shallow frontier. We argue that this is not merely an optimization accident, but a structural consequence of how one-step TTT updates interact with factorized fast weights. Consider a TTT memory of the form
 Y=f(X) =XW (1)W(2).(11)
 We compare two parameterizations. First, treat the productW (1)W(2) ≜Was a single fast weight. In this case, the update is given by∆ =X ⊤dYandW=W−∆. Now consider the two-factor memory. Define
@@ -287,7 +287,7 @@ Primitive-level backward computation.To isolate the cost of executing local back
 10
 
 
-Table 7Microbenchmark of primitive-level backward computation. We report mean latency and maximum memory over 100 measured iterations after 20 warm-up iterations. Speedup is the autodiff-reference latency divided by the analytic-operator latency. Lower latency and memory are better.
+ Table 7Microbenchmark of primitive-level backward computation. We report mean latency and maximum memory over 100 measured iterations after 20 warm-up iterations. Speedup is the autodiff-reference latency divided by the analytic-operator latency. Lower latency and memory are better.
 Primitive Implementation Latency (ms) Max mem. (MB) Speedup
 Linear Analytic0.312720.41.65× Linear Autodiff ref. 0.5161 19.6 – Norm Analytic0.3146 19.32.62× Norm Autodiff ref. 0.8229 31.3 –
 Table 8Throughput validation in two representative 160M norm-containing settings on GPU. TTT-Linear and TTT-MLP follow the nomenclature of Sun et al. [44]. Modular TTT achieves about2 .2×–3.3× the training throughput of the official TTT implementation.
@@ -303,7 +303,7 @@ RULER.Detailed RULER [ 21] evaluations are reported in AppendixD.7, with family-
 11
 
 
-Table 9Large-scale downstream evaluation at 410M and 1.45B. Arrows indicate the direction of improvement. External baselines: LLaMA [48], GDN [52], and LaCT [54] where available.
+ Table 9Large-scale downstream evaluation at 410M and 1.45B. Arrows indicate the direction of improvement. External baselines: LLaMA [48], GDN [52], and LaCT [54] where available.
 Method Params Perplexity Multiple-choice Containment
 loss↓
 Wiki. ppl↓
@@ -339,7 +339,7 @@ We presented Modular TTT, a framework that factorizes the TTT inner learner into
 12
 
 
-References
+ References
 [1] Sanjeev Arora, Nadav Cohen, and Elad Hazan. On the optimization of deep networks: Implicit acceleration by overparameterization. In Proceedings of the 35th International Conference on Machine Learning, volume 80 of Proceedings of Machine Learning Research, pages 244–253, 2018.
 [2] Sanjeev Arora, Nadav Cohen, Wei Hu, and Yuping Luo. Implicit regularization in deep matrix factorization. In Advances in Neural Information Processing Systems, volume 32, pages 7411–7422, 2019.
 [3] Jimmy Ba, Geoffrey E. Hinton, Volodymyr Mnih, Joel Z. Leibo, and Catalin Ionescu. Using fast weights to attend to the recent past. In Advances in Neural Information Processing Systems, volume 29, 2016.
@@ -361,7 +361,7 @@ We presented Modular TTT, a framework that factorizes the TTT inner learner into
 13
 
 
-[19] Qiang Hao, Rui Cai, Yanwei Pang, and Lei Zhang. From one tree to a forest: A unified solution for structured web data extraction. In Proceedings of the 34th International ACM SIGIR Conference on Research and Development in Information Retrieval, pages 775–784, 2011.
+ [19] Qiang Hao, Rui Cai, Yanwei Pang, and Lei Zhang. From one tree to a forest: A unified solution for structured web data extraction. In Proceedings of the 34th International ACM SIGIR Conference on Research and Development in Information Retrieval, pages 775–784, 2011.
 [20] Sepp Hochreiter and Jürgen Schmidhuber. Long short-term memory. Neural Computation, 9(8):1735–1780, 1997.
 [21] Cheng-Ping Hsieh, Simeng Sun, Samuel Kriman, Shantanu Acharya, Dima Rekesh, Fei Jia, and Boris Ginsburg. RULER: What’s the real context size of your long-context language models? In First Conference on Language Modeling, 2024. URLhttps://openreview.net/forum?id=kIoBbc76Sy.
 [22] Kazuki Irie, Imanol Schlag, Róbert Csordás, and Jürgen Schmidhuber. Going beyond linear transformers with recurrent fast weight programmers. In Advances in Neural Information Processing Systems, volume 34, 2021.
@@ -381,7 +381,7 @@ We presented Modular TTT, a framework that factorizes the TTT inner learner into
 14
 
 
-[36] Zhen Qin, Dong Li, Weigao Sun, Weixuan Sun, Xuyang Shen, Xiaodong Han, Yunshen Wei, Baohong Lv, Xiao Luo, Yu Qiao, and Yiran Zhong. Transnormerllm: A faster and better large language model with improved transnormer, 2024.
+ [36] Zhen Qin, Dong Li, Weigao Sun, Weixuan Sun, Xuyang Shen, Xiaodong Han, Yunshen Wei, Baohong Lv, Xiao Luo, Yu Qiao, and Yiran Zhong. Transnormerllm: A faster and better large language model with improved transnormer, 2024.
 [37] Zhen Qin, Songlin Yang, Weixuan Sun, Xuyang Shen, Dong Li, Weigao Sun, and Yiran Zhong. HGRN2: Gated linear RNNs with state expansion. In First Conference on Language Modeling, 2024.
 [38] Pranav Rajpurkar, Jian Zhang, Konstantin Lopyrev, and Percy Liang. SQuAD: 100,000+ questions for machine comprehension of text. In Proceedings of the 2016 Conference on Empirical Methods in Natural Language Processing, pages 2383–2392, 2016.
 [39] Keisuke Sakaguchi, Ronan Le Bras, Chandra Bhagavatula, and Yejin Choi. WinoGrande: An adversarial winograd schema challenge at scale. In Proceedings of the AAAI Conference on Artificial Intelligence, 2020.
@@ -402,12 +402,12 @@ We presented Modular TTT, a framework that factorizes the TTT inner learner into
 15
 
 
-[54] Tianyuan Zhang, Sai Bi, Yicong Hong, Kai Zhang, Fujun Luan, Songlin Yang, Kalyan Sunkavalli, William T. Freeman, and Hao Tan. Test-time training done right. arXiv preprint arXiv:2505.23884, 2025.
+ [54] Tianyuan Zhang, Sai Bi, Yicong Hong, Kai Zhang, Fujun Luan, Songlin Yang, Kalyan Sunkavalli, William T. Freeman, and Hao Tan. Test-time training done right. arXiv preprint arXiv:2505.23884, 2025.
 [55] Yu Zhang and Songlin Yang. Flame: Flash language modeling made easy, January 2025. URL https://github. com/fla-org/flame.
 16
 
 
-Appendix
+ Appendix
 Appendix Contents
 Appendix AMethod details. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 17 Appendix BExperimental setup. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20 Appendix CAnalysis of Modular TTT Updates. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21 Appendix DAdditional ablation results. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 26 Appendix ELimitations. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 34
 AMethod details
@@ -435,7 +435,7 @@ Figure 3Two representative graph memories. Gray nodes contain fast weights, whil
 17
 
 
-A.3Gradient and update rules
+ A.3Gradient and update rules
 Table1lists the train-view, train-view backward, and query-view rules for all primitives. This subsection records the implementation-specific details behind the train-view backward pass of Algorithm1: the loss gradient at the output node and the gradients used to propagate it through the graph.
 Output gradient rules.All loss forms use the normalization constant s from Table1. Within one chunk, the sample count in the table isn=c, so
 s=
@@ -481,7 +481,7 @@ These local rules are the analytic backward operators used in the train-view bac
 18
 
 
-A.4Chunkwise query update
+ A.4Chunkwise query update
 The Linear query-view rule in Table1is the chunkwise dual form of the token-wise recurrence. For a single fast linear primitive without decay,
 Wt =W t−1 − ˆk⊤
 t dvˆt,o t =q tWt.(A.11)
@@ -530,7 +530,7 @@ Finally, fast linear nodes use either zero initialization (flash) or the Gaussia
 19
 
 
-BExperimental setup
+ BExperimental setup
 B.1Model architecture
 All models use a pre-normalization residual backbone. Each block applies RMSNorm, then the token mixer, then a residual connection, followed by RMSNorm and a bias-free GLU channel mixer with SiLU activation, following the LLaMA design [48]. The channel mixer has gate, up, and down projections. For Modular TTT, the token mixer uses graph memory with query, key, value, and output projections; the large-scale Modular TTT variants use an L2-normalized key side and leave the query side unnormalized.
 Table 11Architecture and Modular TTT hyperparameters. The scale names follow the paper notation. dmodel is the hidden dimension, L the number of layers, H the number of heads, dhead the per-head query/key/value dimension, andd ffn the GLU inner width.
@@ -546,7 +546,7 @@ We use the standard training split of this corpus. Documents are tokenized onlin
 20
 
 
-Table 12Common training hyperparameters.
+ Table 12Common training hyperparameters.
 Hyperparameter Value
 Optimizer AdamW Learning rate3×10 −4 AdamW betas(0.9,0.95) AdamWε10 −8 LR schedule warmup-stable-decay Warmup 1000 steps Minimum LR ratio 0.1 Precision BF16 Gradient clipping 1.0 Seed 42
 We use FSDP data-parallel sharding over the devices listed in Table13.
@@ -565,7 +565,7 @@ The section stays with the operating point used in the main text; it does not in
 21
 
 
-Table 14Downstream evaluation tasks. The table lists the exact lm-eval-harness task names and metrics used in Table9. Metrics marked acc_norm use length-normalized multiple-choice scoring; metrics marked acc use unnormalized accuracy. Group averages are arithmetic means over the listed metrics within each group.
+ Table 14Downstream evaluation tasks. The table lists the exact lm-eval-harness task names and metrics used in Table9. Metrics marked acc_norm use length-normalized multiple-choice scoring; metrics marked acc use unnormalized accuracy. Group averages are arithmetic means over the listed metrics within each group.
 Group Reported aslm-eval-harnesstask Metric
 Perplexity Wiki.wikitext word_perplexity Perplexity LMB.lambada_openai perplexity
 Multiple-choice BoolQboolq acc Multiple-choice PIQApiqa acc Multiple-choice Hella.hellaswag acc_norm Multiple-choice Wino.winogrande acc Multiple-choice ARC-earc_easy acc Multiple-choice ARC-carc_challenge acc_norm Multiple-choice OBQAopenbookqa acc_norm Multiple-choice SIQAsocial_iqa acc
@@ -601,7 +601,7 @@ Without any offset (b = 0), the initial prediction gives ηt ≈ 1.0. This coeff
 22
 
 
-mean scaling. By Proposition1, updates without mean scaling and with η∼ 1have O(c)initial chunk scale. This agrees with the main-text observation that standard init can be unstable and is empirically worse than small-lr init.
+ mean scaling. By Proposition1, updates without mean scaling and with η∼ 1have O(c)initial chunk scale. This agrees with the main-text observation that standard init can be unstable and is empirically worse than small-lr init.
 Proposition 2(Small learning rates control the MSE update spectrum).Consider the MSE update without mean scaling used in the main-text stability discussion:
 W + =W−K ⊤diag(η)(KW−V) =AW+K ⊤diag(η)V,(A.23)
 where
@@ -633,7 +633,7 @@ b= log p
 23
 
 
-so that2σ(b) =η 0. Withη 0 = 10−3, this givesp= 5×10 −4 andb≈ −7.60.
+ so that2σ(b) =η 0. Withη 0 = 10−3, this givesp= 5×10 −4 andb≈ −7.60.
 Small-lr init has two effects. First, it gives an O(1)effective per-chunk update at initialization for the same reason as mean scaling. Both reduce the initial write scale by a factor proportional to1 /c. With ηinit = 10−3 andc= 256, the scale factor isc·10 −3 = 0.256.
 Second, small η0 does not lock the learning rate to this value. The learned projection can adjust ηt during outer-loop training. In contrast, mean scaling is a fixed division by c. This distinction matches the maintext choice of small-lr init without mean scaling, while AppendixD.1reports runs with mean scaling as a complementary regime.
 C.3Loss analysis
@@ -663,7 +663,7 @@ We use this factor-coupling view throughout the subsection. In this reduced appe
 24
 
 
-depth can prevent any inner update from being written. This is not the mechanism behind the Gaussianinitialized main experiments, but it illustrates that depth changes the update geometry in ways absent from a single fast weight.
+ depth can prevent any inner update from being written. This is not the mechanism behind the Gaussianinitialized main experiments, but it illustrates that depth changes the update geometry in ways absent from a single fast weight.
 These product-form effects are closely related to classical analyses of deep linear networks and deep matrix factorization [1,2,4,25].
 C.4.1Core update identity
 LetK ∈R c×d be the chunk key matrix,V ∈R c×e be the target, and letDdenote the effective chunknormalized signal used by the TTT update. For a depth-L product-form linear learner, the train-view output is Vˆ =KW 1W2 · · ·W L.(A.35)
@@ -696,7 +696,7 @@ If L≥ 2and all factors are zero, then for every j eitherA j−1 contains a zer
 25
 
 
-Step 2: Show persistence of the zero state.Since every factor update is zero, the fast state remains at zero after the chunk update. The same argument therefore applies again at the next chunk unless another mechanism perturbs the fast weights. Step 3: Compare with the single-layer case.For a single linear fast learner, there is no second zero factor on the update path. AtW= 0, the update is
+ Step 2: Show persistence of the zero state.Since every factor update is zero, the fast state remains at zero after the chunk update. The same argument therefore applies again at the next chunk unless another mechanism perturbs the fast weights. Step 3: Compare with the single-layer case.For a single linear fast learner, there is no second zero factor on the update path. AtW= 0, the update is
 ∆W=K ⊤D.(A.41)
 This is nonzero for generic nonzeroKandD. Thus zero initialization does not trap a single linear factor, but traps a product-form learner with at least two zero factors.
 This boundary case gives one mechanism behind the main-text deep-memory ablation. Once the fast learner is parameterized as a product of multiple trainable maps, the one-step TTT update is no longer governed by the single-layer geometry. Even when Gaussian initialization avoids the zero-gradient trap used in this proposition, the update remains factor-coupled, which is the mechanism emphasized in the main text.
@@ -718,7 +718,7 @@ Robustness.We compare MSE with inner-product loss for the Linear learner and com
 26
 
 
-Table 16Single-layer operator ablation at 2048 context. The columns without mean scaling match the main nonlinearoperator sweep, while the mean-scaling columns give standard-init controls. All rows use scalar decay; Norm denotes RMSNorm. Lower is better.
+ Table 16Single-layer operator ablation at 2048 context. The columns without mean scaling match the main nonlinearoperator sweep, while the mean-scaling columns give standard-init controls. All rows use scalar decay; Norm denotes RMSNorm. Lower is better.
 Size Method
 MSE Inner-product
 Mean scaling No mean scaling Mean scaling No mean scaling standard small-lr init standard small-lr init
@@ -740,7 +740,7 @@ SiLU followed by normalization.Table19tests whether Norm composes with the SiLU 
 27
 
 
-Table 19 Linear + SiLU + Norm at 2048 context. Rows use ε = 10−2, scalar decay, and small-lr init, without mean scaling. Lower is better.
+ Table 19 Linear + SiLU + Norm at 2048 context. Rows use ε = 10−2, scalar decay, and small-lr init, without mean scaling. Lower is better.
 160M 410M
 MSE 3.1543× Inner× ×
 simple: one linear fast map followed by a pointwise activation.
@@ -763,7 +763,7 @@ Product-form linear Linear-Linear 3.1265 +0.1060 Activation-only Linear-SiLU-Lin
 28
 
 
-Best completed rows.Table21gives the main result. Some deeper memories can be made trainable, but none improves over the shallow Linear-SiLU reference. The best deeper row is Linear-SiLU-Linear-Norm atε= 0.5, and it is still worse by 0.0939 validation loss.
+ Best completed rows.Table21gives the main result. Some deeper memories can be made trainable, but none improves over the shallow Linear-SiLU reference. The best deeper row is Linear-SiLU-Linear-Norm atε= 0.5, and it is still worse by 0.0939 validation loss.
 Table 22Two-layer linear and activation-only memories at 160M. Rows use MSE loss, scalar decay, small-lr init, and Gaussian fast-weight initialization. The grid varies SiLU placement and mean scaling. Lower is better.
 Topology Mean scaling No mean scaling
 Linear-Linear 3.1888 3.1265 Linear-Linear-SiLU 3.1876 3.1223 Linear-SiLU-Linear 3.1845 3.1240 Linear-SiLU-Linear-SiLU 3.17673.1156
@@ -779,7 +779,7 @@ Chunk-size robustness.We sweep c∈ { 128, 256, 512} at 160M and 410M, keeping a
 29
 
 
-Table 25Chunk-size robustness at 160M and 410M. Within each learner graph, all training parameters are fixed and only the chunk sizecchanges. Entries are final validation losses at step 20,000; lower is better.
+ Table 25Chunk-size robustness at 160M and 410M. Within each learner graph, all training parameters are fixed and only the chunk sizecchanges. Entries are final validation losses at step 20,000; lower is better.
 Learner graph 160M 410M c= 128c= 256c= 512c= 128c= 256c= 512
 Linear-GELU 3.0224 3.0232 3.0247 2.78342.7844 2.7838 Linear-SiLU3.0210 3.0205 3.0217 2.78332.7849 2.7845
 Linear-Norm 3.0375 3.0300 3.0285 2.7961 2.8192 2.8066 Linear-SiLU-Linear-Norm 3.1373 3.1144 3.1132 2.9295 2.9258 2.9128
@@ -802,7 +802,7 @@ Residual and gated checks.According to Table6, unlike the chain-structured rows 
 30
 
 
-Table 27Fast-weight initialization ablation at 160M with MSE loss. Zero init sets all fast weights to zero; Gaussian init follows the official TTT initialization. Lower is better.
+ Table 27Fast-weight initialization ablation at 160M with MSE loss. Zero init sets all fast weights to zero; Gaussian init follows the official TTT initialization. Lower is better.
 Topology Zero init Gaussian init
 No mean scaling
 Single Linear 3.0343 3.0380 Linear-SiLU 3.02473.0205 Linear-Linear×3.1265 Linear-SiLU-Linear-SiLU×3.1156 SwiGLU + Norm× ×
@@ -821,7 +821,7 @@ This differs from Modular TTT. In our implementation, a graph is built from prim
 31
 
 
-The relatively high losses in Table28are consistent with this recipe mismatch. The official path uses a fixed reconstruction-style TTT objective with residual targetV − K, a learned learning-rate gate scaled by the head dimension, no scalar/vector decay in these reproduction configs, and topology-specific normalization/update code. In the main controlled ablations, each of these dimensions matters: no decay is substantially worse than scalar decay, normalization is mixed, and deeper product-form learners are fragile. Thus the official rows combine several weaker choices under our training setup, rather than isolating a single disadvantage. The gap should therefore be read as evidence that a modular implementation can match or improve quality while exposing the relevant design knobs, not as a claim that the official code is a controlled lower bound for every TTT recipe.
+ The relatively high losses in Table28are consistent with this recipe mismatch. The official path uses a fixed reconstruction-style TTT objective with residual targetV − K, a learned learning-rate gate scaled by the head dimension, no scalar/vector decay in these reproduction configs, and topology-specific normalization/update code. In the main controlled ablations, each of these dimensions matters: no decay is substantially worse than scalar decay, normalization is mixed, and deeper product-form learners are fragile. Thus the official rows combine several weaker choices under our training setup, rather than isolating a single disadvantage. The gap should therefore be read as evidence that a modular implementation can match or improve quality while exposing the relevant design knobs, not as a claim that the official code is a controlled lower bound for every TTT recipe.
 D.5.2Inference efficiency
 We evaluated inference efficiency using the 160M and 410M model configurations. The model architectures and training configurations match the corresponding main experiments, and all models follow the same inference measurement protocol. Table29reports prefill throughput, decode throughput, and peak allocated device memory.
 During autoregressive decoding, Modular TTT updates the fast-weight state only at chunk boundaries. Tokens in the current incomplete chunk still use all updates accumulated up to the current position, so the associated computation grows within the chunk and introduces additional decode overhead relative to GDN’s token-wise recurrent update. We leave optimization of this decode path to future work.
@@ -839,7 +839,7 @@ LaCT SwiGLU, official tokenizer, no TTT 2.7769 2.4012 LaCT SwiGLU, official toke
 32
 
 
-Figure 4Per-token loss along an 8k sequence for representative 410M shallow Modular TTT variants. The dashed line marks the 4k training context used in the large-scale setting. Lower is better.
+ Figure 4Per-token loss along an 8k sequence for representative 410M shallow Modular TTT variants. The dashed line marks the 4k training context used in the large-scale setting. Lower is better.
 We also repeated the comparison in the LaCT setting [54], using sliding-window size 512 together with chunk size 512. The LaCT implementation first computes sliding-window softmax attention and then optionally adds a TTT branch. When the branch is enabled, the code reuses or separately projects Q/K/V for the fast learner, applies SiLU and L2 normalization to the fast views, predicts per-branch learning rates, and dispatches to either a linear or SwiGLU update path. The SwiGLU path uses three fast weights and the form
 f(x) =W 1 SiLU(W0x)⊙W 2x ,
 with optional momentum, Muon-style update normalization, fast-weight norm control, and fused Triton kernels. Thus LaCT changes the fast learner, local attention path, schedule, optimizer details, and normalization together.
@@ -851,7 +851,7 @@ We evaluate explicit retrieval with the needle-in-a-haystack (NIAH) tasks from R
 33
 
 
-Table 31Family-level niah_single RULER results at 410M and 1.45B. Entries are accuracies in percent. Higher is better.
+ Table 31Family-level niah_single RULER results at 410M and 1.45B. Entries are accuracies in percent. Higher is better.
 Scale Model 1k 2k 4k 8k
 410M
 LLaMA 97.93 93.33 80.47 51.87 GDN 87.73 53.27 38.40 15.33 LaCT 84.67 64.20 33.80 7.13 M (MSE) 76.27 62.27 26.40 8.00 M-SiLU (MSE) 74.33 50.67 25.27 13.60 M (Inner) 81.67 55.73 28.93 14.07 M-SiLU (Inner) 61.27 42.33 15.60 8.47
@@ -864,7 +864,7 @@ Limitations.Our study is limited to autoregressive language modeling under the t
 34
 
 
-Table 32Family-level RULER results for the three multi-NIAH families at 410M and 1.45B. Entries are accuracies in percent. Higher is better.
+ Table 32Family-level RULER results for the three multi-NIAH families at 410M and 1.45B. Entries are accuracies in percent. Higher is better.
 Scale Family Model 1k 2k 4k 8k
 410M
 niah_multikey

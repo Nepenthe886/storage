@@ -10,7 +10,7 @@ Il. RELATED WORK
 Self-Supervised TTA. Test-time adaptation using selfsupervision was popularized by Tent [1], which adapts batch normalization parameters by minimizing prediction entropy. TENT is simple and effective but can be unstable. Subsequent work has focused on improving robustness. CoTTA [2] mitigates forgetting by using a stochastic weight average and resetting the model to a teacher model when errors accumulate. EATA [7] introduces an elastic consolidation regularizer that penalizes changes to parameters deemed important for the source task, alongside a sample-rejection mechanism based on entropy. Our method, LATTA, also aims for stability, but
 
 
-achieves it through a novel combination of stochastic weight exploration and a continuous EMA anchor, rather than resets or parameter-specific penalties. Bayesian TTA. A natural way to handle uncertainty at testtime is through a Bayesian lens. B-TTA [3] proposes adding variational heads to the network and performing Monte-Carlo sampling at inference time. While principled, this approach adds significant architectural complexity and computational cost. LATTA offers a lightweight alternative, achieving the regularizing effect of a Bayesian posterior sample via a single SGLD step without any new modules. Langevin Dynamics in Deep Learning. Stochastic Gradient Langevin Dynamics (SGLD) [4] is a seminal algorithm for sampling from a posterior distribution. It has been used primarily for Bayesian training of neural networks. More recently, “Langevin Smoothing” [6] applied SGLD during the training phase as a defense against adversarial attacks, using the noise to smooth the loss landscape. Our work is fundamentally different: we apply SGLD-style updates at test time for adaptation to natural distribution shifts, not at training time for adversarial robustness. Our goal is to perform on-the-fly correction, a distinct problem setting from learning an adversarially robust model from scratch.
+ achieves it through a novel combination of stochastic weight exploration and a continuous EMA anchor, rather than resets or parameter-specific penalties. Bayesian TTA. A natural way to handle uncertainty at testtime is through a Bayesian lens. B-TTA [3] proposes adding variational heads to the network and performing Monte-Carlo sampling at inference time. While principled, this approach adds significant architectural complexity and computational cost. LATTA offers a lightweight alternative, achieving the regularizing effect of a Bayesian posterior sample via a single SGLD step without any new modules. Langevin Dynamics in Deep Learning. Stochastic Gradient Langevin Dynamics (SGLD) [4] is a seminal algorithm for sampling from a posterior distribution. It has been used primarily for Bayesian training of neural networks. More recently, “Langevin Smoothing” [6] applied SGLD during the training phase as a defense against adversarial attacks, using the noise to smooth the loss landscape. Our work is fundamentally different: we apply SGLD-style updates at test time for adaptation to natural distribution shifts, not at training time for adversarial robustness. Our goal is to perform on-the-fly correction, a distinct problem setting from learning an adversarially robust model from scratch.
 II. METHOD: LANGEVIN-ANCHORED TTA
 Our method, LATTA, transforms the standard, deterministic test-time update into a regularized process that balances adaptation to the target domain with preservation of robust source knowledge. It operates on a pre-trained model with initial parameters 49 and an incoming stream of unlabeled data batches {x1,22,..., 27}.
 A. Revisiting the TTA Update
@@ -41,7 +41,7 @@ IV. EXPERIMENTAL SETUP
 We evaluate our method under the standard ’online” or *streaming” TTA protocol: the model processes each batch of test data once, updates its weights, and then discards the batch. Datasets. We use two standard benchmarks for distribution shift.
 
 
-TABLE I: Top-1 test accuracy (%) on Rotated-MNIST and CIFAR-10-C (severity 5). LATTA significantly outperforms prior methods on the challenging CIFAR-10-C benchmark. Results are averaged over 3 seeds.
+ TABLE I: Top-1 test accuracy (%) on Rotated-MNIST and CIFAR-10-C (severity 5). LATTA significantly outperforms prior methods on the challenging CIFAR-10-C benchmark. Results are averaged over 3 seeds.
 Rotated-MNIST = CIFAR-10-C (Avg.) Method Accuracy (%) Accuracy (%)
 Source 89.41(21) 38.65(33)
 Tent [1] 92.15(45) 51.22(78) CoTTA [2] 93.08(31) 55.43(51) EATA [7] 93.55 (28) 56.10(44)
@@ -75,7 +75,7 @@ VI. ABLATION STUDIES
 To dissect the contributions of our proposed components, we conducted a series of ablation studies on the CIFAR-10-C
 
 
-Robustness to Varying Batch Size
+ Robustness to Varying Batch Size
 -—e Tent “| —a= LATTA (ours)
 a
 °2o
@@ -121,6 +121,6 @@ REFERENCES
 [1] D. Wang, E. Zhou, et al., “Tent: Fully Test-Time Adaptation by Entropy Minimization,” in Proc. Int. Conf. Learn. Represent. (ICLR), 2021. [2] L. Cotta et al., “Continual Test-Time Adaptation,” in Proc. IEEE/CVF Conf. Comput. Vis. Pattern Recognit. (CVPR), 2022. [3] A. Rath et al., “Bayesian Test-Time Adaptation via Variational Heads,” in Proc. Int. Conf. Mach. Learn. (ICML), 2023. [4] M. Welling and Y. W. Teh, “Bayesian Learning via Stochastic Gradient Langevin Dynamics,” in Proc. Int. Conf. Mach. Learn. (ICML), 2011. [5] S. Rengarajan et al., “Source-Aware Test-Time Adaptation,” in Proc. Conf. Neural Inf. Process. Syst. (NeurIPS), 2023. [6] L. Li et al., “Langevin Smoothing for Robust Neural Networks,” in Proc. Int. Conf. Learn. Represent. (ICLR), 2021. [7] M. Niu, et al., “Efficient Test-Time Model Adaptation without Forgetting,” in Proc. Int. Conf. Mach. Learn. (ICML), 2022. [8] D. Hendrycks and T. Dietterich, “Benchmarking Neural Network Robustness to Common Corruptions and Perturbations,” in Proc. Int. Conf: Learn. Represent. (ICLR), 2019.
 
 
-[9] P. Foret, et al., “Sharpness-Aware Minimization for Efficiently Improving Generalization,” in Proc. Int. Conf. Learn. Represent. (ICLR), 2021.
+ [9] P. Foret, et al., “Sharpness-Aware Minimization for Efficiently Improving Generalization,” in Proc. Int. Conf. Learn. Represent. (ICLR), 2021.
 VIII. APPENDIX
 Network architecture: For Rotated-MNIST, the CNN comprises two 3x3 convolutional layers (32 and 64 channels) with ReLU and max-pooling, followed by two fully-connected layers (128 units; 10-way output). For CIFAR-10-C, we use a standard ResNet-18 architecture pre-trained on the clean CIFAR-10 training set. Hyperparameter Details: Source model training uses Adam with an initial learning rate of 10~°. For TTA methods, we follow their official settings. For LATTA on ResNet-18, the parameters were set to 7 = 1 x 10-4, X= 1x 10739, a = 0.9, and 8 = 0.99. We found performance to be robust to minor variations in these parameters. The batch size for all TTA experiments was 64.

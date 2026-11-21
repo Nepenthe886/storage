@@ -41,7 +41,7 @@ domains, researchers employ the methodology of Continual Learning (CL), also kno
 arXiv:2404.16789v3 [cs.LG] 25 Nov 2024
 
 
-2 Shi et al.
+ 2 Shi et al.
 learning [38, 178, 232, 237]. Inspired by the incremental learning pattern observed in human brains [101, 153, 154, 175],
 CL trains machine learning models sequentially on a series of tasks with the expectation of maintaining performance
 across all tasks [57, 58, 113, 124]. Throughout training, models have limited or no access to previous data, posing
@@ -84,7 +84,7 @@ the underexplored research area of continually developing LLMs, especially in th
 the needs for increased attention from the community, including the development of practical, accessible, and widely
 
 
-Continual Learning of Large Language Models: A Comprehensive Survey 3
+ Continual Learning of Large Language Models: A Comprehensive Survey 3
 acknowledged evaluation benchmarks. Additionally, methodologies need to be tailored to address forgetting in emerging
 LLM learning paradigms. We hope this survey can provide a systematic and novel perspective of continual learning in
 the rapidly-changing field of LLMs and can help the continual learning community contribute to the challenging goals
@@ -127,7 +127,7 @@ and outputs align with human values, ethics, and preferences [174, 187]. MA can 
 Reinforcement Learning-based (RL-based) and Supervised Learning-based (SL-based). RL-based approaches [174, 205]
 
 
-4 Shi et al.
+ 4 Shi et al.
 are trained to make decisions reinforced by human feedback, using a reward system to guide them towards desirable
 outcomes. In contrast, SL-based approaches [81, 97, 187] directly train models on datasets of human preferences, aligning
 their output with demonstrated human values.
@@ -169,7 +169,7 @@ expansion has resurged in popularity following the rise of parameter-efficient f
 we will delve into shortly [96,100,118,177,240,257,272,273].
 
 
-Continual Learning of Large Language Models: A Comprehensive Survey 5
+ Continual Learning of Large Language Models: A Comprehensive Survey 5
 2.2.3 Evaluation Metrics of Continual Learning. There are four evaluation protocols primarily designed for continual
 learning. Overall Performance (OP) [106, 286, 291] calculates the average performance up until the current training
 stage, measuring the overall ability of a model balancing the performance of each task. As noted in [213], OP corresponds
@@ -210,7 +210,7 @@ training to tailor the model for specific tasks using domain-specific data unava
 1 Source:https://www.omnicoreagency.com/twitter-statistics
 
 
-6 Shi et al.
+ 6 Shi et al.
 Horizontal Continuity
 Vertical Continuity
 M!
@@ -274,7 +274,7 @@ be accessible to some downstream entities. This scenario is even more challengin
 [296,304]
 
 
-Continual Learning of Large Language Models: A Comprehensive Survey 7
+ Continual Learning of Large Language Models: A Comprehensive Survey 7
 (a) Vertical Continual Learning of LLMs
 Domain A Domain B Domain C
 (b) Horizontal Continual Learning of LLMs
@@ -309,7 +309,7 @@ model, leading to inevitable forgetting of previously learned tasks. To address 
 established continual learning techniques with stronger constraints, such as continual model ensemble [191].
 
 
-8 Shi et al.
+ 8 Shi et al.
 • Abrupt Distributional Shift. In contrast to vertical continuity, where distributional shifts are often predictable,
 horizontal continual learning does not impose constraints on task properties. Evidence suggests that abrupt
 changes in task distributions can result in significant horizontal forgetting of the model [204].
@@ -350,7 +350,7 @@ only a few explicitly utilizing replay [35,183] and parameter regularization [5,
 of CPT. Except for the recent study [278] which conducts CPT over 159 domains, the longest sequence of
 
 
-Continual Learning of Large Language Models: A Comprehensive Survey 9
+ Continual Learning of Large Language Models: A Comprehensive Survey 9
 Table 1. Summary of existing studies on Continual Pre-training of LLMs. The papers are organized based on their relation to CL: (i) no CL techniques are studied, (ii) CL techniques are studied as solely baselines, and (iii) new CL approaches are proposed. In the table, Dist. Shift denotes what type(s) of distributional shifts this particular study considers and is dedicated to solve. In the section of Continual Learning Tech., we mainly categorize three types of continual learning techniques that are studied in the paper: rehearsal (Rehearsal), parameter regularization (Param. Reg.), and architecture expansion (Arch. Exp.). We use “✓”, “✗”, and “♣” to denote “deployed in the proposed method”, “not studied in the paper”, and “studied as a baseline method”, respectively. Note that we do not include naive sequential fine-tuning in this table, as it is universally studied as the important baseline method in all of the papers in the table. The papers with only “♣” [95, 96, 100] means that only existing CL techniques are studied, without proposing new ones, and the papers with only “✗” [63, 69] means that special aspects of fine-tuning are studied, without using CL techniques.
 Method
 Scenario Continual Learning Tech. LLM Arch.
@@ -419,7 +419,7 @@ Shift: LLMs sequentially learn different language corpora, e.g., English → Chi
 sequentially learn corpora from different fields, e.g., chemistry → biology [35, 44, 69, 71, 100, 183]. (iii) Temporal Shift:
 
 
-10 Shi et al.
+ 10 Shi et al.
 Distributional shifts occur over time, e.g., news in 2021 → news in 2022, with a major focus on timestamp-sensitive
 knowledge retention and update [5,52,95,96,100].
 Language Shift. [63] focuses on assessing LLMs’ natural ability to learn new languages sequentially. With no
@@ -463,7 +463,7 @@ Hence, as advocated by CKL [96] and TemporalWiki [95], LLMs undergoing continual
 must simultaneously achieve three objectives: (i) retention of old knowledge, (ii) acquisition of new knowledge, and
 
 
-Continual Learning of Large Language Models: A Comprehensive Survey 11
+ Continual Learning of Large Language Models: A Comprehensive Survey 11
 (iii) update of the outdated knowledge. They evaluate the same set of continual learning baseline methods [34, 79, 87, 239],
 each highlighting distinct aspects of their impact. CKL [96] observes that parameter expansion consistently exhibits
 robust performance across all experimental conditions. In contrast, replay-based methods struggle to efficiently adapt to
@@ -506,7 +506,7 @@ enhancement pre-training” [138], and “knowledge injection training” [258] 
 Pre-training (DAP)” [72] for clarity and consistency throughout this survey. In the pioneering work of domain-adaptive
 
 
-12 Shi et al.
+ 12 Shi et al.
 pre-training (DAPT) [72], the authors continuously pre-train the language models on a larger domain-specific dataset
 before fine-tuning them to the downstream tasks, resulting in universally improved performance aross various tasks. As
 the observation above has been validated on multiple domains in parallel, including BioMed, CS, News, and Reviews [72],
@@ -547,7 +547,7 @@ mitigate this issue, SaulLM incorporates general data from Wikipedia, StackExcha
 constituting about 2% of the final dataset [42]. Similarly, Lawyer Llama incorporates replaying general-domain data
 
 
-Continual Learning of Large Language Models: A Comprehensive Survey 13
+ Continual Learning of Large Language Models: A Comprehensive Survey 13
 during DAP, but the replay rate is not disclosed [91]. [222] also replays of non-latest business documents during DAP
 when building a Japanese business-specific LLM.
 Medical Domain. Efforts have been made to develop medical specialists by either training an LLM from scratch [66,
@@ -591,7 +591,7 @@ In [268], the authors aim to enhance the data efficiency of DAP. When the downst
 are known, based on the generalization bound [14, 61, 213], the authors propose to sample the subset of DAP data
 
 
-14 Shi et al.
+ 14 Shi et al.
 Table 2. Summary of the existing studies that leverage Domain-Adaptive Pre-training of LLMs, where the papers are organized in four main categories based on whether they (i) adopt the continual learning techniques and (ii) perform the evaluation for backward transfer (forgetting). In the column of Train Proc. (Training Process), we omit the phase of general Pre-Training. DAP represents Domain-Adaptive Pre-Training; SFT represents Supervised Fine-Tuning; IT represents Instruction Tuning. The prefix G- and D- represent General and Domain-Specific training process [91, 129], and the prefix U- represents them unified [33, 257]. The prefix MM- and LC- represents Multi-Modal and Long-Context training phases [146, 199, 301]. In the column of Continual Learning Eval., we consider two criteria: (i) Backward Transfer, i.e., performance degradation on the previous tasks, which is also known as catastrophic forgetting, (ii) Forward Transfer, i.e., the performance gained by DAP while transferring the LLMs to the downstream tasks. We use L and Perp. to denote Loss and Perplexity, FT to denote Fine-Tuning, ZS and FS to denote Zero-Shot and Few-Shot Accuracy, HE and LLM to denote the Human Evaluation and LLM Evaluation for generative tasks.
 Domain Method Train Proc. LLM Arch.
 Continual Learning Tech. Continual Learning Eval.
@@ -636,7 +636,7 @@ EWC♣ ✗ L | FT L | FT
 Medical HuatuoGPT-II [33] DAP + U-SFT Baichuan2 Replay ✗ ✗ ZS ZS | HE Financial XuanYuan 2.0 [289] DAP + SFT BLOOM Replay ✗ ✗ HE HE Scientific PLlama [274] DAP → IT GAL Replay ✗ ✗ L L | ZS E-Commerce EcomGPT-CT [148] DAP → SFT BLOOM Replay ✗ ✗ ZS | FS ZS | FS Legal Layer Llama [91] DAP → G-IT → D-IT Llama Replay ✗ ✗ ZS ZS Multi-Domain AdaptLLM [39] DAP Llama Replay ✗ ✗ ZS ZS | FT Language Swallow [60] DAP Llama2 Replay ✗ ✗ FS FS Financial [222] DAP Llama2 Replay ✗ ✗ Loss | ZS Loss | ZS | FS | RAG Medical Me-Llama [265] DAP → IT Llama2 Replay ✗ ✗ ZS | FS ZS | FS | FT Language Aurora-M [167] DAP → IT StarCoder Replay ✗ ✗ ZS ZS | FS | HE
 
 
-Continual Learning of Large Language Models: A Comprehensive Survey 15
+ Continual Learning of Large Language Models: A Comprehensive Survey 15
 whose distribution D is similar to the downstream task’s data, i.e., dHΔH (D, T ) is low. When the downstream data
 distribution is unknown, the authors suggest ensuring novelty and diversity in the sampled corpus for DAP. This
 approach significantly enhances DAP efficiency: it utilizes only 10% of the originally collected data yet outperforms
@@ -680,7 +680,7 @@ the other hand, programming languages adhere to strict grammars, unlike the fuzz
 language. Consequently, language models should ideally leverage these structures through tailored designs, and adopting
 
 
-16 Shi et al.
+ 16 Shi et al.
 the same training objectives as for natural languages may yield sub-optimal results. Therefore, many existing studies
 omit DAP [147, 242, 245]. In the following section, we will introduce existing code LLMs that employ DAP before the
 final downstream tasks, discussing both their common attributes and unique characteristics.
@@ -724,7 +724,7 @@ Aurora-M [167] and Swallow [60] adopt the simple replay strategy that mixes in a
 during DAP for their multi-lingual ability. Furthermore, Sailor [55] studies the optimal strategy of data mixing for
 
 
-Continual Learning of Large Language Models: A Comprehensive Survey 17
+ Continual Learning of Large Language Models: A Comprehensive Survey 17
 DAP, balancing the general knowledge and capacity of different languages. EcomGPT-CT [148] employs a data mixing
 strategy for DAP which transforms semi-structured E-commerce data into a set of nodes and edges, samples a cluster of
 nodes, and then extracts and concatenates them into a training example. It combines the general-domain corpus with
@@ -765,7 +765,7 @@ the opposite [144]. Although the pre-trained weights initially position the mode
 2We direct interested readers to additional survey literature on the topic of general CFT [17,105].
 
 
-18 Shi et al.
+ 18 Shi et al.
 Table 3. Summary of the existing studies on Continual Fine-Tuning LLMs, where the papers are organized in five main categories based on what downstream tasks they are designed to tackle, including (i) General Continual Fine-Tuning (CFT); (ii) Continual Instruction Tuning (CIT); (iii) Continual Model Refinement (CMR); (iv) Continual Model Alignment (CMA); (v) Continual Multimodal LLMs (CMLLMs), which is shown in the column of CFT Type. The column of X-IL shows what continual learning paradigm the study includes [232], where TIL represents task-incremental learning, meaning task ID/information is provided during inference; DIL represents domain-incremental learning, meaning the tasks are defined in the same format, and no task ID/information is available during inference; CIL represents class-incremental learning, meaning the task ID needs to be further inferred when testing.
 CFT Type Method X-IL LLM Arch.
 Continual Learning Tech. Continual Learning Eval.
@@ -811,7 +811,7 @@ from new languages onto old ones. Building on the innate anti-forgetting ability
 such as freezing the LLM and old classifier’s parameters after warm-up, and pre-allocating future classifiers, etc.
 
 
-Continual Learning of Large Language Models: A Comprehensive Survey 19
+ Continual Learning of Large Language Models: A Comprehensive Survey 19
 Given the minimal forgetting observed at the representation level in CL, some studies aim to tackle the misalignment
 between the representation space and the decision-making layers by introducing representation-level constraints during
 CFT. NeiAttn [10] exemplifies this approach by formulating classification tasks as masked language modeling and
@@ -853,7 +853,7 @@ proaches typically update a subset of model parameters to alter the labels of sp
 models, as discussed in [164] and [74], incorporate editing through retrieval mechanisms.
 
 
-20 Shi et al.
+ 20 Shi et al.
 Continual Model Refinement (CMR) extends model refinement horizontally, presenting updated sample pairs
 (xe, ye, ybe )e=1
 N sequentially as a stream. [125] initially introduces this idea, evaluating various CL methods with a
@@ -896,7 +896,7 @@ forgetting, when the imbalance ratio between majority and minority classes appro
 further identifies hallucination as a contributing factor to performance degradation in MLLMs.
 
 
-Continual Learning of Large Language Models: A Comprehensive Survey 21
+ Continual Learning of Large Language Models: A Comprehensive Survey 21
 Continual Fine-Tuning MLLMs. In contrast to traditional continual learning methods that involve full-model
 fine-tuning for new tasks, continual fine-tuning for MLLMs focuses on refining specific layers when adapting to new
 tasks [32, 77, 284, 298, 304]. Given the strong capabilities of pre-trained models, training specific layers suffices, and can
@@ -939,7 +939,7 @@ semantic domains they include, and their sources and applications. We intentiona
 adaptive pre-training LLMs in vertical domains such as legal, medical, and financial, unless they are specifically designed
 
 
-22 Shi et al.
+ 22 Shi et al.
 for continual domain-adaptive pre-training. Furthermore, we omit datasets used in general continual fine-tuning, as
 they have already been extensively studied in existing works [17,105]. For details, please refer to AppendixB.3.
 6 DISCUSSION
@@ -979,7 +979,7 @@ learning goals, models must efficiently adapt to new data (efficient adaptation)
 computational efficiency for continual learning of LLMs by restricting the number of updates and FLOPs [180,247].
 
 
-Continual Learning of Large Language Models: A Comprehensive Survey 23
+ Continual Learning of Large Language Models: A Comprehensive Survey 23
 Table 4. Summary of the existing benchmarks publicly available for Continual Learning LLMs. In the column of Name, we use the superscript “∗” to denote the lack
 of the dataset name and the name shown is that of the original paper. In this table, we deliberately omit the datasets used for domain-adaptive pre-training the vertical LLMs,
 as their main focus of development is not on continual learning. We also omit the datasets used for general continual fine-tuning, as they are extensively discussed in other
@@ -1044,7 +1044,7 @@ CounterFact [157] CMR Content General Knowledge 1 #Examples: 22k zsRE [117] [45,
 SCOTUS [28] CMR Temporal Law 1 #Examples: 9.2k Supreme Court Database [74]code
 
 
-24 Shi et al.
+ 24 Shi et al.
 On the other end of the spectrum, studies with tightened memory constraints remain vital in modern continual
 learning of LLMs. As shown in Fig.1, upstream suppliers of LLMs typically do not provide training data with the released
 model weights. Consequently, consumers must adapt these models to downstream data without access to the actual
@@ -1086,7 +1086,7 @@ It enables one-shot knowledge updates without costly retraining or fine-tuning. 
 Networks [192] hold promise for future investigation as well.
 
 
-Continual Learning of Large Language Models: A Comprehensive Survey 25
+ Continual Learning of Large Language Models: A Comprehensive Survey 25
 Continual LLMs with Custom Preferences. In service-oriented contexts, users often require different trade-offs
 between domain expertise, ethics, values, or tones of expression. Efficiently building customized LLMs for individual
 users and offering flexible adjustment options is a challenging task. Early attempts in this direction include Imprecise
@@ -1137,7 +1137,7 @@ C. Zong, editors, Proceedings of the 28th International Conference on Computatio
 artificial intelligence, volume 34, pages 7432–7439, 2020.
 
 
-26 Shi et al.
+ 26 Shi et al.
 [19] O. Bojar, C. Buck, C. Federmann, B. Haddow, P. Koehn, J. Leveling, C. Monz, P. Pecina, M. Post, H. Saint-Amand, et al. Findings of the 2014
 workshop on statistical machine translation. In Proceedings of the ninth workshop on statistical machine translation, pages 12–58, 2014.
 [20]J. Bornschein, Y. Li, and A. Rannen-Triki. Transformers for supervised online continual learning, 2024.
@@ -1195,7 +1195,7 @@ geoscience knowledge understanding and utilization, 2023.
 [50]T. Dettmers, A. Pagnoni, A. Holtzman, and L. Zettlemoyer. Qlora: Efficient finetuning of quantized llms. arXiv preprint arXiv:2305.14314, 2023.
 
 
-Continual Learning of Large Language Models: A Comprehensive Survey 27
+ Continual Learning of Large Language Models: A Comprehensive Survey 27
 [51] J. Devlin, M.-W. Chang, K. Lee, and K. Toutanova. Bert: Pre-training of deep bidirectional transformers for language understanding. arXiv preprint
 arXiv:1810.04805, 2018.
 [52] B. Dhingra, J. R. Cole, J. M. Eisenschlos, D. Gillick, J. Eisenstein, and W. W. Cohen. Time-aware language models as temporal knowledge bases.
@@ -1254,7 +1254,7 @@ updating, and visualizing model beliefs. arXiv preprint arXiv:2111.13654, 2021.
 Web Conferences Steering Committee.
 
 
-28 Shi et al.
+ 28 Shi et al.
 [79] T. He, J. Liu, K. Cho, M. Ott, B. Liu, J. Glass, and F. Peng. Analyzing the forgetting problem in pretrain-finetuning of open-domain dialogue
 response models. In P. Merlo, J. Tiedemann, and R. Tsarfaty, editors, Proceedings of the 16th Conference of the European Chapter of the Association
 for Computational Linguistics: Main Volume, pages 1121–1133, Online, Apr. 2021. Association for Computational Linguistics.
@@ -1312,7 +1312,7 @@ M. Hürlimann, E. de Salis, and J. Guerne, editors, Proceedings of the 8th editi
 Switzerland, June 2023. Association for Computational Linguistics.
 
 
-Continual Learning of Large Language Models: A Comprehensive Survey 29
+ Continual Learning of Large Language Models: A Comprehensive Survey 29
 [109] D. Khashabi, S. Chaturvedi, M. Roth, S. Upadhyay, and D. Roth. Looking beyond the surface: A challenge set for reading comprehension over
 multiple sentences. In Proceedings of the 2018 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies, Volume 1 (Long Papers), pages 252–262, 2018.
 [110] D. Khashabi, T. Khot, A. Sabharwal, and D. Roth. Learning what is essential in questions. In R. Levy and L. Specia, editors, Proceedings of the 21st
@@ -1370,7 +1370,7 @@ pre-trained language model, corpus and benchmark. CoRR, abs/2302.09432, 2023.
 chains for science question answering, 2022.
 
 
-30 Shi et al.
+ 30 Shi et al.
 [141] S. Lu, D. Guo, S. Ren, J. Huang, A. Svyatkovskiy, A. Blanco, C. Clement, D. Drain, D. Jiang, D. Tang, G. Li, L. Zhou, L. Shou, L. Zhou, M. Tufano,
 M. Gong, M. Zhou, N. Duan, N. Sundaresan, S. K. Deng, S. Fu, and S. Liu. Codexglue: A machine learning benchmark dataset for code understanding
 and generation, 2021.
@@ -1429,7 +1429,7 @@ Towards specialized foundation models in astronomy. CoRR, abs/2309.06126, 2023.
 X. Wan, editors, Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference
 
 
-Continual Learning of Large Language Models: A Comprehensive Survey 31
+ Continual Learning of Large Language Models: A Comprehensive Survey 31
 on Natural Language Processing (EMNLP-IJCNLP), pages 188–197, Hong Kong, China, Nov. 2019. Association for Computational Linguistics.
 [170] Z. Ni, H. Shi, S. Tang, L. Wei, Q. Tian, and Y. Zhuang. Revisiting catastrophic forgetting in class incremental learning. arXiv preprint arXiv:2107.12308,
 2021.
@@ -1488,7 +1488,7 @@ Web Search and Data Mining, WSDM ’22, page 833–841, New York, NY, USA, 2022.
 M. Bhatt, C. C. Ferrer, A. Grattafiori, W. Xiong, A. Défossez, J. Copet, F. Azhar, H. Touvron, L. Martin, N. Usunier, T. Scialom, and G. Synnaeve.
 
 
-32 Shi et al.
+ 32 Shi et al.
 Code llama: Open foundation models for code, 2024.
 [200] A. N. Rubungo, C. Arnold, B. P. Rand, and A. B. Dieng. Llm-prop: Predicting physical and electronic properties of crystalline solids from their text
 descriptions. CoRR, abs/2310.14029, 2023.
@@ -1547,7 +1547,7 @@ multimodal models. arXiv preprint arXiv:2312.11805, 2023.
 arXiv:1803.05355, 2018.
 
 
-Continual Learning of Large Language Models: A Comprehensive Survey 33
+ Continual Learning of Large Language Models: A Comprehensive Survey 33
 [229] D. Thulke, Y. Gao, P. Pelser, R. Brune, R. Jalota, F. Fok, M. Ramos, I. van Wyk, A. Nasir, H. Goldstein, et al. Climategpt: Towards ai synthesizing
 interdisciplinary research on climate change. arXiv preprint arXiv:2401.09646, 2024.
 [230] H. Touvron, T. Lavril, G. Izacard, X. Martinet, M.-A. Lachaux, T. Lacroix, B. Rozière, N. Goyal, E. Hambro, F. Azhar, et al. Llama: Open and efficient
@@ -1606,7 +1606,7 @@ language models of code. In Proceedings of the 31st ACM Joint European Software 
 Software Engineering, ESEC/FSE 2023, page 1470–1482, New York, NY, USA, 2023. Association for Computing Machinery.
 
 
-34 Shi et al.
+ 34 Shi et al.
 [255] G. Winata, L. Xie, K. Radhakrishnan, S. Wu, X. Jin, P. Cheng, M. Kulkarni, and D. Preotiuc-Pietro. Overcoming catastrophic forgetting in massively
 multilingual continual learning. In A. Rogers, J. Boyd-Graber, and N. Okazaki, editors, Findings of the Association for Computational Linguistics:
 ACL 2023, pages 768–777, Toronto, Canada, July 2023. Association for Computational Linguistics.
@@ -1664,7 +1664,7 @@ processing systems, 32, 2019.
 [284]Y. Zhai, S. Tong, X. Li, M. Cai, Q. Qu, Y. J. Lee, and Y. Ma. Investigating the catastrophic forgetting in multimodal large language models, 2023.
 
 
-Continual Learning of Large Language Models: A Comprehensive Survey 35
+ Continual Learning of Large Language Models: A Comprehensive Survey 35
 [285] D. Zhang, Z. Hu, S. Zhoubian, Z. Du, K. Yang, Z. Wang, Y. Yue, Y. Dong, and J. Tang. Sciglm: Training scientific language models with self-reflective
 instruction annotation and tuning. CoRR, abs/2401.07950, 2024.
 [286] H. Zhang, L. Gui, Y. Zhai, H. Wang, Y. Lei, and R. Xu. Copf: Continual learning human preference through optimal policy fitting. arXiv preprint
@@ -1705,7 +1705,7 @@ understanding, 2019.
 models, 2024.
 
 
-36 Shi et al.
+ 36 Shi et al.
 SUPPLEMENTARY MATERIAL
 A PRELIMINARIES
 In this section, we provide an overview of the fundamental concepts of large language models (LLMs) and continual
@@ -1753,7 +1753,7 @@ most popular open-source family of LLMs [230, 231]. The weights of these models 
 community under non-commercial licenses.
 
 
-Continual Learning of Large Language Models: A Comprehensive Survey 37
+ Continual Learning of Large Language Models: A Comprehensive Survey 37
 Masked language modeling (MLM) task serves as a common pre-training objective for encoder-only models like
 BERT [51, 133]. In MLM, for the input sequence x, a subset of input tokens m(x) are masked and replaced with the
 special [MASK] token. The pre-training goal is to utilize the unmasked parts x\m(x ) to predict the masked portions
@@ -1806,7 +1806,7 @@ the subsequent tasks will cause the model fail on the old ones, which phenomenon
 Addressing this challenge is a focal point in continual learning research. The problem of efficiently adapting models to
 
 
-38 Shi et al.
+ 38 Shi et al.
 a sequence of tasks without forgetting is extensively studied in the continual learning community [38, 178, 232, 237].
 These studies are typically conducted under the following memory constraint of CL.
 Definition A.3 (Memory Constraint of Continual Learning). Suppose T sets of observations {St ∼ Tt }T
@@ -1862,7 +1862,7 @@ the most challenging continual learning scenario, as the model needs to infer th
 Another possible formulation of CIL is to represent it as DIL but the output label spaces are disjoint, Yi ∩ Yj = ∅, ∀i ≠ j.
 
 
-Continual Learning of Large Language Models: A Comprehensive Survey 39
+ Continual Learning of Large Language Models: A Comprehensive Survey 39
 A.2.2 Techniques of Continual Learning. The objective of CL is to find a hypothesis that minimizes risk across all
 tasks/domains. Consider DIL as an example [213], at t-th learning stage, the ideal training objective L (h) is defined as
 L (h) ≜
@@ -1925,7 +1925,7 @@ Bayesian perspective, using diagonal values from the Fisher Information Matrix (
 Hessian matrix of parameters. This forms a sequential Maximize A Posteriori (MAP) optimization for continual learning.
 
 
-40 Shi et al.
+ 40 Shi et al.
 Memory Aware Synapses (MAS) [4] computes parameter importance in an online and unsupervised manner, defining
 importance by accumulated absolute gradient during training. It is also worth noting that when Σ = I degenerates
 to an identity matrix, the regularization term simplifies to a basic l2-penalty term, equally penalizing each parameter,
@@ -1973,7 +1973,7 @@ j=1 N j represents the ratio of data. In some literature, OfP is referred to as 
 “whole accuracy” [217], or “edit success rate” in CMR [74].
 
 
-Continual Learning of Large Language Models: A Comprehensive Survey 41
+ Continual Learning of Large Language Models: A Comprehensive Survey 41
 Forgetting (F). Define Ft as the forgetting up to task t, which represents the largest performance drop observed
 throughout the training process, averaged over t training stages:
 Ft ≜ 1
@@ -2024,7 +2024,7 @@ The baseline performances of the pre-trained LLM evaluated on these tasks are de
 M }. The model
 
 
-42 Shi et al.
+ 42 Shi et al.
 undergoes continuous fine-tuning on a different set of tasks, distinct from those used for evaluation. Throughout the
 sequential training process, the performance of the model after learning task t on evaluation tasks Xi is RX
 t ,i
@@ -2076,7 +2076,7 @@ over 73.8 billion tokens. Alongside the training set, it includes eight addition
 ability of LLMs. On a smaller scale, ∗CPT [104] and ∗DAS [107] datasets consist of four and eight domains, respectively,
 
 
-Continual Learning of Large Language Models: A Comprehensive Survey 43
+ Continual Learning of Large Language Models: A Comprehensive Survey 43
 with approximately 3.12 million examples and a size of 4.16GB each. These datasets are constructed similarly to the
 aforementioned ones.
 Datasets for Continual Instruction Tuning. Measuring the effectiveness of CIT is crucial, particularly be
@@ -2119,7 +2119,7 @@ catastrophic forgetting in MLLMs. [32] presents a comprehensive benchmark CoIN, 
 evaluating MLLMs from two perspectives: Instruction Following and General Knowledge, which assess the alignment
 
 
-44 Shi et al.
+ 44 Shi et al.
 with human intention and knowledge preserved for reasoning, respectively. [296] constructs two datasets, UPMC
 Food101-CMML and MM-IMDb-CMML to benchmark the novel CMML task, which means the data of certain modalities
 is missing during continual fine-tuning. UPMC-Food101-CMM contains 101 food categories and 61,142 training, 6,846
