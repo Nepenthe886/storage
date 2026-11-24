@@ -1,0 +1,494 @@
+SARAM: Sparse Adapter Allocation with Reuse and Merging for Lifelong Robot Learning
+SeongJun Jeong1, Chungwoo Lee1, Gi-Cheon Kang2∗, and Byoung-Tak Zhang1∗
+Abstract— Lifelong robot learning requires acquiring new tasks sequentially without forgetting earlier ones. With large pre-trained vision-language-action (VLA) backbones, adapterbased methods effectively mitigate this challenge. However, their task-specific adapters and selection modules accumulate with the task stream, creating a scalability challenge in on-disk storage and deployment cost under fixed onboard resource budgets. We propose SARAM, a lifelong learning framework that limits storage growth while keeping GPU memory and perstep inference cost independent of the task stream length. For each new task, SARAM reuses frozen adapters from previous tasks and introduces new adapters only at sparsely selected layers, with a duplication penalty encouraging them to capture information not already represented by the adapter library. At deployment, a compact signature derived from backbone activation statistics identifies the task once per episode, and the corresponding task update is merged into the backbone, leaving only the backbone in the control loop. Across four LIBERO suites, SARAM matches or exceeds adapter-based baselines while adding up to4.5×less on-disk state per task. GPU memory usage and control frequency remain comparable to those of the backbone as the task stream grows. Experiments on a real UR5 arm with a different backbone further demonstrate retention throughout a sequential task stream.
+I. INTRODUCTION
+Robots deployed in real environments need to learn new tasks continually [1], yet onboard hardware imposes fixed budgets on storage, memory, and compute. Learning tasks sequentially causes catastrophic forgetting [2], [3], where acquiring a new task degrades performance on previously learned ones. Existing approaches address this through replay, regularization, or architectural isolation, which require storing past demonstrations, provide weaker protection against forgetting, or leave progressively less free capacity for new tasks, respectively [4]–[7]. With large pre-trained vision-language-action (VLA) backbones [8]–[10], recent methods [11]–[13] increasingly adopt lightweight adapters such as LoRA [14]. The backbone remains frozen, while each task learns its own adapters, which are then frozen so that later training cannot overwrite them. By freezing the backbone and task-specific adapters, these methods effectively preserve previously learned tasks.
+∗Corresponding Authors 1Seoul National University 2Ajou University This work was partly supported by grants from the IITP (RS2021-II211343-GSAI/10%, RS-2022-II220951-LBA/10%, RS-2022II220953-PICA/10%, RS-2026-25553157-MIACC/10%), the NRF (RS2024-00353991-SPARC/15%, RS-2023-00274280-HEI/15%), the KEIT (RS-2025-25453780/15%), and the KIAT (RS-2025-25460896/15%), funded by the Korean government.
+Prior adapter-based methods SARAM (ours)
+Lifelong Learning
+Deployment
+Adapter
+Selection Module
+Per-task growth
+12 T
+...
+Adapter
+12 T
+...
+Sparse adapter growth
+Selection Module
+GPU Memory
+All Adapters
+All Selection Modules
+VLA Backbone
+GPU Memory
+All Adapters
+All Selection Modules
+VLA Backbone (Merged)
+task
+task
+Disk Storage Disk Storage
+Fig. 1.Two growth axes of adapter-based lifelong robot learning.Prior methods accumulate adapters and selection modules on disk and keep them available on the GPU during control. SARAM adds new adapters sparsely and deploys a single merged backbone, adding up to 4.5×less on-disk state per task in our experiments.
+However, task-specific adapters must be selected at deployment, and the oracle task ID is typically unavailable. Instead, the robot receives the current observation and language instruction, from which the appropriate task-specific adapter must be identified. Recent methods [12], [13] dynamically select task-specific adapters from the current input during execution. By design, the adapters and selection modules therefore remain active in the control loop, increasing GPU memory and per-step computation as tasks accumulate. As illustrated in Fig. 1, this accumulation appears along two axes. During training, task-specific adapters, selection modules, and associated state accumulate on disk as new tasks are learned. At deployment, the adapters and selection modules must remain available on the GPU and are used throughout the control loop. Both axes therefore grow with the task stream, conflicting with the fixed resource budgets of onboard robot hardware.Can a VLA policy learn new tasks continually while keeping its deployment cost independent of the task stream and limiting task-dependent storage growth? To address this, we propose SARAM, a lifelong robot learning method that addresses the two axes at their respective stages: storage as tasks accumulate, and deployment cost at execution. During learning, each new task first reuses a linear combination of frozen LoRA adapters from previous tasks, then adds new adapters only at layers selected under a sparsity penalty. A duplication penalty discourages the new adapters from reproducing what the reused library already
+arXiv:2610.24804v1 [cs.RO] 17 Oct 2026
+
+
+expresses. The newly allocated adapters and combination coefficients are frozen after training, so later tasks cannot overwrite previously learned parameters. Because every pertask update stays linear in the weights, it can later be folded into the backbone rather than evaluated as a separate module. SARAM then removes task selection from the control loop. After each task is learned, the demonstrations are passed through the adapter-free backbone and its layerwise activation statistics are summarized into a compact task signature. These frozen-backbone statistics provide taskdependent signatures without requiring a learned selection module. At deployment, the initial observation and instruction are summarized in the same way, matched against the stored signatures, and the selected update is merged into the backbone before execution. The episode therefore runs on a single backbone, with no task-specific adapter or selection module inside the control loop, keeping GPU memory and per-step inference cost at the backbone’s level regardless of the number of learned tasks. We evaluate SARAM on four LIBERO suites against adapter-based methods [12], [13] and standard continual learning baselines. SARAM attains the highest final success rate and AUC on all four suites while requiring up to 4.5× less on-disk state per task than adapter-based baselines. At deployment, SARAM remains at the backbone’s level in both GPU memory and control frequency: after ten tasks it runs at 15.2 Hz with 748 MB of GPU memory, identical to the backbone alone. By contrast, CLARE and DMPEL grow to 922 MB and 829 MB of GPU memory and slow to 10.1 Hz and 5.0 Hz after ten tasks, respectively. On a seven-task realrobot stream with a different VLA backbone, SARAM ends the stream at the same success rate it reached when each task was learned, showing that the method transfers to a physical robot and a different backbone architecture. We summarize our contributions as follows:
+•We propose SARAM, an adapter-based lifelong robot learning method that limits per-task storage through adapter reuse, sparse allocation, and compact task signatures in place of learned selection modules. •At deployment, task signatures move selection outside the control loop, and the corresponding task update is merged into the backbone to keep GPU memory and per-step inference cost independent of the number of learned tasks. •On four LIBERO suites, SARAM attains the highest final success rate and AUC while requiring up to 4.5× less on-disk state per task, and real-robot experiments with a different VLA backbone demonstrate applicability beyond simulation.
+II. RELATED WORK
+Lifelong Robot Learning.Lifelong robot learning [1], [15] studies how robots can learn new tasks sequentially while retaining those learned before. A central challenge, shared with continual learning in general [3], is catastrophic forgetting [6], where learning new tasks degrades performance
+on earlier ones. Existing approaches address this problem through replay, regularization, or architectural isolation. Replay methods retain past demonstrations for later training [4], which incurs storage overhead and can be undesirable when past demonstrations cannot be retained. Regularization methods such as EWC [6] avoid storing past data but often provide weaker protection against forgetting. Architectural-isolation methods such as PackNet [7] protect previous tasks by reserving separate capacity, but the available capacity becomes increasingly constrained as more tasks are learned. In robot manipulation, LIBERO [1] provides a standard benchmark for evaluating sequential task learning and retention.
+Adapter-Based Lifelong Robot Learning.With the emergence of large pretrained VLA policies [8]–[10], [16], [17], recent work has increasingly adopted lightweight adapters for task-specific adaptation while keeping the backbone frozen [11]–[13]. After each task is learned, its adapter is frozen, preventing later training from overwriting previously learned task parameters. This provides strong retention, but requires maintaining additional task-specific parameters as the task stream grows. When the oracle task ID is unavailable, CLARE [12] and DMPEL [13] dynamically select or combine task-specific modules from the current input using learned discriminators and a router, respectively. These inputdependent mechanisms remain active during control, causing task-specific storage and deployment cost to grow with the task stream.
+Resource-Efficient Continual Learning.Recent work beyond robotics has explored reducing the parameter growth of adapter-based continual learning. Some approaches compress task-specific adapters into a shared low-rank representation or merge multiple task updates into a shared model [18]– [20]. These methods reduce parameter growth, but typically update shared parameters that also represent previously learned tasks. Their evaluation settings typically do not consider task selection from observations and instructions at deployment. In contrast, SARAM keeps previously learned task parameters frozen, reuses past adapters through combination coefficients, and adds new adapters only at layers retained by sparse allocation. It further replaces learned selection modules with task signatures and merges the corresponding task update into the VLA backbone before execution, so only the backbone runs during control.
+III. METHOD
+A. Problem Setting
+We follow the lifelong imitation learning setup of LIBERO [1]. A robot learnsTmanipulation tasks {τ1, . . . , τT }sequentially with a single policyπconditioned on observations and language instructions. Each taskτ t comes with a language instructionl t and a demonstration
+datasetD t ={E (t)
+i }Nt
+i=1, where each episodeE (t)
+i contains a sequence of observation–action pairs. Past datasets are not available unless the method stores them itself, at its own storage cost. After each task is learned, the policy is evaluated on the current task and all tasks learned so far.
+
+
+Learning τ! task
+VLA backbone
+l-layer W!,l
+L-layer
+...
+Phase 1 : Adapter Library Reuse Phase 3: Duplication Penalty
+Adapter Library at l-layer
+... Al
+(#$%)
+Bl
+(#$%)
+Al
+(')
+Bl
+(')
+Al
+(()
+Bl
+(()
+Al
+(%)
+Bl
+(%)
+×cl,$
+(&)
+#
+!"#
+$%#
+cl,!
+($)Al
+(!)Bl
+(!)
+m*(i()n L!+
+× γ$
+Phase 2 : Sparse Allocation
+×cl,)
+(&) ×cl,*
+(&) ×cl,&+$
+(t)
+A%
+(#)
+B%
+(#)
+A(
+(#)
+B(
+(#)
+A)
+(#)
+B)
+(#)
+...
+...
+× γ)
+× γ
+Before
+A%
+(#)
+B%
+(#)
+A(
+(#)
+B(
+(#)
+A)
+(#)
+B)
+(#)
+...
+After S.
+Soft-threshold (ξ)
+γ$ = 0
+γ) ≠ 0
+γ- = 0
+Adapter Library Span
+New Adapter l ∈ S*
+Projection
+dupl
+min
+1l
++ ,2l
++
+l∈-+
+,3 +
+L45 + λ 5 l∈S+
+dupl
+Store for τ$
+Images Instruction State
+“Turn on the stove”
+Build Task Signature Ul
+($)
+Layer Activations
+Xl
+(%)
+Xl
+(.!)
+...
+Accumulate Gram over episodes
+...
+Top-k eigensketch
+Ul
+" = u# σ# , ..., u$ σ$ Coefficients c *
+Adapters Al
+# Bl
+#
+l∈S%
+Task Signature U *
+Deployment
+“Put both moka pots on the stove”
+Instruction Images
+Episode Input
+State
+k
+Task Signature
+VLA backbone
+...
+q
+k
+...
+k
+Task Selection sim(q, U)
+...
+1
+task 2 3 T-1 T
+t∗ = 3
+Merge and Deployment
+Wl ← W6,l + ∆Wl
+(*∗)
+Merged VLA
+...
+Gl
+(()=∑*+,
+-& Xl
+* Xl
+*.
+Fig. 2.Overview of SARAM.Top: each task reuses the frozen library (Phase 1), allocates new adapters to a sparse subset of layers (Phase 2), trains them under a duplication penalty (Phase 3), and stores coefficients, adapters, and a task signature. Bottom: at deployment, one adapter-free pass selects the task and its update is merged, so only the backbone runs.
+At deployment the task identity is not given, so the policy receives only the current observation and instruction. The objective is therefore to acquire each new task while retaining performance on earlier ones.
+B. Overview
+SARAM addresses the two growth axes at their respective stages: disk storage during learning, and GPU cost at deployment. Each new task first reuses the frozen adapters of past tasks (Sec. III-D). A sparse adapter allocation then adds new capacity only at layers selected under a sparsity penalty (Sec. III-E), and a duplication penalty keeps that capacity from re-expressing what the reused adapters already provide (Sec. III-F). At deployment, every per-task update is linear in the weights, and the task is selected once per episode from frozen-backbone activation statistics (Sec. IIIG). The selected update can therefore be added directly to the backbone weights, and the episode runs on a single backbone (Sec. III-H), holding GPU memory and per-step inference cost at the backbone’s own level.
+C. Per-Task Updates as Linear Deltas
+SARAM adapts a pre-trained VLA backbone with frozen weightsW 0 ={W 0,l}L
+l=1, whereW 0,l ∈R dl×d′
+l andlindexes the linear layers subject to adaptation. After learning task τ j, its new adapters are kept as frozen rank-rLoRA [14]
+adapters, withA (j)
+l ∈R dl×r andB (j)
+l ∈R r×d′
+l . We refer to the adapters kept byτ 1, . . . , τt−1 as the library available to task τt.
+LetS j denote the set of layers at which taskτ j received
+a new adapter, and letJ (t)
+l ={j<t:l∈ S j}denote the
+previous tasks that have an adapter at layerl. The update of taskτ t at layerlcombines the library adapters with a new adapter if one is allocated at that layer:
+∆W (t)
+l=
+X
+j∈J (t)
+l
+c(t)
+l,j A(j)
+l B(j)
+l +1[l∈ S t]A(t)
+l B(t)
+l ,(1)
+wherec (t)
+l,j ∈Ris a combination coefficient andc (t) ={c (t)
+l,j :
+l∈[L],j∈ J (t)
+l }.
+The two terms in Eq. (1) play different roles. The first reuses frozen adapters from previous tasks through their combination coefficients, while the second introduces task
+
+
+specific capacity through a new rank-radapter only when l∈ S t. Thus, each task update is decomposed into a component reused from the existing library and a component represented by newly allocated adapters. As illustrated in Fig. 2, SARAM first exploits the former and allocates the latter only at selected layers. Fort=1,J (1)
+l is empty and the first term in Eq. (1)
+is zero. The per-task parameters ofτ t are thereforeθ t =
+{c(t),(A (t)
+l ,B (t)
+l )l∈St }. Because Eq. (1) defines a linear weight
+update with no intervening nonlinearity,∆W (t)
+l can be added directly toW 0,l rather than evaluated as a separate module. Learningτ t fills in this decomposition in three phases: Phase 1 fits the combination coefficientsc (t), Phase 2 determinesS t, and Phase 3 trains the new adapters jointly with
+c(t) .
+D. Phase 1: Adapter Library Reuse
+The first phase fits the new task with the library alone, before any new capacity is added. All new adapters are disabled, so that Eq. (1) reduces to a linear combination of past adapters, and onlyc (t) is trained under the backbone’s imitation lossL im, stopping when the loss plateaus. The remaining error indicates what the library alone cannot express, and the later phases add new adapters to cover it.
+E. Phase 2: Sparse Adapter Allocation
+The second phase determines which layers retain a new adapter. A candidate adapter and a scalar gateγ l are attached to every layer, where the gate scales the candidate output andγ l =0 removes the adapter from the update. With the Phase 1 coefficients fixed, all candidates are trained jointly for a short allocation phase under the imitation loss with an l1 penalty on the gates,
+min
+{A(t)
+l ,B(t)
+l ,γl}
+Lim +ξ
+X
+l
+|γl|,(2)
+whereξcontrols the strength of the sparsity penalty. We optimize this objective by proximal gradient descent [21], [22]. After a short warm-up without thresholding, each gradient step onL im is followed by the proximal operator of thel 1 term,
+γl ←sign(γ l) max(|γl| −ηξ,0 ) ,(3)
+whereηis the step size. Weight decay is applied toA (t)
+l
+andB (t)
+l but not toγ l, preventing a smaller gate from being compensated by larger LoRA factors. We use the same gate initialization for every task, providing a common starting point for layer allocation while allowing task-specific imitation gradients to determine which gates survive. The supportS t ={l:γ l ,0}is read offat the end of the allocation phase, and candidates outsideS t are discarded.
+F. Phase 3: Training with a Duplication Penalty
+In the third phase, the surviving adapters and combination coefficients are trained jointly. The objective adds toL im a
+duplication penalty that measures the overlap between a new adapter and the span of the library,
+min
+{A(t)
+l ,B(t)
+l }l∈St ,c (t)
+Lim +λ 1
+|St|
+X
+l∈St
+dupl,
+dupl = b⊤
+l M−1
+l bl ∥A(t)
+l B(t)
+l ∥2
+F
+,
+(4)
+whereM l[i,j]=⟨A (i)
+l B(i)
+l ,A (j)
+l B(j)
+l ⟩contains the pairwise inner
+products among library adapters, andb l[i]=⟨A (i)
+l B(i)
+l ,A (t)
+l B(t)
+l⟩ their inner products with the new adapter. The numerator measures the component of the new adapter explained by the library span, andλcontrols how strongly such overlap is penalized. This encourages reusable structure to be represented throughc (t) while reserving new adapters for complementary directions. For numerical stability, a small ridge proportional to the largest diagonal entry is added toM l before inversion. Since the library is frozen, this inverse is computed once per task. For the first task, or for a layer with no existing library adapter, the reuse term and duplication penalty are omitted. After training,θ t and the task signature described next are stored and kept frozen for the remainder of the stream. Later tasks add only their own coefficients and adapters, leaving all previously learned task parameters unchanged.
+G. Task Selection from Task Signatures
+SARAM operates without the oracle task ID. At deployment, the task is identified from the initial observation and instruction using activation statistics of the frozen backbone. For each layer, we summarize its input activations through a Gram matrix, which captures task-dependent activation structure. To build the signature ofτ t, the initial observation and instruction of each demonstration are passed through the adapter-free backbone, and their token-level activations are accumulated as
+G(t)
+l=
+N Xt
+i=1
+X(i)
+l X(i)⊤
+l ∈R dl×dl ,
+U (t)
+l = u1
+√σ1, . . . ,u k
+√σk ∈R dl×k,
+(5)
+whereX (i)
+l ∈R dl×ni collects then i token-level inputs to
+layerlfrom episodeias columns, and (σ 1,u 1), . . . ,(σ k,u k)
+are the top-keigenpairs ofG (t)
+l . OnlyU (t)
+l is stored, giving
+each task a signature of P
+l kdl values. Because activations are accumulated into a single sum, no individual training sample is retained. At the start of a deployment episode, the same sketchq l is computed from the initial observation and instruction, and the task is selected by
+t∗ =arg matx
+1 L
+X
+l
+sim ql,U (t)
+l .(6)
+We use the uncentered variant of linear CKA [23],
+sim(q,U)= ∥q⊤U∥2
+F
+∥q⊤q∥F ∥U⊤U∥F
+.(7)
+This compares the Gram matrices represented by the two sketches without explicitly storing them. Centering is omitted
+
+
+because the accumulation in Eq. (5) does not retain firstmoment statistics. Task selection requires one adapter-free forward pass followed by comparisons with theTstored signatures, and is performed only once per episode. The frozen backbone used to construct the signatures remains unchanged throughout the task stream, so signatures from earlier tasks remain valid.
+H. Deployment by Merging into the Backbone
+Givent ∗, the update of Eq. (1) is evaluated from the stored combination coefficients and adapters and merged into the backbone,
+Wl ←W 0,l + ∆W(t∗)
+l .(8)
+The merge is exact because∆W (t∗)
+l is a single linear weight
+update, and it holds for the whole episode becauset ∗ is fixed at the start andc (t∗) does not depend on the input. After Eq. (8), no adapter, coefficient, or selection module is present in the control loop, and the resident model is a single backbone with modified weights. Its memory footprint and per-step cost are therefore those of the backbone, regardless ofT. Merging requires an update that is linear in the weights and fixed for the episode. Prior adapter-based methods [12], [13] perform input-dependent adapter selection during execution, so their original inference does not define a single∆Wfixed for the entire episode.
+IV. EXPERIMENTS
+Our experiments address three questions. (i) Does SARAM retain previously learned tasks while acquiring new ones without the oracle task ID (Sec. IV-B, IV-E)? (ii) Does it limit on-disk growth and keep GPU memory and control frequency at the backbone’s level as tasks accumulate (Sec. IV-C)? (iii) Which components of SARAM account for its performance (Sec. IV-D)?
+A. Simulation Experimental Setup
+Benchmark and protocol.We evaluate on the four LIBERO suites [1]: Long, Goal, Spatial, and Object, each a stream ofT=10 tasks learned sequentially. Following the LIBERO protocol, each task is probed with rollout episodes at regular intervals during training, and the best checkpoint is deployed as the task’s final policy. Every method runs three seeds under a shared schedule: 10k training steps per task, 20-episode probes every 800 steps, and 40 episodes for each retention evaluation. For SARAM, the 10k-step budget includes all three phases. Retention evaluations use each method’s own task selection without the oracle task ID. Metrics.Lets j,t be the success rate of taskτ t evaluated after the stream has learnedτ 1 throughτ j. Let  ̄ts and ˆts be the mean and best success rate of the rollout probes recorded whileτ t itself trains with known task identity; the best checkpoint is the one deployed. We report the LIBERO metrics [1]: FWT= 1
+T
+P
+t∈[T]  ̄ts, how well each task is learned
+during training; NBT= 1
+T
+PT
+t=1 NBTt, where NBTT =0 and
+NBTt = 1
+T−t
+PT
+j=t+1( ˆts −s j,t) fort<T, the average drop from the deployed score when earlier tasks are revisited,
+so lower is better; and AUC= 1
+T
+P
+t∈[T]
+1
+T−t+1  ̄ts + P
+j>t s j,t ,
+which summarizes the whole learn-then-retain trajectory. We additionally report SRlearn = 1
+T
+P
+t∈[T] ˆts, each task’s success
+right after it is learned, and SRfinal = 1
+T
+P
+t∈[T] sT,t , the average success over all tasks after the entire stream has been learned. Baselines.We consider sequential adaptation baselines that overwrite previously learned parameters: SeqFFT, which fine-tunes the whole model for each new task, and SeqLoRA, which fine-tunes a single LoRA adapter across tasks. We also consider EWC [6], which regularizes parameters important to previous tasks, PackNet [7], which freezes the most important weights after each task and learns the next within the remaining free capacity, and ER [4], which retains past demonstrations and trains each new task on an even mix of old and new data. We further include two adapter-based methods: CLARE [12], which trains task-specific adapters with per-task discriminators for selection, and DMPEL [13], which builds an expert library with a router fine-tuned by expert-coefficient replay. SHARE [18] represents resourceefficient continual learning methods that compress all tasks into a single adapter over a shared low-rank basis. We include it to examine whether such methods, developed beyond robotics, transfer to lifelong robot learning. Implementation.All methods share one pre-trained VLA backbone: a DiT-based flow-matching policy [24] pretrained on LIBERO-90 [1], with a DINOv2 vision encoder [25], a CLIP text encoder [26], and an action head predicting 16step chunks of which 8 are executed. SARAM uses rank8 LoRA adapters and one setting on every suite: sparsitypenalty weight ofξ=2 with an 800-step allocation phase and gates initialized fromN(0,1) once per stream, duplicationpenalty weightλ=0.3, and a coefficient pre-fit that stops when the loss plateaus. Task signatures keep the top-2 eigenpairs per observation-side layer. Our implementation builds on the official CLARE code [12], which provides the shared backbone and the SeqFFT, SeqLoRA, EWC, ER, and PackNet baselines. DMPEL [13] and SHARE [18] are adapted from their official code with only the backbone replaced. All baselines are reproduced under the protocol and metrics above. All experiments run on a single NVIDIA A100 (80 GB) GPU per task stream.
+B. Main Results
+Table I shows the results on the four LIBERO suites. SARAM achieves the highest SRfinal and AUC on all four suites and the lowest NBT on three of them, while maintaining competitive FWT. Compared with adapter-based approaches, SARAM provides substantially stronger retention across the evaluated suites. SARAM also outperforms ER in AUC across all suites without retaining past demonstrations. SHARE performs poorly across all suites, suggesting that a single shared adapter is insufficient in this setting. Overall, these results show that the proposed approach maintains both task acquisition and retention across the evaluated task streams.
+
+
+TABLE I
+Results on the fourLIBEROsuites(3seeds,mean ±sd). SARAMattains the highestSR final andAUCon all suites with competitiveFWT.
+LIBERO-Long LIBERO-Goal LIBERO-Spatial LIBERO-Object
+Method FWT↑SR final↑NBT↓AUC↑FWT↑SR final↑NBT↓AUC↑FWT↑SR final↑NBT↓AUC↑FWT↑SR final↑NBT↓AUC↑
+SeqFFT 70.1±2.08.8±0.274.7±0.820.9±0.090.7±1.09.4±0.587.6±1.425.6±0.587.0±0.89.2±0.982.7±0.726.2±0.593.2±1.721.8±1.178.4±0.336.2±0.6 SeqLoRA 57.0±0.84.1±0.966.5±1.915.7±0.482.4±0.36.8±1.883.7±0.323.4±0.175.6±0.77.8±0.577.9±2.022.4±0.582.9±0.215.0±1.275.9±1.531.1±1.1 PackNet 12.4±2.80.0±0.026.3±4.01.5±0.425.9±1.80.0±0.040.8±2.93.8±0.223.5±1.70.0±0.035.7±2.82.8±0.115.2±1.40.0±0.026.3±4.91.7±0.2 EWC 60.3±0.45.7±0.870.3±1.516.8±0.983.6±1.25.4±1.285.3±0.722.9±1.083.8±0.99.2±1.483.1±0.625.3±0.290.7±0.726.5±4.074.1±1.438.7±0.6 ER 64.5±3.461.5±3.818.2±1.661.6±3.589.1±0.383.2±1.510.3±2.185.8±1.685.8±0.381.2±1.811.6±2.081.8±1.792.0±0.990.1±2.56.5±1.791.8±1.4 SHARE 30.4±1.71.2±0.443.0±3.78.3±0.449.4±4.10.8±1.258.4±8.516.3±0.943.9±3.10.0±0.054.1±4.014.6±0.747.6±2.80.0±0.057.0±1.516.4±2.4 CLARE 71.4±1.660.3±8.325.5±8.361.9±4.990.1±1.084.2±6.711.6±5.584.9±5.382.4±0.382.8±0.87.4±0.983.0±0.488.4±0.887.8±2.19.0±1.588.2±0.8 DMPEL73.4±0.672.9±1.811.1±0.774.8±1.188.3±0.872.8±10.08.7±3.486.9±3.283.2±1.569.8±2.06.5±1.784.3±0.778.6±5.472.2±6.49.1±1.480.6±6.3
+SARAM (ours) 73.0±1.283.7±1.67.5±0.980.9±1.786.5±2.290.9±2.06.6±0.989.1±2.183.8±1.987.6±3.16.8±2.486.4±3.187.2±8.095.3±1.93.1±1.492.9±2.4
+1 2 4 6 8 10 Tasks learned T
+750
+800
+850
+900
+950
+GPU memory (MB)
+(a) Execution-time memory
+Ours DMPEL CLARE
+0
+5
+10
+15
+Control frequency (Hz)
+(b) Control frequency (T = 10)
+15.3
+5.0
+10.1
+1 2 4 6 8 10 Tasks learned T
+0
+10
+20
+30
+40
+50
+Stored parameters (M)
+(c) Stored parameters
+1 2 4 6 8 10 Tasks learned T
+0
+50
+100
+150
+Cumulative disk (MB)
+(d) Method state on disk
+Backbone Ours DMPEL CLARE
+Fig. 3.Deployment cost versus tasks learned.GPU memory and control frequency stay at the backbone’s level for SARAM, and its stored parameters and on-disk state grow more slowly than adapter-based baselines.
+TABLE II
+Component ablations onLIBERO-Long.∆isAUCchange from full.
+FWT↑NBT↓AUC↑∆
+SARAM (full) 73.0±1.2 7.5±0.9 80.9±1.7
+w/o coefficient pre-fit 68.7±1.7 6.8±0.9 79.0±0.5−1.9 random allocation per task 68.3±3.7 9.4±4.1 74.1±7.1−6.7 fixed random allocation 71.1±3.5 7.1±2.9 78.9±3.8−2.0 fixed first-task allocation 72.5±2.3 10.8±3.4 77.4±3.8−3.5 w/o library reuse 67.3±0.7 8.5±3.2 76.1±2.0−4.7 w/o duplication penalty 67.9±10.5 7.0±2.8 76.8±9.1−4.1
+TABLE III
+Effect of the hyperparametersξandλonLIBERO-Long. Params denotes the cumulative number of stored parameters after ten tasks. Largerξ trades performance for storage;the duplication penalty helps at moderate strength.
+ξ λFWT↑NBT↓AUC↑Params (M)
+2 0 67.9±10.5 7.0±2.8 76.8±9.1 6.8±2.0 2 0.3 73.0±1.2 7.5±0.9 80.9±1.7 6.9±2.1 2 0.6 68.1±8.1 10.0±2.7 75.3±4.1 6.8±1.9 3 0.3 68.5±5.6 7.4±2.1 75.2±4.4 2.4±0.4 4 0.3 59.8±5.0 11.6±3.5 64.3±4.2 1.0±0.2
+C. Deployment Cost
+Figure 3 compares the deployment cost of the adapterbased methods as the task stream grows. Because the selected update is merged before execution, SARAM runs at the backbone’s own GPU memory and control frequency after ten tasks, whereas CLARE and DMPEL grow to 922 and
+T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10 T1 T2 T3 T4 T5 T6 T7 T8 T9 T10
+DINOv2 vision enc.
+72 linear layers
+proj.
+CLIP text enc.
+72 linear layers
+DiT action head
+61 linear layers
+seed 2 seed 1 seed 0
+Fig. 4.Layers allocated on LIBERO-Long.Colored bars mark layers that keep an adapter for each task (rows) and seed (blocks).
+829 MB and slow to 10.1 and 5.0 Hz as their adapters and selection modules accumulate. On disk, SARAM adds 3.8 MB of task-specific state per task: 2.7 MB for the newly allocated adapters, 1.1 MB for the task signature, and the combination coefficients, one per layer per library adapter, which grow with the number of past tasks but remain below 10 KB over the ten-task stream. CLARE and DMPEL add 17.4 and 6.0 MB per task. Selection before the control loop adds little overhead. Sketching the first observation,
+
+
+TABLE IV
+Real-robot results on theUR5stream. SR learn is used as theNBT reference and the initialAUCpoint because no intermediate training probes are collected.
+Method SRlearn↑SR final↑NBT↓AUC↑
+Per-task LoRA (oracle ref.) 97.1 – – –
+SeqLoRA 91.4 14.3 77.1 35.8 ER 84.3 41.4 40.2 53.6 SARAM (ours)94.3 94.3 1.0 93.4
+comparing it against the stored signatures, and merging the selected update take about 140 ms in total and are paid once per episode.
+D. Ablations and Analysis
+Component ablations.Table II examines each component of SARAM on LIBERO-Long. Without coefficient pre-fit, we skip Phase 1 and train the combination coefficients only with the new adapters in Phase 3. This lowers FWT and AUC, suggesting that fitting reuse first helps isolate the residual for new adapters. Inrandom allocation per task, we keep the same number of adapters as SARAM but randomly allocate their locations for each task. This causes the largest AUC drop and substantially higher variation across seeds. Infixed random allocation, one randomly sampled layer set is shared by all tasks, recovering much of this loss and suggesting that shared adapter locations facilitate library reuse. Infixed first-task allocation, the gate-selected layers of the first task are reused throughout the stream. Its lower AUC and higher variation than the full method indicate that task-specific gate fitting provides additional gains. Without library reuse, we setc (t)=0, preventing new tasks from using adapters learned for previous tasks. The resulting drop in FWT and AUC shows that the frozen library provides useful capacity under the same sparse allocation budget. Finally, without the duplication penalty, we setλ=0 during Phase 3. This lowers mean FWT and AUC and substantially increases variation across seeds, indicating that the penalty improves both performance and stability.
+Where adapters are allocated.Figure 4 shows the layers that survive gate-based allocation on LIBERO-Long for each task and seed. Within each seed, tasks share many allocated layers under the common gate initialization, while taskspecific gradients lead to differences at a few locations, and no two tasks end with an identical layer set. Across seeds, the selected layers overlap little despite similar performance, suggesting that multiple sparse placements can be effective. Together with Table II, these results show that shared adapter locations facilitate library reuse, while fitting the gates for each task provides additional gains and stability. Effect ofξandλ.Table III examines how the sparsitypenalty weightξand duplication-penalty weightλaffect performance and storage. Increasingξreduces the number of stored parameters at the cost of continual-learning performance, showing that it controls the trade-offbetween
+TABLE V
+Task-selection accuracy(%)under instruction paraphrases.
+Simulation (LIBERO) Real
+Instructions Long Goal Spatial Object UR5
+Original 100 100 100 100 100 Mild paraphrase 100 100 100 100 100 Strong paraphrase 100 90 90 100 85.3
+additional capacity and storage. At a fixed sparsity level, the duplication strengthλshows a clear performance trade-off. A smallλprovides insufficient pressure to avoid duplicating reusable directions, whereas a largeλcan overly constrain the new adapters and reduce their ability to represent taskspecific residuals. Task-signature robustness.Table V evaluates task recognition under unseen instruction paraphrases. For this analysis only, we hold out 10 of the 50 episodes per LIBERO task (100 queries per suite) and the last 10% of episodes per UR5 task (34 queries) from signature construction. Signatures are built from the remaining episodes with the original instructions, and each held-out first observation is queried with either the original instruction or an unseen paraphrase. A mild paraphrase changes only the action verbs, e.g., “pick up the ketchup and place it in the basket” becomes “grab the ketchup and put it in the basket.” A strong paraphrase restructures the sentence while preserving objects, attributes, and relations, e.g., “point to the yellow cup” becomes “reach toward the cup that is yellow.” Recognition remains accurate under mild paraphrases on all suites and the real-robot stream, and errors appear only under strong paraphrasing. These results show that task recognition is not tied to the exact surface form of the instruction.
+E. Real-Robot Experiments
+Real-robot setup.We evaluate on a UR5 robot with a Robotiq 2F-85 gripper, an external camera, and a wrist camera. The robot learns the seven tasks in Fig. 5 sequentially. Each task has about 50 teleoperated demonstrations and is evaluated with 10 rollouts. We useπ 0 [9] as the backbone with rank-8 LoRA candidates on its linear layers andξ=40, which keeps a similar fraction of layers per task as on LIBERO; other settings follow the simulation setup. We compare against SeqLoRA, ER, and per-task LoRA policies selected with the oracle task ID as a reference. Real-robot results.Table IV and Fig. 6 show the results over the seven-task stream. SeqLoRA retains only the last task, and ER, despite replaying past demonstrations, loses most earlier tasks as the stream grows. SARAM learns tasks close to the per-task reference and keeps them: its final success equals its success at learning time, with per-task differences within one episode. Task selection is correct on every heldout episode, including the same-scene die and cup tasks (Table V). These results match the LIBERO experiments and show that the framework transfers to a physical robot with a different VLA backbone.
+
+
+Start
+T1: Close the laptop
+T2: Place the blue die in the basket
+T3: Place the red die in the basket T4: Point to the blue cup T5: Point to the red cup
+T6: Point to the yellow cup T7: Set the shoe upright
+Success
+Fig. 5.Real-robot task stream.Seven UR5 manipulation tasks learned sequentially.
+T1 T2 T3 T4 T5 T6 T7 evaluated task
+after T7
+after T6
+after T5
+after T4
+after T3
+after T2
+after T1 90
+50 50
+80 0 70
+30 10 10 80
+30 0 20 30 100
+30 20 0 70 0 100
+20 10 20 30 10 100 100
+Experience Replay
+T1 T2 T3 T4 T5 T6 T7 evaluated task
+80
+80 100
+50 90 100
+90 90 100 90
+80 100 100 90 100
+90 80 90 100 100 100
+70 100 100 100 100 100 90
+SARAM (ours)
+Fig. 6.Task performance across the UR5 stream.
+V. CONCLUSION
+We presented SARAM, a lifelong robot learning method for VLA policies that limits storage growth during learning and removes task-specific computation from the control loop. Each new task reuses the frozen adapters of past tasks, adds new adapters only at layers selected by a sparsity penalty, and trains them under a duplication penalty. At deployment, a task signature built from frozen-backbone activations selects the task once per episode without the oracle task ID or a learned selection module, and the selected update is merged into the backbone so that only the backbone runs in the control loop. On four LIBERO suites, SARAM attains the highest SRfinal and AUC of all compared methods while adding up to 4.5×less on-disk state per task than adapterbased baselines, and its GPU memory and control frequency stay at the backbone’s level while the adapter-based baselines slow down by up to 3×. On a seven-task real-robot stream with a different backbone, it learns and retains all seven tasks throughout the stream.
+References
+[1]B. Liu, Y. Zhu, C. Gao, Y. Feng, Q. Liu, Y. Zhu, and P. Stone, “Libero: Benchmarking knowledge transfer for lifelong robot learning,”Advances in Neural Information Processing Systems, vol. 36, pp. 44 776–44 791, 2023. [2]I. J. Goodfellow, M. Mirza, D. Xiao, A. Courville, and Y. Bengio, “An empirical investigation of catastrophic forgetting in gradient-based neural networks,”arXiv preprint arXiv:1312.6211, 2013.
+[3]L. Wang, X. Zhang, H. Su, and J. Zhu, “A comprehensive survey of continual learning: Theory, method and application,”IEEE transactions on pattern analysis and machine intelligence, vol. 46, no. 8, pp. 5362–5383, 2024.
+[4]A. Chaudhry, M. Rohrbach, M. Elhoseiny, T. Ajanthan, P. K. Dokania, P. H. Torr, and M. Ranzato, “On tiny episodic memories in continual learning,”arXiv preprint arXiv:1902.10486, 2019.
+[5]G. Saha, I. Garg, and K. Roy, “Gradient projection memory for continual learning,”arXiv preprint arXiv:2103.09762, 2021.
+[6]J. Kirkpatrick, R. Pascanu, N. Rabinowitz, J. Veness, G. Desjardins, A. A. Rusu, K. Milan, J. Quan, T. Ramalho, A. Grabska-Barwinska et al., “Overcoming catastrophic forgetting in neural networks,”Proceedings of the national academy of sciences, vol. 114, no. 13, pp. 3521–3526, 2017. [7]A. Mallya and S. Lazebnik, “Packnet: Adding multiple tasks to a single network by iterative pruning,” in2018 IEEE/CVF Conference on Computer Vision and Pattern Recognition. IEEE, 2018, pp. 7765– 7773. [8]M. J. Kim, K. Pertsch, S. Karamcheti, T. Xiao, A. Balakrishna, S. Nair, R. Rafailov, E. Foster, G. Lam, P. Sanketiet al., “Openvla: An open-source vision-language-action model,”arXiv preprint arXiv:2406.09246, 2024.
+[9]K. Black, N. Brown, D. Driess, A. Esmail, M. Equi, C. Finn, N. Fusai, L. Groom, K. Hausman, B. Ichteret al., “π 0: A visionlanguage-action flow model for general robot control,”arXiv preprint arXiv:2410.24164, 2024.
+[10]A. Brohan, N. Brown, J. Carbajal, Y. Chebotar, X. Chen, K. Choromanski, T. Ding, D. Driess, A. Dubey, C. Finnet al., “Rt-2: Visionlanguage-action models transfer web knowledge to robotic control,” arXiv preprint arXiv:2307.15818, 2023.
+[11]Z. Liu, J. Zhang, K. Asadi, Y. Liu, D. Zhao, S. Sabach, and R. Fakoor, “Tail: Task-specific adapters for imitation learning with large pretrained models,” inInternational Conference on Learning Representations, vol. 2024, 2024, pp. 16 330–16 353. [12]R. R  ̈omer, Y. Zhang, Y. Li, and A. P. Schoellig, “Clare: Continual learning for vision-language-action models via autonomous adapter routing and expansion,”IEEE Robotics and Automation Letters, 2026. [13]Y. Lei, S. Mao, S. Zhou, H. Zhang, X. Li, and P. Luo, “Dynamic mixture of progressive parameter-efficient expert library for lifelong robot learning,”arXiv preprint arXiv:2506.05985, 2025.
+[14]E. J. Hu, Y. Shen, P. Wallis, Z. Allen-Zhu, Y. Li, S. Wang, L. Wang, and W. Chen, “Lora: Low-rank adaptation of large language models,” arXiv preprint arXiv:2106.09685, 2021.
+[15]S. Thrun and T. M. Mitchell, “Lifelong robot learning,”Robotics and autonomous systems, vol. 15, no. 1-2, pp. 25–46, 1995. [16]Physical Intelligence, K. Black, N. Brown, J. Darpinian, K. Dhabalia, D. Driess, A. Esmail, M. Equi, C. Finn, N. Fusaiet al., “π 0.5: A vision-language-action model with open-world generalization,”arXiv preprint arXiv:2504.16054, 2025.
+[17]A. Brohan, N. Brown, J. Carbajal, Y. Chebotar, J. Dabis, C. Finn, K. Gopalakrishnan, K. Hausman, A. Herzog, J. Hsuet al., “Rt-1: Robotics transformer for real-world control at scale,”arXiv preprint arXiv:2212.06817, 2022.
+[18]P. Kaushik, A. Vaidya, S. Chaudhari, R. Chellappa, and A. Yuille, “Shared lora subspaces for almost strict continual learning,”arXiv preprint arXiv:2602.06043, 2026.
+[19]F. Qiao and M. Mahdavi, “Merge before forget: A single lora continual learning via continual merging,” inInternational Conference on Learning Representations, vol. 2026, 2026, pp. 8133–8159. [20]T. Fukuda, H. Kera, and K. Kawamoto, “Adapter merging with centroid prototype mapping for scalable class-incremental learning,” in2025 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR). IEEE, 2025, pp. 4884–4893. [21]A. Beck and M. Teboulle, “A fast iterative shrinkage-thresholding
+
+
+algorithm for linear inverse problems,”SIAM journal on imaging sciences, vol. 2, no. 1, pp. 183–202, 2009. [22]N. Ding, X. Lv, Q. Wang, Y. Chen, B. Zhou, Z. Liu, and M. Sun, “Sparse low-rank adaptation of pre-trained language models,” in Proceedings of the 2023 conference on empirical methods in natural language processing, 2023, pp. 4133–4145.
+[23]S. Kornblith, M. Norouzi, H. Lee, and G. Hinton, “Similarity of neural network representations revisited,” inInternational conference on machine learning. PMlR, 2019, pp. 3519–3529. [24]S. Dasari, O. Mees, S. Zhao, M. K. Srirama, and S. Levine, “The ingredients for robotic diffusion transformers,” in2025 IEEE International Conference on Robotics and Automation (ICRA). IEEE, 2025, pp. 15 617–15 625. [25]M. Oquab, T. Darcet, T. Moutakanni, H. Vo, M. Szafraniec, V. Khalidov, P. Fernandez, D. Haziza, F. Massa, A. El-Noubyet al., “Dinov2: Learning robust visual features without supervision,”arXiv preprint arXiv:2304.07193, 2023.
+[26]A. Radford, J. W. Kim, C. Hallacy, A. Ramesh, G. Goh, S. Agarwal, G. Sastry, A. Askell, P. Mishkin, J. Clarket al., “Learning transferable visual models from natural language supervision,” inInternational conference on machine learning. PmLR, 2021, pp. 8748–8763.

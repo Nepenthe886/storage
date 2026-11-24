@@ -1,0 +1,382 @@
+Information-Theoretic Constraints for Continual
+Vision-Language-Action Alignment
+Libang Zhao1, Qixin Zeng2, Hongyin Zhang1, and Donglin Wang1,3
+1 Westlake University, China 2 University of Southampton, UK 3 wangdonglin@westlake.edu.cn
+Abstract.When deployed in open-ended robotic environments, Vision– Language–Action (VLA) models need to continually acquire new skills, yet suffer from severe catastrophic forgetting. We observe that this degradation is related to the deterioration of cross-modal information structure, where dependencies among visual observations, language instructions, and actions progressively diffuse during continual adaptation. But existing continual learning methods fail to preserve such cross-modal information dependencies. Thus, we proposeInfo-VLA, an informationpreserving continual learning framework that maintains cross-modal information structure through two complementary constraints.Replay Anchor Contrastive Learningconstructs stable alignment anchors from a frozen teacher model, preserving cross-modal alignment in the representation space.Cross-Modal Mutual Information Maximizationfurther preserves dependency structure between visual and language representations through mutual information constraints. By jointly preserving historical alignment and cross-modal dependency information, Info-VLA balances stability and plasticity during continual learning. Furthermore, experiments on the LIBERO show that Info-VLA significantly outperforms existing methods in both task retention and adaptation.
+Keywords:Vision-Language-Action model·Information-Theoretic·Continual Learning
+1 Introduction
+Vision-Language-Action (VLA) models have demonstrated remarkable zero-shot generalization ability in robotic manipulation tasks by jointly modeling multimodal perception and behavioral reasoning within a unified neural architecture [13,18,34,38]. As robotic applications expand into open-ended environments, models are demanded to support lifelong learning capability, continuously acquiring new skills while retaining previously learned knowledge. [16,17,21]. However, sequential training of VLA models [26,32] inevitably triggers catastrophic forgetting [11], where performance on old tasks degrades sharply as the model adapts to new ones [42]. More critically, VLA models involve multiple modalities, namely perception, language, and action, making the forgetting problem considerably
+arXiv:2603.13335v1 [cs.CV] 6 Mar 2026
+
+
+2 L. Zhao et al.
+Original
+after task 0
+after task 1
+Fig. 1:Deterioration of cross-modal information structure. After Task 1 ends, compared to the same task, attention diffusion begins.
+more complex [5,31]. In large-parameter models, the alignment of information across different modalities is progressively lost during this process [17,37].
+Existing mitigation paradigms, including Experience Replay (ER) [22], parameter regularization [1,40], and architectural expansion [20,23,29], fail to address this structural decoupling. A common limitation is that they treat VLA learning as task-by-task behavior fitting rather than preserving the historical structure of multimodal information. Specifically, ER methods focus on approximating historical marginal distributions through raw data recovery, yet they are insufficient for preserving fine-grained cross-modal relationships. Regularizationbased approaches, such as Elastic Weight Consolidation (EWC) [12,14], limit large weight changes but prove too rigid to accommodate the non-stationary semantic shifts inherent in VLA alignment. Similarly, modular expansion strategies avoid parameter interference at the cost of task isolation, precluding the mixed-modal dependencies essential for generalized behavior.
+In this work, we argue that catastrophic forgetting in VLA models largely arises from the degradation of cross-modal information structure during continual learning. Specifically, as illustrated in Fig.1, attention patterns for the same task become increasingly diffused after the model adapts to new tasks, indicating that the conditional dependencies between visual observations and language instructions are progressively distorted.
+To address this issue, we proposeInfo-VLA, an information-theoretic framework that preserves cross-modal information structure while allowing behavioral adaptation. Info-VLA achieves this goal through two complementary objectives. (1) Replay Anchor Contrastive Learningintroduces stable representation anchors derived from frozen teacher models, preventing newly learned behaviors from overwriting the structural organization of historical representations. (2) Cross-Modal Mutual Information Maximizationexplicitly preserves the statistical dependencies between visual and language representations, ensuring that cross-modal relationships remain consistent across task transitions. Together, these objectives maintain cross-modal information structure during
+
+
+Info-VLA 3
+continual learning, enabling VLA models to retain prior knowledge while acquiring new skills. The primary contributions are as follows:
+–We identify structural distortion of multimodal dependencies as a fundamental cause of catastrophic forgetting in VLA continual learning. –We propose Info-VLA, a unified framework that preserves cross-modal structural stability through replay-anchored contrastive learning and mutual information–based distillation. –Extensive evaluations show that Info-VLA establishes a new state-of-the-art in both task retention and adaptation efficiency.
+2 Related Work
+2.1 Vision-Language-Action Models
+Vision–Language–Action learning has emerged as a prominent and rapidly advancing direction in robot agents for open-ended world interaction [9,18,24]. Transformer-based approaches including ACT [39], RT-1 [4], RT-2 [43], and HPT [30] leverage sequence modeling to represent state–action–reward trajectories for improved decision-making. Video generation with inverse kinematics methods such as UniPi [10] and RoboDreamer [41] adopt a two-stage pipeline of motion video generation followed by action recovery. LLM–diffusion hybrid methods such as Octo [28] combine multimodal language representations with diffusion-based action generation. As for MoE-based frameworks, theπ 0 family [3] reformulates action generation as Flow Matching, whileπ 0.5 [2] further achieves open-world generalization through heterogeneous task co-training. Unlike prior approaches that focus on single-phase training or task-specific generalization, our method addresses catastrophic forgetting and cross-modal misalignment in VLA continual learning via information-theoretic constraints.
+2.2 Continual Learning in VLA Model
+While Continual Imitation Learning mitigates catastrophic forgetting via parameter expansion or task decomposition, these approaches struggle to scale to large VLA models due to either parameter explosion or computational overhead [12,12,19,19,22,40,40]. Recent work proposes Stellar VLA [35], a knowledgedriven continual learning framework that enables VLA models to sequentially learn new manipulation tasks through self-supervised knowledge evolution and knowledge-guided expert routing. Recent work [15] put forward a unified posttraining framework that enables continual adaptation of VLA models to diverse tasks through context-aware meta co-training, reducing task-specific fine-tuning costs while improving generalization. CRL-VLA [36] addresses the stabilityplasticity dilemma in continual robotic learning via a dual-critic architecture with goal-conditioned value formulation. Unlike these methodologies, our work focuses on cross-modal alignment preservation in VLA continual learning, ensuring that the conditional dependencies between vision, language, and action modalities are maintained across sequential task adaptation.
+
+
+4 L. Zhao et al.
+2.3 Contrastive learning in VLA Model
+Contrastive learning enables large multimodal model like VLA to learn robust and generalizable representations by capturing the intrinsic alignment between visual, linguistic, and action modalities [6,7,7,33]. Specifically, addressing the limited sensitivity of VLA models to robotic signals recent work proposes that enhances control-relevant representation learning by aligning embeddings with proprioceptive states using relative state distances as soft supervision [27]. VLAR [25] aligns vision-language embeddings with action embeddings through visionaction contrastive learning, enabling effective open-world reasoning and action retrieval. Different from these works, we focus on leveraging contrastive learning to explicitly maintain cross-modal alignment across sequential tasks, preventing the degradation of VLA dependencies during continual learning.
+3 Preliminaries
+We consider a VLA policy that maps multimodal observations and language instructions to a sequence of robot actions. At time stept, the observation is defined aso t = [I0
+t ,...,In
+t , qt], whereI i
+t denotes the image captured by camerai, andq t represents the robot proprioceptive state, including joint angles, gripper pose, torso height, and base velocity. The high-level task instruction is denoted asl. The policy models a joint conditional distribution over a sequence of action chunksa t:t+H and an intermediate subtask description lˆ,π θ(at:t+H , lˆ|o t, l). Herea t:t+H denotes a horizon-Haction sequence starting from timet, and lˆis a discrete textual variable representing the inferred subtask. The joint distribution can be factorized as:
+πθ(at:t+H , lˆ|o t, l) =π θ(at:t+H |o t, lˆ)πθ(lˆ|o t, l).
+The first term models low-level action execution conditioned on the observation and inferred subtask, while the second term captures high-level subtask inference conditioned on the observation and the overall instruction. Moreover, in the continual learning setting, we consider a sequence of tasks T0,T 1, . . . ,T n, where the policy must adapt to new tasks while preserving previously acquired capabilities. For each taskT k, demonstrations are provided as Dk ={(o k
+t , ak
+t , lk)}Tk
+t=1. At the base stage (k= 0), only datasetD 0 is available. During training process (k >0), training has access only to the current dataset Dk and a memory bufferMstoring limited past samples, while the remaining historical data are unavailable.
+4 Methodology
+In this section, we first introduce the core principles of Info-VLA for preserving cross-modal alignment. We then present its two key components, followed by the overall training objective and pipeline.
+
+
+Info-VLA 5
+Pre-trained VLM SigLip(400M) + Gemma(2.6B)
+Text
+KQV Shared Attention FFN
+KQV
+FFN
+Action Embeding
+State.
+<Text> <Vision> <State>
+✖ N Blocks ✖ N Blocks
+LCL <Text_out> <Vision_out>
+New Data
+Img1 Img2 Img3
+Noised
+<State_out>
+🔥
+🔥🔥
+❄
+Buff
+New Data
+Buff
+Anchor
+New Data Vision Embeding
+Old Data Vision Embeding
+Text Embedding
+(Student) Current Model
+🔥 (Teacher) Previous Model
+❄
+Structure After Learning New Task
+Structure Of The Previous Task
+Past Structure Guidance
+Cross-model Mutual Information Structure Preservation
+Replay Anchor Contrastive Learning
+Mask
+Attract
+Repulse
+Preserve VisionLanguage Structure
+Fig. 2:The proposed architecture consists of two main components. Left: this part depicts the model’s data flow, covering input feature composition, prediction generation, and the structured action space representation. Right: this section illustrates key approach, leveraging replay-anchored contrastive learning to retain historical task knowledge and vision–language mutual information regularization to enforce crossmodal structural consistency.
+4.1 Structural Principles of Info-VLA
+Empirically, as shown in Fig.1, the first row depicts the original observations of the task, and the second row shows the corresponding cross-modal attention maps after Task 0 training. At this stage, high-response regions are mainly concentrated on instruction-relevant objects and interaction areas, such as the target cups, containers, and the end-effector vicinity, with the highlighted regions exhibiting relatively compact and consistent attention patterns. In contrast, the third row shows the attention maps after Task 1 training, revealing a clear diffusion effect: high-response regions spread from task-relevant targets to irrelevant background areas, while responses on key objects weaken and fragment. Continual adaptation introduces interference: the conditional dependencies between visual and linguistic modalities diffuse across modality boundaries and are not stably preserved. Consequently, task-discriminative visual cues are increasingly corrupted, reducing the model’s ability to extract and localize instructionrelevant information. For example, when the instruction refers to grasping a cup, attention may partially drift toward background textures, while for instructions emphasizing object placement, attention may shift from the target container toward the robot arm body or the tabletop. This observation indicates that the significant challenge in continual VLA learning is the lack of a stable source of alignment together with the progressive corruption of cross-modal dependency structure. Therefore, an effective continual cross-modal alignment requires two essential conditions: stable reference anchors that preserve historically established correspondences, and explicit structural constraints that maintain these correspondences during subsequent updates. We present Info-VLA, a replay-based distillation framework for continual learning in VLA models, as shown in Fig.2. After completing training on each task, the model is frozen and used as theteachermodel for the subsequent task stage.
+
+
+6 L. Zhao et al.
+During new task training, the currentstudentmodel preserves previously established cross-modal structures through two key components: Replay-Anchored Contrastive (RAC) learning and Cross-Modal Mutual Information (CMI) preservation.
+4.2 Replay Anchor Contrastive
+Before enforcing cross-modal alignment constraints, representational interference between new and historical tasks must first be suppressed to achieve effective separation of task-specific representations. Such separation reduces overlap between task feature spaces and provides a more stable visual latent space for subsequent cross-modal alignment, establishing a structurally consistent foundation for further optimization.
+Based on this analysis, the RAC learning framework is introduced to sustain model plasticity. Unlike traditional contrastive learning methods that rely on data augmentation or multi-view sampling, RAC derives anchor representations from a frozen teacher model, providing temporally consistent and stable reference benchmarks. As illustrated on the right side of Fig.2, RAC integrates contrastive mechanisms with a replay anchor strategy, utilizing historically stored samples as references to prevent the overwriting of previously learned representations during new task training. Crucially, the anchor representations from the frozen teacher model inherently preserve the visual–linguistic alignment structure established during pre-training. This allows the contrastive objective to impose task-level discriminative constraints while providing a stable supervisory source for crossmodal feature alignment.
+As a result, newly acquired behaviors do not disrupt reasoning grounded in historical representation coordinates. Specifically, at the end of each training stage, a teacher modelπ θ− is created by copying the student model. Its parameters remain frozen during subsequent training. Replay buffer samples are processed by the teacher modelf θ−(·)to extract latent visual embeddings
+V qi
+t ,li
+Anchor =f θ−(oi
+t, li), which serve as anchors. These embeddings are obtained from the cross-attention layer that fuses visual, task descriptionl, and proprio
+ceptive stateq t. Positive samplesV oi
+t ,li
+pos =f θ(oi
+t, li)are generated by feeding the same replay samples into the student modelf θ(·), ensuring that positive pairs correspond to representations of identical trajectories under both the teacher
+and student models. Negative samplesV oj
+t ,lj
+neg =f θ(oj
+t , lj)(j̸=i)are defined as all other student representations within the batch, including samples drawn from both previous and current tasks. This construction serves two key purposes. First, positive pairs strictly correspond to identical trajectories, thereby avoiding semantic ambiguity. Second, samples from new tasks naturally act as negative examples, promoting separation between old and new task representations in the latent space and reducing representational interference. Based on this design, an
+
+
+Info-VLA 7
+asymmetric contrastive learning objective is adopted:
+LRAC =E (o,l)∼Dt∪M
+
+
+−log
+exp
+D
+V oi
+t,li , V oi
+t ,li Anchor
+E
+/τ
+P
+j∈B exp
+D
+V oi
+t,li , V oj
+t ,lj Anchor
+E
+/τ
+
+
+ . (1)
+whereτdenotes the temperature parameter. Given a subsetBof old-task samples within a mini-batch, the contrastive loss is defined as follows. This objective
+encourages the student model’s visual representationsV oi
+t ,li
+pos for old-task samples
+to align with their corresponding teacher anchorsV oi
+t ,li
+Anchor, while simultaneously increasing their separation from other representations in the batch, particularly those associated with new-task samples. By guiding new task representations to converge toward the alignment manifold defined by the anchors, RAC alleviates inter-task interference and establishes a structurally consistent feature foundation for subsequent mutual information-based cross-modal distillation.
+4.3 Cross-Modal Mutual Information
+Contrastive learning constrains pairwise distances among latent representations, stabilizing the optimization trajectory during continual adaptation. However, such pairwise alignment mechanisms do not explicitly preserve global dependency structures across modalities between model states at different time steps. In continual cross-modal learning, catastrophic forgetting manifests not only as representational drift but also as systematic distortion of the joint action–language distribution. Therefore, cross-modal structural consistency between the prior teacher model and the current student model must be explicitly maintained. To address this limitation, cross-modal structure is preserved by maintaining the statistical dependency between visual and textual representations under language conditioning, rather than enforcing pointwise activation imitation. The teacher network produces visual–text latent representationsZ old, while the student network generates corresponding representationsZ new. The formulation is illustrated in the CMI section on the right side of the Fig.2. The teacher representation space encodes rich semantic dependency structures, including intersample similarities, class decision boundaries, and hierarchical conceptual relationships. Such structural information is not reflected in any individual activation value. Instead, it is distributed across the statistical properties of the overall representation distribution. By maximizing the mutual information) between the teacher’s visual–language latent representationsZ old and the student’s corresponding representationsZ new, structural guidance is imposed on the student’s representation space. This objective preserves cross-modal structural consistency throughout the continual learning process:
+LMI =−I Znew;Z old =−D KL p(Znew, Zold)∥p(Znew)p(Zold) , (2)
+whereD KL denotes the Kullback–Leibler (KL) divergence. The mutual information is zero if and only ifZ old andZ new are statistically independent. Conversely, a large mutual information value indicates that the joint distribution
+
+
+8 L. Zhao et al.
+p(Zold, Znew)deviates substantially from the product of their marginal distributions. In this case, sample pairs regarded as semantically similar by the teacher tend to exhibit similar statistical behavior in the student’s representation space, and the teacher’s category-boundary structures are implicitly transferred to the student. The joint distributionp(Z old, Znew)is parameterized by concatenating the two representations and passing the result through a two-layer Multi-Layer Perceptron (MLP):p(Z old, Znew) =M LP(F([z old, znew])). The marginal distributions are estimated independently as:
+p(Zold) =F(z old),
+p(Znew) =F(z new), (3)
+whereF(·)denotes a shared projection function,F(z) =sof tmax(V·L ⊤),V andLdenote the visual and language projection matrices. This design makes the mutual information estimator fully end-to-end differentiable and seamlessly integrates it into the unified training framework. Since mutual information maximization does not impose explicit constraints on the marginal distributions, it may lead to degenerate solutions in which the marginals become overly sharp without fully collapsing. To mitigate this issue, a marginal consistency regularization term is introduced to align the global behavioral-intention distributions of the student and teacher models. This regularization enforces consistency in their global decision tendencies, thereby preserving the coherence of the student’s overall reasoning process. The corresponding regularization term is defined as follows:
+LMC =D KL(p(Znew)∥p(Zold)). (4)
+This marginal consistency term encourages the student model to maintain similar global distributional statistics as the teacher model while allowing flexibility at the instance level. Importantly, this regularization operates at the distribution level rather than enforcing pointwise alignment, thereby preserving semantic structure without restricting model plasticity. The unified structural preservation objective is defined as follows:
+LCMI =L MI +L MC . (5)
+4.4 Overall Objective and Training Pipeline
+We performs continual post-training on the policyπ 0.5 that is pre-trained on large-scale web data. To maintain the stability of the multimodal backbone during continual adaptation, only the parameters of the action head are updated while the visual–language encoder remains frozen. The base training objective follows the flow-matching formulation used in the original policy learning process:
+LCL = ω−a t:t+H −f a
+θ aτ,ω
+t:t+H ,o t, l 2 , (6)
+
+
+Info-VLA 9
+Algorithm 1Training Procedure of Info-VLA
+Require:Pretrained VLA policyπ θ, tasks{T k}K
+k=0 .
+1:fork= 0toK: 2:ifk= 0: 3:Trainπ θ0 onT 0 by Eq.6 4:Freezeπ θ0 5:Each task stores a single trajectory toM old 6:else:
+7:D k =T k ∪ Mold
+8:foreach training iteration: 9:Sample batchB ∼ D k, 10:Compute lossesLby Eq.7 11:Updateθvia gradient descent onL 12:Freezeπ θk and Store one trajectory toM old
+13:Continually adapted VLA policies{π θk }K
+k=0
+whereτ∈[0,1]denotes the flow-matching time index,ω∼ N(0, I)represents Gaussian noise, and(a, o, l)∈D∪ Mcorresponds to samples drawn from the current dataset and the replay memory. The predictiony a
+1:H =f a
+θ (aτ,ω
+t:t+H ,o t, l)
+is produced by a lightweight action expert. Therefore, the overall training objective integrates the Replay Anchor Contrastive loss and the Cross-Modal Mutual Information loss as:
+L=L CL +λ 1LRAC +λ 2LCMI, (7)
+whereλ 1 andλ 2 control the relative contributions of the contrastive distillation lossL RAC and the cross-modal mutual information lossL CMI. The complete continual learning procedure of Info-VLA is summarized in Algorithm1. The policy is first trained on the initial taskT 0 using Eq.6, after which the resulting policy is frozen as the teacher model. For subsequent tasks, training batches are sampled from the union of the current task data and the replay memory, and the policy parameters are updated by optimizing the full objective in Eq.7.
+5 Evaluation
+Having presented Info-VLA for mitigating catastrophic forgetting and preserving cross-modal consistency, we now evaluate its effectiveness through a comprehensive experimental analysis, including detailed setup, performance comparisons, and ablation studies.
+5.1 Experimental Setup
+Implementation Details.Experiments employ the LIBERO benchmark [16], specifically designed for continual learning. The model employsπ 0.5 [2] as the pretrained foundation model. Several configurations are defined using the notation
+
+
+10 L. Zhao et al.
+Table 1:Performance comparison of different methods on the LIBERO-LongB5-5N1 benchmark. Old denotes the average success rate on previously learned tasks, All denotes the average success rate over all encountered tasks, and AA summarizes average success across the entire continual learning sequence. Bold denotes best performance.
+methods Base Task1 Task2 Task3 Task4 Task5 AA Old All Old All Old All Old All Old All
+multitask 92.4 92.4 92.4 92.4 92.4 Sequential 80.8 8.8 22.3 24.0 32.0 0.0 11.5 9.0 18.4 0.8 10.0 29.2 EWC 80.8 7.2 10.3 8.0 12.0 0.0 6.0 9.7 19.3 6.2 15.4 24.0 ER 80.8 63.6 64.3 75.6 78.0 68.3 72.3 67.0 69.8 64.0 66.6 72.0 Ours 80.872.8 75.0 83.3 82.3 71.4 74.5 84.7 86.0 71.0 73.6 78.7
+Bi-kN m. This notation indicates that the policy is first trained onibase tasks, followed by the incremental addition ofmtasks at each step for a total ofk steps. Evaluation is conducted on two benchmarks: (1) 10 sequential long-horizon tasks from LIBERO-Long, and (2) the first five tasks from LIBERO-Goal. Both benchmarks require the robot to understand natural language instructions and execute multi-step actions, including object picking, drawer manipulation, and knob rotation.B5-5N1is adopted for LIBERO-Long, andB0-5N1is adopted for LIBERO-Goal. For past tasks, one trajectory is randomly stored for each task. The hyperparameterλ 1 andλ 2 are set to 0.1. Base training with Base task runs for 3,000 iterations in total. Each incremental step is trained for 600 iterations.
+Metrics.Performance is evaluated using five quantitative metrics: [8,16]: the
+area under the accurate-rate curve(AUC):AU C= 1
+N
+PN i=1
+1
+N−i+1
+PN
+j=i Ri,j ,
+the forward transfer (FWT):F W T= 1
+N−i+1
+PN
+i=1 Ri,i, negative backward trans
+fer(BNT):N BT= 1
+N−1
+PN−1 i=1
+1 N−i
+PN
+j=i+1 Ri,i −R i,j , final average accu
+rate(FAA) rateF AA= 1
+N
+PN
+i=1 Ri,N and the average accurate(AA):AA=
+1 N
+PN j=1
+1 j
+Pj
+i=1 Ri,j . Suppose that after learningjtasks, the success rate on
+the i-th task is denoted asR i,j. Overall, AUC reflects overall performance, FWT measures learning ability, NBT quantifies forgetting, FAA denotes all task final mean accuracy, and AA denotes mean task accuracy.
+Baselines.Multitask[16] jointly trains on all tasks with full access to historical data, serving as the upper bound for continual learning.Sequential[16] fine-tunes all parameters per task without any forgetting mitigation, typically suffering severe catastrophic forgetting.ER[22] uses one stored trajectory per task as replay data, mixed with new task data for continual training.EWC[12] mitigates forgetting via Fisher Information Matrix-based quadratic penalties on important parameters.
+
+
+Info-VLA 11
+Table 2:Performance comparison of different methods on the LIBERO-GoalB0-5N1 benchmark. Continual learning proceeds directly from the original pre-trained model. Old denotes the average success rate on previously learned tasks, All denotes the average success rate over all encountered tasks, and AA summarizes average success across the entire continual learning sequence. Bold denotes best performance.
+methods Task1 Task2 Task3 Task4 Task5 AA All Old All Old All Old All Old All
+multitask 98.4 98.4 98.4 98.4 98.4 Sequential 94.0 2.0 40.0 6.0 34.0 0.0 22.5 1.0 20.0 42.1 EWC 96.0 12.0 49.0 9.0 24.0 3.0 25.0 4.0 21.0 43.0 ER 96.0 48.0 63.0 52.0 63.3 44.7 56.0 43.0 53.6 67.2 Ours 98.0 68.0 73.0 56.0 67.3 54.7 64.0 55.0 64.0 73.3
+Table 3:Ablation study of individual components. Evaluated on the LIBERO-Long B5-5N1benchmark. Ablation experiments are conducted to analyze the contributions of Replay Anchor Contrastive (RAC) Learning and Cross-Modal Mutual Information (CMI) Maximization. The best success rate is marked in red.
+RAC CMI AUC↑FWT↑NBT↓FAA↑
+× × 73.9 88.4-4.366.6
+√ × 78.5 89.4 -0.4 73.5
+× √ 79.3 88.8 -4.1 68.6
+√ √ 81.091.2-1.073.6
+5.2 Main Results
+Firstly, to evaluate the overall performance of Info-VLA, we conduct experiments on the Libero-LongB5-5N1benchmark, which contains ten sequential tasks. The first five tasks serve as base tasks for initial training, followed by five incremental tasks introduced one at a time. Table1compares our method with baseline approaches, showing that Info-VLA consistently achieves the highest overall performance across all stages. Compared to the best-performing ER baseline, Info-VLA improves old-task, overall, and phase-wise accuracy by approximately 6–9%, demonstrating a superior stability–plasticity trade-off. Furthermore, the effectiveness of the proposed method is evaluated under a setting where continual learning is performed without task-specific adaptation. Results on the LIBERO-GoalB0-5N1benchmark are reported in Table2. Compared to the best-performing ER baseline, Info-VLA improves old-task, overall, and phase-wise accuracy by approximately 5–10%. Secondly, to analyze learning dynamics during incremental stages, we examine per-task success rates across all steps (Fig.3). The results indicate that Info-VLA substantially mitigates catastrophic forgetting and outperforms existing baselines on most tasks. Performance on some tasks improves in later stages,
+
+
+12 L. Zhao et al.
+012345 Number of learned Steps
+0.0
+0.2
+0.4
+0.6
+0.8
+Success Rate
+Task 1
+012345 Number of learned Steps
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Success Rate
+Task 2
+012345 Number of learned Steps
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Success Rate
+Task 3
+012345 Number of learned Steps
+0.0
+0.2
+0.4
+0.6
+0.8
+Success Rate
+Task 4
+012345 Number of learned Steps
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Success Rate
+Task 5
+012345 Number of learned Steps
+0.0
+0.2
+0.4
+0.6
+0.8
+Success Rate
+Task 6
+012345 Number of learned Steps
+0.0
+0.2
+0.4
+0.6
+0.8
+Success Rate
+Task 7
+012345 Number of learned Steps
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Success Rate
+Task 8
+012345 Number of learned Steps
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Success Rate
+Task 9
+012345 Number of learned Steps
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Success Rate
+Task 10
+ER EWC Sequential Ours
+Fig. 3:The evolution of success rates for our method compared with five baseline methods on the LIBERO-LongB5-5N1benchmark. Solid curves represent the average success rates across three runs with different random seeds, and the shaded areas correspond to standard deviation.
+as indicated by negative NBT values (Table3), likely due to shared trajectories between early and later tasks. Finally, to assess how well Info-VLA preserves cross-modal representations, we compare vision–language–action cross-attention patterns under three settings: after base-task training, after the first incremental step using ER, and after the first incremental step using Info-VLA (Fig.4). Visualization results demonstrate that Info-VLA better maintains the original attention patterns from the base stage compared to ER, confirming the effectiveness of integrating contrastive learning with mutual information optimization for preserving crossmodal structure.
+5.3 Ablation Study
+We conduct ablation studies on both hyperparameters and model components. (1) Hyperparameter analysis.Results show FAA on the LIBERO-Long B5-5N1benchmark. We analyze the influence of the weighting coefficientsλ 1 andλ 2. As shown in Fig.5, we first setλ 1 =λ 2 to determine a reasonable operating point. The best performance is obtained whenλ 1 =λ 2 = 0.1. We then vary λ2 while fixingλ 1 = 0.1, and vice versa. In both cases, the optimal performance remains at0.1, indicating that the method is relatively stable with respect to these hyperparameters. Therefore,λ 1 =λ 2 = 0.1is used in all experiments. (2) Component ablation.We use ER as the baseline and evaluate the two key components, RAC and CMI, individually. As shown in Table3, each component improves performance over the baseline across metrics including AUC, FWT, and FAA. RAC significantly improves AUC and FAA, indicating stronger knowledge retention, while the CMI consistently enhances overall performance
+
+
+Info-VLA 13
+BASE
+ER
+Ours
+put the white mug on the plate and put the chocolate pudding to the right of the plate
+put both moka pots on the stove
+turn on the stove and put the moka pot on it
+Similar
+Difference
+Similar
+Difference
+Similar
+Difference
+Similar Similar
+Difference
+Original
+Difference
+Fig. 4:Ablation Study on Mutual Information Structure Preservation. BASE denotes the representation structure immediately after learning the target task. ER and Ours illustrate the representation structure of the same task after subsequent training on a new task. Red boxes indicate similarity, while orange boxes indicate dissimilarity.
+0.1 0.2 0.3 0.4 0.5 0.6 0.7
+0.70
+0.71
+0.72
+0.73
+Success Rate
+1 2 2= 1
+Fig. 5:Ablation study.λ 1 andλ 2 are hyperparameters that balance the contributions of the RAC and CMI losses. Whenλ 1 is varied,λ 2 is fixed at 0.1 ,λ 2 is varied,λ 1 is fixed at 0.1. Final average accuracy with varying values ofλ.
+by preserving cross-modal structure. Combining both components yields further improvements, demonstrating their complementary effects and confirming that Info-VLA achieves a better stability–plasticity trade-off.
+6 Conclusion
+This work investigates catastrophic forgetting in continual VLA learning and identifies the degradation of cross-modal representation structure as a key cause of performance deterioration. As models adapt to new tasks, the alignment among visual observations, language instructions, and actions gradually drifts, leading to unstable policies and inconsistent latent representations. To address this issue, we proposeInfo-VLA, an information-preserving continual learning framework that combines replay-anchored contrastive alignment with crossmodal mutual information regularization. Experiments on the LIBERO benchmark show that Info-VLA consistently outperforms existing continual learning baselines, achieving higher task performance while substantially mitigating catastrophic forgetting. We are currently exploring continual learning experiments on real robotic platforms to further evaluate the practicality of Info-VLA in real-world settings.
+
+
+14 L. Zhao et al.
+References
+1.Ahn, H., Cha, S., Lee, D., Moon, T.: Uncertainty-based continual learning with adaptive regularization. Advances in neural information processing systems32 (2019) 2.Black, K., Brown, N., Darpinian, J., Dhabalia, K., Driess, D., Esmail, A., Equi, M., Finn, C., Fusai, N., et al.: Pi0.5: A vision-language-action model with open-world generalization. arXiv preprint arXiv:2504.16054 (2025) 3.Black, K., Brown, N., Driess, D., Esmail, A., Equi, M., Finn, C., Fusai, N., Groom, L., Hausman, K., Ichter, B., et al.: Pi0: A vision-language-action flow model for general robot control. arXiv preprint arXiv:2410.24164 (2024) 4.Brohan, A., Brown, N., Carbajal, J., Chebotar, Y., Dabis, J., Finn, C., Gopalakrishnan, K., Hausman, K., Herzog, A., Hsu, J., et al.: Rt-1: Robotics transformer for real-world control at scale. arXiv preprint arXiv:2212.06817 (2022) 5.Chee, E., Hsu, W., Lee, M.L.: Multi-modal continual learning via cross-modality adapters and representation alignment with knowledge preservation. ArXiv abs/2511.06723(2025).https://doi.org/10.3233/faia250918
+6.Chen, T., Kornblith, S., Norouzi, M., Hinton, G.: A simple framework for contrastive learning of visual representations. In: International conference on machine learning. pp. 1597–1607. PmLR (2020) 7.Chen, Y., He, T., Fu, J., Wang, L., Guo, J., Cheng, H.: Vision-language meets the skeleton: Progressively distillation with cross-modal knowledge for 3d action representation learning. IEEE Transactions on Multimedia27, 2293–2303 (2024). https://doi.org/10.1109/tmm.2024.3521718
+8.Díaz-Rodríguez, N., Lomonaco, V., Filliat, D., Maltoni, D.: Don’t forget, there is more than forgetting: New metrics for continual learning. arXiv preprint arXiv:1810.13166 (2018) 9.Din, M.u., Akram, W., Saoud, L.S., Rosell, J., Hussain, I.: Vision language action models in robotic manipulation: A systematic review. arXiv preprint arXiv:2507.10672 (2025) 10.Du, Y., Yang, M., Dai, B., Dai, H., Nachum, O., Tenenbaum, J.B., Schuurmans, D., Abbeel, P.: Learning universal policies via text-guided video generation. In: Proceedings of the 37th International Conference on Neural Information Processing Systems. pp. 9156–9172 (2023) 11.French, R.M.: Catastrophic forgetting in connectionist networks. Trends in cognitive sciences3(4), 128–135 (1999) 12.Huszár, F.: Note on the quadratic penalties in elastic weight consolidation. Proceedings of the National Academy of Sciences115(11), E2496–E2497 (2018) 13.Kim, M.J., Pertsch, K., Karamcheti, S., Xiao, T., Balakrishna, A., Nair, S., Rafailov, R., Foster, E.P., Sanketi, P.R., Vuong, Q., et al.: Openvla: An open-source vision-language-action model. In: Conference on Robot Learning. pp. 2679–2713. PMLR (2025) 14.Kirkpatrick, J., Pascanu, R., Rabinowitz, N., Veness, J., Desjardins, G., Rusu, A.A., Milan, K., Quan, J., Ramalho, T., Grabska-Barwinska, A., et al.: Overcoming catastrophic forgetting in neural networks. Proceedings of the national academy of sciences114(13), 3521–3526 (2017) 15.Li, C., Yang, Z., Zhang, H., Chen, F., Zhu, C., Bolimera, A., Savvides, M.: Metavla: Unified meta co-training for efficient embodied adaption. arXiv preprint arXiv:2510.05580 (2025)
+
+
+Info-VLA 15
+16.Liu, B., Zhu, Y., Gao, C., Feng, Y., Liu, Q., Zhu, Y., Stone, P.: Libero: Benchmarking knowledge transfer for lifelong robot learning. Advances in Neural Information Processing Systems36, 44776–44791 (2023) 17.Liu, Y., Hong, Q., Huang, L., Gomez-Villa, A., Goswami, D., Liu, X., Weijer, J., Tian, Y.: Continual learning for vlms: A survey and taxonomy beyond forgetting. ArXivabs/2508.04227(2025).https://doi.org/10.48550/arxiv.2508.04227 18.Ma, Y., Song, Z., Zhuang, Y., Hao, J., King, I.: A survey on vision-language-action models for embodied ai. arXiv preprint arXiv:2405.14093 (2024) 19.Malagon, M., Ceberio, J., Lozano, J.A.: Self-composing policies for scalable continual reinforcement learning. arXiv preprint arXiv:2506.14811 (2025) 20.Mallya, A., Lazebnik, S.: Packnet: Adding multiple tasks to a single network by iterative pruning. In: Proceedings of the IEEE conference on Computer Vision and Pattern Recognition. pp. 7765–7773 (2018) 21.Meng, Y., Bing, Z., Yao, X., Chen, K., Huang, K., Gao, Y., Sun, F., Knoll, A.: Preserving and combining knowledge in robotic lifelong reinforcement learning. Nature Machine Intelligence7, 256 – 269 (2025).https://doi.org/10.1038/ s42256-025-00983-2
+22.Rolnick, D., Ahuja, A., Schwarz, J., Lillicrap, T., Wayne, G.: Experience replay for continual learning. Advances in neural information processing systems32(2019) 23.Rusu, A.A., Rabinowitz, N.C., Desjardins, G., Soyer, H., Kirkpatrick, J., Kavukcuoglu, K., Pascanu, R., Hadsell, R.: Progressive neural networks. arXiv preprint arXiv:1606.04671 (2016) 24.Sapkota, R., Cao, Y., Roumeliotis, K.I., Karkee, M.: Vision-language-action models: Concepts, progress, applications and challenges. arXiv preprint arXiv:2505.04769 (2025) 25.Seong, H., Moon, S., Ahn, H., Kang, J., Shim, D.H.: Vla-r: Vision-language action retrieval toward open-world end-to-end autonomous driving. arXiv preprint arXiv:2511.12405 (2025) 26.Shi, H., Xu, Z., Wang, H., Qin, W., Wang, W., Wang, Y., Wang, Z., Ebrahimi, S., Wang, H.: Continual learning of large language models: A comprehensive survey. ACM Computing Surveys58(5), 1–42 (2025) 27.Syed, S.N., Ahuja, Y., Jakobsson, A., Ichnowski, J.: Expres-vla: Specializing vision-language-action models through experience replay and retrieval. ArXiv abs/2511.06202(2025).https://doi.org/10.48550/arxiv.2511.06202
+28.Team, O.M., Ghosh, D., Walke, H., Pertsch, K., Black, K., Mees, O., Dasari, S., Hejna, J., Kreiman, T., Xu, C., et al.: Octo: An open-source generalist robot policy. arXiv preprint arXiv:2405.12213 (2024) 29.Wang, H., Lu, H., Yao, L., Gong, D.: Self-expansion of pre-trained models with mixture of adapters for continual learning. In: Proceedings of the Computer Vision and Pattern Recognition Conference. pp. 10087–10098 (2025) 30.Wang, L., Chen, X., Zhao, J., He, K.: Scaling proprioceptive-visual learning with heterogeneous pre-trained transformers. In: Proceedings of the 38th International Conference on Neural Information Processing Systems. pp. 124420–124450 (2024) 31.Wang, L., Zhang, X., Su, H., Zhu, J.: A comprehensive survey of continual learning: Theory, method and application. IEEE Transactions on Pattern Analysis and Machine Intelligence46, 5362–5383 (2023).https://doi.org/10.1109/tpami. 2024.3367329
+32.Wang, L., Zhang, X., Su, H., Zhu, J.: A comprehensive survey of continual learning: Theory, method and application. IEEE transactions on pattern analysis and machine intelligence46(8), 5362–5383 (2024)
+
+
+16 L. Zhao et al.
+33.Wang, Y., Hu, W., Dong, Y., Zhang, H., Su, H., Hong, R.: Exploring transferability of multimodal adversarial samples for vision-language pre-training models with contrastive learning. IEEE Transactions on Multimedia27, 6410–6421 (2023). https://doi.org/10.1109/tmm.2025.3581811
+34.Wang, Y.Q., Li, X., Wang, W., Zhang, J., Li, Y., Chen, Y., Wang, X., Zhang, Z.: Unified vision-language-action model. ArXivabs/2506.19850(2025).https: //doi.org/10.48550/arxiv.2506.19850
+35.Wu, Y., Wang, G., Yang, Z., Yao, M., Sheil, B., Wang, H.: Continually evolving skill knowledge in vision language action model. arXiv preprint arXiv:2511.18085 (2025) 36.Zeng, Q., Zhang, S., Zhang, H., Wang, R., Zhao, H., Zhao, L., Li, R., Wang, D., Huang, C.: Crl-vla: Continual vision-language-action learning (2026),https: //arxiv.org/abs/2602.03445
+37.Zhai, Y., Tong, S., Li, X., Cai, M., Qu, Q., Lee, Y.J., Ma, Y.: Investigating the catastrophic forgetting in multimodal large language models. ArXiv abs/2309.10313(2023).https://doi.org/10.48550/arxiv.2309.10313
+38.Zhao, Q., Lu, Y., Kim, M.J., Fu, Z., Zhang, Z., Wu, Y., Li, Z., Ma, Q., Han, S., Finn, C., Handa, A., Liu, M.Y., Xiang, D., Wetzstein, G., Lin, T.Y.: Cot-vla: Visual chain-of-thought reasoning for vision-language-action models. 2025 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) pp. 1702–1713 (2025).https://doi.org/10.1109/cvpr52734.2025.00166
+39.Zhao, T.Z., Kumar, V., Levine, S., Finn, C.: Learning fine-grained bimanual manipulation with low-cost hardware. arXiv preprint arXiv:2304.13705 (2023) 40.Zhao, X., Wang, H., Huang, W., Lin, W.: A statistical theory of regularizationbased continual learning. arXiv preprint arXiv:2406.06213 (2024) 41.Zhou, S., Du, Y., Chen, J., Li, Y., Yeung, D.Y., Gan, C.: Robodreamer: Learning compositional world models for robot imagination. In: International Conference on Machine Learning. pp. 61885–61896. PMLR (2024) 42.Zhou, Z., Zhu, Y., Zhu, M., Wen, J., Liu, N., Xu, Z., Meng, W., Cheng, R., Peng, Y., Shen, C., Feng, F.: Chatvla: Unified multimodal understanding and robot control with vision-language-action model. ArXivabs/2502.14420(2025).https://doi. org/10.48550/arxiv.2502.14420
+43.Zitkovich, B., Yu, T., Xu, S., Xu, P., Xiao, T., Xia, F., Wu, J., Wohlhart, P., Welker, S., Wahid, A., et al.: Rt-2: Vision-language-action models transfer web knowledge to robotic control. In: Conference on Robot Learning. pp. 2165–2183. PMLR (2023)
